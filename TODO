@@ -1,0 +1,6 @@
+# TODOs
+
+- [] replace ~ with !
+- [] multiline string [[\n]] with """\n"""
+- [] multiline comment --[[\n]] with -->\n<--
+- [] 'if' without 'then', 'for'/'while' without 'do'
