@@ -41,9 +41,9 @@ RANLIB= ranlib
 PLATS= aix ansi bsd freebsd generic linux macosx mingw posix solaris
 
 # What to install.
-TO_BIN= lua luac
+TO_BIN= ../bld/lua ../bld/luac
 TO_INC= lua.h luaconf.h lualib.h lauxlib.h ../etc/lua.hpp
-TO_LIB= liblua.a
+TO_LIB= ../obj/liblua.a
 TO_MAN= lua.1 luac.1
 
 # Lua version and release.

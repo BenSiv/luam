@@ -944,6 +944,50 @@ static void assignment (LexState *ls, struct LHS_assign *lh, int nvars) {
   }
   else {  /* assignment -> `=' explist1 */
     int nexps;
+    int n_new = 0;
+    struct LHS_assign *p;
+    
+    /* [ANTIGRAVITY] Count new locals (implicit declaration) */
+    for (p = lh; p; p = p->prev) {
+      if (p->v.k == VGLOBAL) n_new++;
+    }
+    
+    if (n_new > 0) {
+      /* Allocate array to process in order (First..Last) */
+      struct LHS_assign **vars = luaM_newvector(ls->L, n_new, struct LHS_assign*);
+      int i = n_new - 1;
+      for (p = lh; p; p = p->prev) {
+        if (p->v.k == VGLOBAL) vars[i--] = p;
+      }
+      
+      for (i = 0; i < n_new; i++) {
+        int reg = ls->fs->nactvar + i;
+        /* Check conflict with temporaries */
+        if (reg < ls->fs->freereg) {
+           int backup = ls->fs->freereg;
+           struct LHS_assign *q;
+           luaK_codeABC(ls->fs, OP_MOVE, backup, reg, 0);
+           luaK_reserveregs(ls->fs, 1);
+           /* Relocate LHS usage of 'reg' to 'backup' */
+           for (q = lh; q; q = q->prev) {
+             if (q->v.k == VINDEXED) {
+               if (q->v.u.s.info == reg) q->v.u.s.info = backup;
+               if (q->v.u.s.aux == reg) q->v.u.s.aux = backup;
+             }
+           }
+        }
+        
+        {
+          /* Retrieve TString from constant table info */
+          TString *name = rawtsvalue(&ls->fs->f->k[vars[i]->v.u.s.info]);
+          new_localvar(ls, name, i);
+          vars[i]->v.k = VLOCAL;
+          vars[i]->v.u.s.info = reg;
+        }
+      }
+      luaM_freearray(ls->L, vars, n_new, struct LHS_assign*);
+    }
+
     checknext(ls, '=');
     nexps = explist1(ls, &e);
     if (nexps != nvars) {
@@ -954,8 +998,10 @@ static void assignment (LexState *ls, struct LHS_assign *lh, int nvars) {
     else {
       luaK_setoneret(ls->fs, &e);  /* close last expression */
       luaK_storevar(ls->fs, &lh->v, &e);
+      if (n_new > 0) adjustlocalvars(ls, n_new);
       return;  /* avoid default */
     }
+    if (n_new > 0) adjustlocalvars(ls, n_new);
   }
   init_exp(&e, VNONRELOC, ls->fs->freereg-1);  /* default assignment */
   luaK_storevar(ls->fs, &lh->v, &e);

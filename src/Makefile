@@ -22,18 +22,22 @@ MYLIBS=
 
 PLATS= aix ansi bsd freebsd generic linux macosx mingw posix solaris
 
-LUA_A=	liblua.a
-CORE_O=	lapi.o lcode.o ldebug.o ldo.o ldump.o lfunc.o lgc.o llex.o lmem.o \
-	lobject.o lopcodes.o lparser.o lstate.o lstring.o ltable.o ltm.o  \
-	lundump.o lvm.o lzio.o
-LIB_O=	lauxlib.o lbaselib.o ldblib.o liolib.o lmathlib.o loslib.o ltablib.o \
-	lstrlib.o loadlib.o linit.o
+OBJ_DIR= ../obj
+MKDIR= mkdir -p
 
-LUA_T=	lua
-LUA_O=	lua.o
+LUA_A=	$(OBJ_DIR)/liblua.a
+CORE_O=	$(OBJ_DIR)/lapi.o $(OBJ_DIR)/lcode.o $(OBJ_DIR)/ldebug.o $(OBJ_DIR)/ldo.o $(OBJ_DIR)/ldump.o $(OBJ_DIR)/lfunc.o $(OBJ_DIR)/lgc.o $(OBJ_DIR)/llex.o $(OBJ_DIR)/lmem.o \
+	$(OBJ_DIR)/lobject.o $(OBJ_DIR)/lopcodes.o $(OBJ_DIR)/lparser.o $(OBJ_DIR)/lstate.o $(OBJ_DIR)/lstring.o $(OBJ_DIR)/ltable.o $(OBJ_DIR)/ltm.o  \
+	$(OBJ_DIR)/lundump.o $(OBJ_DIR)/lvm.o $(OBJ_DIR)/lzio.o
+LIB_O=	$(OBJ_DIR)/lauxlib.o $(OBJ_DIR)/lbaselib.o $(OBJ_DIR)/ldblib.o $(OBJ_DIR)/liolib.o $(OBJ_DIR)/lmathlib.o $(OBJ_DIR)/loslib.o $(OBJ_DIR)/ltablib.o \
+	$(OBJ_DIR)/lstrlib.o $(OBJ_DIR)/loadlib.o $(OBJ_DIR)/linit.o
 
-LUAC_T=	luac
-LUAC_O=	luac.o print.o
+BIN_DIR= ../bld
+LUA_T=	$(BIN_DIR)/lua
+LUA_O=	$(OBJ_DIR)/lua.o
+
+LUAC_T=	$(BIN_DIR)/luac
+LUAC_O=	$(OBJ_DIR)/luac.o $(OBJ_DIR)/print.o
 
 ALL_O= $(CORE_O) $(LIB_O) $(LUA_O) $(LUAC_O)
 ALL_T= $(LUA_A) $(LUA_T) $(LUAC_T)
@@ -52,10 +56,16 @@ $(LUA_A): $(CORE_O) $(LIB_O)
 	$(RANLIB) $@
 
 $(LUA_T): $(LUA_O) $(LUA_A)
+	$(MKDIR) $(BIN_DIR)
 	$(CC) -o $@ $(MYLDFLAGS) $(LUA_O) $(LUA_A) $(LIBS)
 
 $(LUAC_T): $(LUAC_O) $(LUA_A)
+	$(MKDIR) $(BIN_DIR)
 	$(CC) -o $@ $(MYLDFLAGS) $(LUAC_O) $(LUA_A) $(LIBS)
+
+$(OBJ_DIR)/%.o: %.c
+	$(MKDIR) $(OBJ_DIR)
+	$(CC) $(CFLAGS) -c -o $@ $<
 
 clean:
 	$(RM) $(ALL_T) $(ALL_O)
@@ -120,63 +130,63 @@ solaris:
 
 # DO NOT DELETE
 
-lapi.o: lapi.c lua.h luaconf.h lapi.h lobject.h llimits.h ldebug.h \
+$(OBJ_DIR)/lapi.o: lapi.c lua.h luaconf.h lapi.h lobject.h llimits.h ldebug.h \
   lstate.h ltm.h lzio.h lmem.h ldo.h lfunc.h lgc.h lstring.h ltable.h \
   lundump.h lvm.h
-lauxlib.o: lauxlib.c lua.h luaconf.h lauxlib.h
-lbaselib.o: lbaselib.c lua.h luaconf.h lauxlib.h lualib.h
-lcode.o: lcode.c lua.h luaconf.h lcode.h llex.h lobject.h llimits.h \
+$(OBJ_DIR)/lauxlib.o: lauxlib.c lua.h luaconf.h lauxlib.h
+$(OBJ_DIR)/lbaselib.o: lbaselib.c lua.h luaconf.h lauxlib.h lualib.h
+$(OBJ_DIR)/lcode.o: lcode.c lua.h luaconf.h lcode.h llex.h lobject.h llimits.h \
   lzio.h lmem.h lopcodes.h lparser.h ldebug.h lstate.h ltm.h ldo.h lgc.h \
   ltable.h
-ldblib.o: ldblib.c lua.h luaconf.h lauxlib.h lualib.h
-ldebug.o: ldebug.c lua.h luaconf.h lapi.h lobject.h llimits.h lcode.h \
+$(OBJ_DIR)/ldblib.o: ldblib.c lua.h luaconf.h lauxlib.h lualib.h
+$(OBJ_DIR)/ldebug.o: ldebug.c lua.h luaconf.h lapi.h lobject.h llimits.h lcode.h \
   llex.h lzio.h lmem.h lopcodes.h lparser.h ldebug.h lstate.h ltm.h ldo.h \
   lfunc.h lstring.h lgc.h ltable.h lvm.h
-ldo.o: ldo.c lua.h luaconf.h ldebug.h lstate.h lobject.h llimits.h ltm.h \
+$(OBJ_DIR)/ldo.o: ldo.c lua.h luaconf.h ldebug.h lstate.h lobject.h llimits.h ltm.h \
   lzio.h lmem.h ldo.h lfunc.h lgc.h lopcodes.h lparser.h lstring.h \
   ltable.h lundump.h lvm.h
-ldump.o: ldump.c lua.h luaconf.h lobject.h llimits.h lstate.h ltm.h \
+$(OBJ_DIR)/ldump.o: ldump.c lua.h luaconf.h lobject.h llimits.h lstate.h ltm.h \
   lzio.h lmem.h lundump.h
-lfunc.o: lfunc.c lua.h luaconf.h lfunc.h lobject.h llimits.h lgc.h lmem.h \
+$(OBJ_DIR)/lfunc.o: lfunc.c lua.h luaconf.h lfunc.h lobject.h llimits.h lgc.h lmem.h \
   lstate.h ltm.h lzio.h
-lgc.o: lgc.c lua.h luaconf.h ldebug.h lstate.h lobject.h llimits.h ltm.h \
+$(OBJ_DIR)/lgc.o: lgc.c lua.h luaconf.h ldebug.h lstate.h lobject.h llimits.h ltm.h \
   lzio.h lmem.h ldo.h lfunc.h lgc.h lstring.h ltable.h
-linit.o: linit.c lua.h luaconf.h lualib.h lauxlib.h
-liolib.o: liolib.c lua.h luaconf.h lauxlib.h lualib.h
-llex.o: llex.c lua.h luaconf.h ldo.h lobject.h llimits.h lstate.h ltm.h \
+$(OBJ_DIR)/linit.o: linit.c lua.h luaconf.h lualib.h lauxlib.h
+$(OBJ_DIR)/liolib.o: liolib.c lua.h luaconf.h lauxlib.h lualib.h
+$(OBJ_DIR)/llex.o: llex.c lua.h luaconf.h ldo.h lobject.h llimits.h lstate.h ltm.h \
   lzio.h lmem.h llex.h lparser.h lstring.h lgc.h ltable.h
-lmathlib.o: lmathlib.c lua.h luaconf.h lauxlib.h lualib.h
-lmem.o: lmem.c lua.h luaconf.h ldebug.h lstate.h lobject.h llimits.h \
+$(OBJ_DIR)/lmathlib.o: lmathlib.c lua.h luaconf.h lauxlib.h lualib.h
+$(OBJ_DIR)/lmem.o: lmem.c lua.h luaconf.h ldebug.h lstate.h lobject.h llimits.h \
   ltm.h lzio.h lmem.h ldo.h
-loadlib.o: loadlib.c lua.h luaconf.h lauxlib.h lualib.h
-lobject.o: lobject.c lua.h luaconf.h ldo.h lobject.h llimits.h lstate.h \
+$(OBJ_DIR)/loadlib.o: loadlib.c lua.h luaconf.h lauxlib.h lualib.h
+$(OBJ_DIR)/lobject.o: lobject.c lua.h luaconf.h ldo.h lobject.h llimits.h lstate.h \
   ltm.h lzio.h lmem.h lstring.h lgc.h lvm.h
-lopcodes.o: lopcodes.c lopcodes.h llimits.h lua.h luaconf.h
-loslib.o: loslib.c lua.h luaconf.h lauxlib.h lualib.h
-lparser.o: lparser.c lua.h luaconf.h lcode.h llex.h lobject.h llimits.h \
+$(OBJ_DIR)/lopcodes.o: lopcodes.c lopcodes.h llimits.h lua.h luaconf.h
+$(OBJ_DIR)/loslib.o: loslib.c lua.h luaconf.h lauxlib.h lualib.h
+$(OBJ_DIR)/lparser.o: lparser.c lua.h luaconf.h lcode.h llex.h lobject.h llimits.h \
   lzio.h lmem.h lopcodes.h lparser.h ldebug.h lstate.h ltm.h ldo.h \
   lfunc.h lstring.h lgc.h ltable.h
-lstate.o: lstate.c lua.h luaconf.h ldebug.h lstate.h lobject.h llimits.h \
+$(OBJ_DIR)/lstate.o: lstate.c lua.h luaconf.h ldebug.h lstate.h lobject.h llimits.h \
   ltm.h lzio.h lmem.h ldo.h lfunc.h lgc.h llex.h lstring.h ltable.h
-lstring.o: lstring.c lua.h luaconf.h lmem.h llimits.h lobject.h lstate.h \
+$(OBJ_DIR)/lstring.o: lstring.c lua.h luaconf.h lmem.h llimits.h lobject.h lstate.h \
   ltm.h lzio.h lstring.h lgc.h
-lstrlib.o: lstrlib.c lua.h luaconf.h lauxlib.h lualib.h
-ltable.o: ltable.c lua.h luaconf.h ldebug.h lstate.h lobject.h llimits.h \
+$(OBJ_DIR)/lstrlib.o: lstrlib.c lua.h luaconf.h lauxlib.h lualib.h
+$(OBJ_DIR)/ltable.o: ltable.c lua.h luaconf.h ldebug.h lstate.h lobject.h llimits.h \
   ltm.h lzio.h lmem.h ldo.h lgc.h ltable.h
-ltablib.o: ltablib.c lua.h luaconf.h lauxlib.h lualib.h
-ltm.o: ltm.c lua.h luaconf.h lobject.h llimits.h lstate.h ltm.h lzio.h \
+$(OBJ_DIR)/ltablib.o: ltablib.c lua.h luaconf.h lauxlib.h lualib.h
+$(OBJ_DIR)/ltm.o: ltm.c lua.h luaconf.h lobject.h llimits.h lstate.h ltm.h lzio.h \
   lmem.h lstring.h lgc.h ltable.h
-lua.o: lua.c lua.h luaconf.h lauxlib.h lualib.h
-luac.o: luac.c lua.h luaconf.h lauxlib.h ldo.h lobject.h llimits.h \
+$(OBJ_DIR)/lua.o: lua.c lua.h luaconf.h lauxlib.h lualib.h
+$(OBJ_DIR)/luac.o: luac.c lua.h luaconf.h lauxlib.h ldo.h lobject.h llimits.h \
   lstate.h ltm.h lzio.h lmem.h lfunc.h lopcodes.h lstring.h lgc.h \
   lundump.h
-lundump.o: lundump.c lua.h luaconf.h ldebug.h lstate.h lobject.h \
+$(OBJ_DIR)/lundump.o: lundump.c lua.h luaconf.h ldebug.h lstate.h lobject.h \
   llimits.h ltm.h lzio.h lmem.h ldo.h lfunc.h lstring.h lgc.h lundump.h
-lvm.o: lvm.c lua.h luaconf.h ldebug.h lstate.h lobject.h llimits.h ltm.h \
+$(OBJ_DIR)/lvm.o: lvm.c lua.h luaconf.h ldebug.h lstate.h lobject.h llimits.h ltm.h \
   lzio.h lmem.h ldo.h lfunc.h lgc.h lopcodes.h lstring.h ltable.h lvm.h
-lzio.o: lzio.c lua.h luaconf.h llimits.h lmem.h lstate.h lobject.h ltm.h \
+$(OBJ_DIR)/lzio.o: lzio.c lua.h luaconf.h llimits.h lmem.h lstate.h lobject.h ltm.h \
   lzio.h
-print.o: print.c ldebug.h lstate.h lua.h luaconf.h lobject.h llimits.h \
+$(OBJ_DIR)/print.o: print.c ldebug.h lstate.h lua.h luaconf.h lobject.h llimits.h \
   ltm.h lzio.h lmem.h lopcodes.h lundump.h
 
 # (end of Makefile)
