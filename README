@@ -1,37 +1,84 @@
-README for Lua 5.1
+# LuaM
 
-See INSTALL for installation instructions.
-See HISTORY for a summary of changes since the last released version.
+LuaM is a modernized fork of Lua 5.1, featuring a stricter, safer, and more concise syntax. 
+It retains the speed and simplicity of Lua 5.1 while adopting features from later Lua versions and modern programming paradigms.
 
-* What is Lua?
-  ------------
-  Lua is a powerful, light-weight programming language designed for extending
-  applications. Lua is also frequently used as a general-purpose, stand-alone
-  language. Lua is free software.
+## Key Features
 
-  For complete information, visit Lua's web site at http://www.lua.org/ .
-  For an executive summary, see http://www.lua.org/about.html .
+### 1. Safer Syntax
+*   **Implicit Locals**: Variables are `local` by default. No need to type `local` everywhere.
+    ```lua
+    x = 10        -- Local variable
+    function f()  -- Local function
+    end
+    ```
+*   **Immutable by Default**: Implicitly declared variables are immutable. Reassignment causes a compile-time error.
+    ```lua
+    x = 10
+    x = 20 -- Error: attempt to assign to immutable variable
+    ```
+*   **Explicit Mutability**: Use the `mutable` keyword for variables that need to change.
+    ```lua
+    mutable y = 10
+    y = 20 -- OK
+    ```
 
-  Lua has been used in many different projects around the world.
-  For a short list, see http://www.lua.org/uses.html .
+### 2. Modern Operators & Control Flow
+*   **Inequality**: Use `!=` instead of `~=`.
+    ```lua
+    if x != y then ... end
+    ```
+*   **Else If**: Use `else if` instead of `elseif`.
+    ```lua
+    if x == 1 then
+        ...
+    else if x == 2 then
+        ...
+    end
+    ```
+*   **Removed Keywords**: `repeat`, `until`, and `local` have been removed to simplify the language. Use `while` loops instead.
 
-* Availability
-  ------------
-  Lua is freely available for both academic and commercial purposes.
-  See COPYRIGHT and http://www.lua.org/license.html for details.
-  Lua can be downloaded at http://www.lua.org/download.html .
+### 3. Enhanced String & Data Support
+*   **Triple Quoted Strings**: Use `"""` for multiline strings (replacing `[[...]]`).
+    ```lua
+    s = """
+    Multi-line
+    String
+    """
+    ```
+*   **`__len` Metamethod**: Tables support the `__len` metamethod (from Lua 5.2).
+    ```lua
+    mt = { __len = function(t) return 42 end }
+    ```
 
-* Installation
-  ------------
-  Lua is implemented in pure ANSI C, and compiles unmodified in all known
-  platforms that have an ANSI C compiler. In most Unix-like platforms, simply
-  do "make" with a suitable target. See INSTALL for detailed instructions.
+### 4. Improved Standard Library
+*   **`xpcall` with Arguments**: `xpcall` now accepts arguments to pass to the function (from Lua 5.2).
+    ```lua
+    xpcall(func, handler, arg1, arg2)
+    ```
 
-* Origin
-  ------
-  Lua is developed at Lua.org, a laboratory of the Department of Computer
-  Science of PUC-Rio (the Pontifical Catholic University of Rio de Janeiro
-  in Brazil).
-  For more information about the authors, see http://www.lua.org/authors.html .
+## Build & Install
 
-(end of README)
+LuaM is implemented in strict ANSI C (C89) and compiles on almost any platform.
+
+### Building
+Use `make` with your platform (e.g., `linux`, `macosx`, `posix`, `ansi`):
+
+```sh
+make linux
+```
+
+This will produce the binaries in `bld/`:
+*   `bld/lua`: The interpreter
+*   `bld/luac`: The compiler
+
+### Running Tests
+To run the full regression suite:
+
+```sh
+make test
+```
+
+## License
+LuaM is free software, released under the MIT license (same as Lua 5.1).
+See [COPYRIGHT](COPYRIGHT) for details.
