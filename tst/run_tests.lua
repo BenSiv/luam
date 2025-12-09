@@ -6,7 +6,8 @@ tests = {
     "fib.lua", "fibfor.lua", "hello.lua", "life.lua", "printf.lua",
     "readonly.lua", "sieve.lua", "sort.lua", "trace-calls.lua",
     "xd.lua", "local_default.lua", "ne_test.lua",
-    "verify_multi.lua", "new_syntax.lua", "immutable.lua"
+    "verify_multi.lua", "new_syntax.lua", "immutable.lua", "load_test.lua",
+    "hex_test.lua"
 }
 
 mutable failed = 0
