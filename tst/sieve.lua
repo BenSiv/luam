@@ -12,9 +12,9 @@ end
 function filter (p, g)
   return coroutine.wrap(function ()
     while 1 do
-      local n = g()
+      n = g()
       if n == nil then return end
-      if math.mod(n, p) ~= 0 then coroutine.yield(n) end
+      if math.mod(n, p) != 0 then coroutine.yield(n) end
     end
   end)
 end
@@ -22,7 +22,7 @@ end
 N=N or 1000		-- from command line
 x = gen(N)		-- generate primes up to N
 while 1 do
-  local n = x()		-- pick a number until done
+  n = x()		-- pick a number until done
   if n == nil then break end
   print(n)		-- must be a prime number
   x = filter(n, x)	-- now remove its multiples

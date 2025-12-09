@@ -2,7 +2,7 @@
 
 -- very inefficient fibonacci function
 function fib(n)
-	N=N+1
+	_G.N=_G.N+1
 	if n<2 then
 		return n
 	else
@@ -12,9 +12,9 @@ end
 
 -- a general-purpose value cache
 function cache(f)
-	local c={}
+	c={}
 	return function (x)
-		local y=c[x]
+		y=c[x]
 		if not y then
 			y=f(x)
 			c[x]=y
@@ -25,15 +25,15 @@ end
 
 -- run and time it
 function test(s,f)
-	N=0
-	local c=os.clock()
-	local v=f(n)
-	local t=os.clock()-c
-	print(s,n,v,t,N)
+	_G.N=0
+	c=os.clock()
+	v=f(_G.n)
+	t=os.clock()-c
+	print(s,_G.n,v,t,_G.N)
 end
 
-n=arg[1] or 24		-- for other values, do lua fib.lua XX
-n=tonumber(n)
+_G.n=arg[1] or 24		-- for other values, do lua fib.lua XX
+_G.n=tonumber(_G.n)
 print("","n","value","time","evals")
 test("plain",fib)
 fib=cache(fib)

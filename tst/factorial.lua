@@ -2,10 +2,10 @@
 
 -- traditional fixed-point operator from functional programming
 Y = function (g)
-      local a = function (f) return f(f) end
+      a = function (f) return f(f) end
       return a(function (f)
                  return g(function (x)
-                             local c=f(f)
+                             c=f(f)
                              return c(x)
                            end)
                end)

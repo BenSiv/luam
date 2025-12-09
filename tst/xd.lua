@@ -1,9 +1,9 @@
 -- hex dump
 -- usage: lua xd.lua < file
 
-local offset=0
+offset=0
 while true do
- local s=io.read(16)
+ s=io.read(16)
  if s==nil then return end
  io.write(string.format("%08X  ",offset))
  string.gsub(s,"(.)",

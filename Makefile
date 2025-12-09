@@ -55,8 +55,7 @@ all:	$(PLAT)
 $(PLATS) clean:
 	cd src && $(MAKE) $@
 
-test:	dummy
-	src/lua test/hello.lua
+
 
 install: dummy
 	cd src && $(MKDIR) $(INSTALL_BIN) $(INSTALL_INC) $(INSTALL_LIB) $(INSTALL_MAN) $(INSTALL_LMOD) $(INSTALL_CMOD)
@@ -69,7 +68,14 @@ ranlib:
 	cd src && cd $(INSTALL_LIB) && $(RANLIB) $(TO_LIB)
 
 local:
-	$(MAKE) install INSTALL_TOP=..
+	$(MAKE) all MYCFLAGS=-DLUA_USE_LINUX MYLIBS="-Wl,-E -ldl -lreadline -lhistory -lncurses"
+
+test:
+	./bld/lua run_tests.lua
+	@echo "   make PLATFORM"
+	@echo "where PLATFORM is one of these:"
+	@echo "   $(PLATS)"
+	@echo "See INSTALL for complete instructions."
 
 none:
 	@echo "Please do"
