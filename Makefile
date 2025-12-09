@@ -77,7 +77,7 @@ local:
 	$(MAKE) all MYCFLAGS=-DLUA_USE_LINUX MYLIBS="-Wl,-E -ldl -lreadline -lhistory -lncurses"
 
 test:
-	LUA_CPATH="lib/luafilesystem/src/?.so;;" ./bld/lua tst/run_tests.lua
+	LUA_PATH="tst/?.lua" LUA_CPATH="lib/luafilesystem/src/?.so;lib/lua-yaml/?.so;;" ./bld/lua tst/run_tests.lua
 	@echo "   make PLATFORM"
 	@echo "where PLATFORM is one of these:"
 	@echo "   $(PLATS)"

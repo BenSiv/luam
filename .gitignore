@@ -2,3 +2,6 @@ bld/
 obj/
 luac.out
 *.log
+*.o
+*.so
+*.a
