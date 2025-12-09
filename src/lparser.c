@@ -1012,7 +1012,7 @@ static void assignment (LexState *ls, struct LHS_assign *lh, int nvars) {
         {
           /* Retrieve TString from constant table info */
           TString *name = rawtsvalue(&ls->fs->f->k[vars[i]->v.u.s.info]);
-          new_localvar(ls, name, i, 0); // implicit local is immutable
+          new_localvar(ls, name, i, 0); /* implicit local is immutable */
           vars[i]->v.k = VLOCAL;
           vars[i]->v.u.s.info = reg;
         }
