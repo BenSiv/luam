@@ -77,7 +77,7 @@ local:
 	$(MAKE) all MYCFLAGS=-DLUA_USE_LINUX MYLIBS="-Wl,-E -ldl -lreadline -lhistory -lncurses"
 
 test:
-	./bld/lua run_tests.lua
+	./bld/lua tst/run_tests.lua
 	@echo "   make PLATFORM"
 	@echo "where PLATFORM is one of these:"
 	@echo "   $(PLATS)"
