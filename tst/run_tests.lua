@@ -1,6 +1,5 @@
 
 -- Test Runner
--- Test Runner
 tests = {
     "bisect.lua", "cf.lua", "echo.lua", "env.lua", "factorial.lua",
     "fib.lua", "fibfor.lua", "hello.lua", "printf.lua",
