@@ -870,7 +870,7 @@ static void expr (LexState *ls, expdesc *v) {
 
 static int block_follow (int token) {
   switch (token) {
-    case TK_ELSE: case TK_ELSEIF: case TK_END:
+    case TK_ELSE: case TK_END:
     case TK_EOS:
       return 1;
     default: return 0;
@@ -1151,9 +1151,9 @@ static void forstat (LexState *ls, int line) {
 
 
 static int test_then_block (LexState *ls) {
-  /* test_then_block -> [IF | ELSEIF] cond THEN block */
+  /* test_then_block -> IF cond THEN block */
   int condexit;
-  luaX_next(ls);  /* skip IF or ELSEIF */
+  luaX_next(ls);  /* skip IF */
   condexit = cond(ls);
   checknext(ls, TK_THEN);
   block(ls);  /* `then' part */
@@ -1162,23 +1162,28 @@ static int test_then_block (LexState *ls) {
 
 
 static void ifstat (LexState *ls, int line) {
-  /* ifstat -> IF cond THEN block {ELSEIF cond THEN block} [ELSE block] END */
+  /* ifstat -> IF cond THEN block {ELSE IF cond THEN block} [ELSE block] END */
   FuncState *fs = ls->fs;
   int flist;
   int escapelist = NO_JUMP;
   flist = test_then_block(ls);  /* IF cond THEN block */
-  while (ls->t.token == TK_ELSEIF) {
-    luaK_concat(fs, &escapelist, luaK_jump(fs));
-    luaK_patchtohere(fs, flist);
-    flist = test_then_block(ls);  /* ELSEIF cond THEN block */
+  while (ls->t.token == TK_ELSE) {
+    luaX_lookahead(ls);
+    if (ls->lookahead.token == TK_IF) { /* else if */
+        luaK_concat(fs, &escapelist, luaK_jump(fs));
+        luaK_patchtohere(fs, flist);
+        luaX_next(ls); /* skip ELSE */
+        flist = test_then_block(ls);  /* IF cond THEN block */
+    } else { /* else */
+        luaK_concat(fs, &escapelist, luaK_jump(fs));
+        luaK_patchtohere(fs, flist);
+        luaX_next(ls);  /* skip ELSE */
+        block(ls);  /* `else' part */
+        flist = NO_JUMP;
+        break;
+    }
   }
-  if (ls->t.token == TK_ELSE) {
-    luaK_concat(fs, &escapelist, luaK_jump(fs));
-    luaK_patchtohere(fs, flist);
-    luaX_next(ls);  /* skip ELSE (after patch, for correct line info) */
-    block(ls);  /* `else' part */
-  }
-  else
+  if (flist != NO_JUMP)
     luaK_concat(fs, &escapelist, flist);
   luaK_patchtohere(fs, escapelist);
   check_match(ls, TK_END, TK_IF, line);

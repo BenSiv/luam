@@ -19,7 +19,7 @@ hook = function(event)
   else
    io.write("end ",t.short_src)
   end
- elseif t.what=="Lua" then
+ else if t.what=="Lua" then
 -- table.foreach(t,print)
   io.write(event," ",t.name or "(Lua)"," <",t.linedefined,":",t.short_src,">")
  else
