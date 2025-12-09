@@ -50,10 +50,16 @@ TO_MAN= lua.1 luac.1
 V= 5.1
 R= 5.1.5
 
-all:	$(PLAT)
+all:	$(PLAT) banner
 
-$(PLATS) clean:
-	cd src && $(MAKE) $@
+clean:
+	@rm -f build.log
+	@cd src && $(MAKE) $@
+
+$(PLATS):
+	@rm -f build.log
+	@cd src && $(MAKE) $@
+	@$(MAKE) banner
 
 
 
@@ -109,6 +115,16 @@ echo:
 	@echo ""
 	@echo "See also src/luaconf.h ."
 	@echo ""
+
+banner:
+	@echo "  _                    "
+	@echo " | |    _   _  __ _    "
+	@echo " | |   | | | |/ _\` |   "
+	@echo " | |___| |_| | (_| |   "
+	@echo " |_____|\__,_|\__,_|   "
+	@echo "                       "
+	@echo " Build Complete!       "
+
 
 # echo private config parameters
 pecho:

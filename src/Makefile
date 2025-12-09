@@ -52,20 +52,24 @@ o:	$(ALL_O)
 a:	$(ALL_A)
 
 $(LUA_A): $(CORE_O) $(LIB_O)
-	$(AR) $@ $(CORE_O) $(LIB_O)	# DLL needs all object files
-	$(RANLIB) $@
+	@echo "  AR    $@"
+	@$(AR) $@ $(CORE_O) $(LIB_O) >> ../build.log 2>&1
+	@$(RANLIB) $@ >> ../build.log 2>&1
 
 $(LUA_T): $(LUA_O) $(LUA_A)
-	$(MKDIR) $(BIN_DIR)
-	$(CC) -o $@ $(MYLDFLAGS) $(LUA_O) $(LUA_A) $(LIBS)
+	@echo "  LINK  $@"
+	@$(MKDIR) $(BIN_DIR)
+	@$(CC) -o $@ $(MYLDFLAGS) $(LUA_O) $(LUA_A) $(LIBS) >> ../build.log 2>&1
 
 $(LUAC_T): $(LUAC_O) $(LUA_A)
-	$(MKDIR) $(BIN_DIR)
-	$(CC) -o $@ $(MYLDFLAGS) $(LUAC_O) $(LUA_A) $(LIBS)
+	@echo "  LINK  $@"
+	@$(MKDIR) $(BIN_DIR)
+	@$(CC) -o $@ $(MYLDFLAGS) $(LUAC_O) $(LUA_A) $(LIBS) >> ../build.log 2>&1
 
 $(OBJ_DIR)/%.o: %.c
-	$(MKDIR) $(OBJ_DIR)
-	$(CC) $(CFLAGS) -c -o $@ $<
+	@echo "  CC    $@"
+	@$(MKDIR) $(OBJ_DIR)
+	@$(CC) $(CFLAGS) -c -o $@ $< >> ../build.log 2>&1
 
 clean:
 	$(RM) $(ALL_T) $(ALL_O)
