@@ -3,7 +3,7 @@
 -- Test Runner
 tests = {
     "bisect.lua", "cf.lua", "echo.lua", "env.lua", "factorial.lua",
-    "fib.lua", "fibfor.lua", "hello.lua", "life.lua", "printf.lua",
+    "fib.lua", "fibfor.lua", "hello.lua", "printf.lua",
     "readonly.lua", "sieve.lua", "sort.lua", "trace-calls.lua",
     "xd.lua", "local_default.lua", "ne_test.lua",
     "verify_multi.lua", "new_syntax.lua", "immutable.lua", "load_test.lua",
@@ -37,18 +37,16 @@ for _, test in ipairs(tests) do
     -- life.lua: "run until break". It has while(1) or similar.
     -- We can skip infinite loops or run with timeout (hard in pure lua without library).
     -- I'll exclude proper infinite loops from defaults.
-    if test == "life.lua" then
-       print("SKIPPING " .. test .. " (infinite loop)")
+
+    exit_code = os.execute(cmd .. " > /dev/null")
+    if exit_code == 0 then
+        print("PASS " .. test)
+        passed = passed + 1
     else
-        exit_code = os.execute(cmd .. " > /dev/null")
-        if exit_code == 0 then
-            print("PASS " .. test)
-            passed = passed + 1
-        else
-            print("FAIL " .. test)
-            failed = failed + 1
-        end
+        print("FAIL " .. test)
+        failed = failed + 1
     end
+
 end
 
 print(string.format("\nPassed: %d, Failed: %d", passed, failed))
