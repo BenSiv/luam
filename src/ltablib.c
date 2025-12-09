@@ -263,6 +263,35 @@ static int sort (lua_State *L) {
   return 0;
 }
 
+static int tpack (lua_State *L) {
+  int n = lua_gettop(L);  /* number of arguments */
+  lua_createtable(L, n, 1);  /* create result table */
+  lua_insert(L, 1);  /* put it at index 1 */
+  lua_pushinteger(L, n);
+  lua_setfield(L, 1, "n");
+  for (; n > 0; n--) {
+    lua_rawseti(L, 1, n);
+  }
+  return 1;  /* return the table */
+}
+
+/* unpack is already in lbaselib.c as luaB_unpack. We can duplicate/re-implement */
+static int tunpack (lua_State *L) {
+  int i, e, n;
+  luaL_checktype(L, 1, LUA_TTABLE);
+  i = luaL_optint(L, 2, 1);
+  e = luaL_opt(L, luaL_checkint, 3, luaL_getn(L, 1));
+  if (i > e) return 0;  /* empty range */
+  n = e - i + 1;  /* number of elements */
+  if (n <= 0 || !lua_checkstack(L, n))  /* n <= 0 means arith overflow */
+    return luaL_error(L, "too many results to unpack");
+  lua_rawgeti(L, 1, i);  /* push arg[i] (avoiding overflow problems) */
+  while (i++ < e) {
+    lua_rawgeti(L, 1, i);
+  }
+  return n;
+}
+
 /* }====================================================== */
 
 
@@ -276,6 +305,8 @@ static const luaL_Reg tab_funcs[] = {
   {"remove", tremove},
   {"setn", setn},
   {"sort", sort},
+  {"pack", tpack},
+  {"unpack", tunpack},
   {NULL, NULL}
 };
 

@@ -645,6 +645,8 @@ LUALIB_API int luaopen_package (lua_State *L) {
     lua_pushcfunction(L, loaders[i]);
     lua_rawseti(L, -2, i+1);
   }
+  lua_pushvalue(L, -1);  /* duplicate loaders table */
+  lua_setfield(L, -3, "searchers");  /* put it in field `searchers' */
   lua_setfield(L, -2, "loaders");  /* put it in field `loaders' */
   setpath(L, "path", LUA_PATH, LUA_PATH_DEFAULT);  /* set field `path' */
   setpath(L, "cpath", LUA_CPATH, LUA_CPATH_DEFAULT); /* set field `cpath' */
