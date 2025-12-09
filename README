@@ -46,6 +46,10 @@ It retains the speed and simplicity of Lua 5.1 while adopting features from late
     String
     """
     ```
+*   **Hexadecimal Escapes**: Use `\xXX` for characters in strings (e.g., `"\x41"` is "A").
+    ```lua
+    str = "Lua\x4D" -- LuaM
+    ```
 *   **`__len` Metamethod**: Tables support the `__len` metamethod (from Lua 5.2).
     ```lua
     mt = { __len = function(t) return 42 end }
@@ -56,6 +60,17 @@ It retains the speed and simplicity of Lua 5.1 while adopting features from late
     ```lua
     xpcall(func, handler, arg1, arg2)
     ```
+*   **Unified `load`**: `load(chunk)` handles both functions (as `load` did) and strings (replacing `loadstring`).
+    ```lua
+    load("return 1") -- Works like loadstring
+    ```
+*   **Math & Table Enhancements**:
+    *   `math.log(x, base)`: Supports optional base argument.
+    *   `table.pack(...)`: Creates a table from arguments with field `n`.
+    *   `table.unpack(t)`: Unpacks a table (renamed from `unpack`, though global `unpack` remains).
+*   **System & Packages**:
+    *   `os.exit(boolean)`: Pass `true` (success) or `false` (failure).
+    *   `package.searchers`: Alias for `package.loaders` for 5.2 compatibility.
 
 ## Build & Install
 
