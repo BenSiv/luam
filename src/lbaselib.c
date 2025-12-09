@@ -315,10 +315,18 @@ static const char *generic_reader (lua_State *L, void *ud, size_t *size) {
 static int luaB_load (lua_State *L) {
   int status;
   const char *cname = luaL_optstring(L, 2, "=(load)");
-  luaL_checktype(L, 1, LUA_TFUNCTION);
-  lua_settop(L, 3);  /* function, eventual name, plus one reserved slot */
-  status = lua_load(L, generic_reader, NULL, cname);
-  return load_aux(L, status);
+  int type = lua_type(L, 1);
+  if (type == LUA_TSTRING) {
+    size_t l;
+    const char *s = lua_tolstring(L, 1, &l);
+    return load_aux(L, luaL_loadbuffer(L, s, l, cname));
+  }
+  else {
+    luaL_checktype(L, 1, LUA_TFUNCTION);
+    lua_settop(L, 3);  /* function, eventual name, plus one reserved slot */
+    status = lua_load(L, generic_reader, NULL, cname);
+    return load_aux(L, status);
+  }
 }
 
 
