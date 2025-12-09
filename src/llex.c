@@ -285,6 +285,22 @@ static void read_string (LexState *ls, int del, SemInfo *seminfo) {
           case 'r': c = '\r'; break;
           case 't': c = '\t'; break;
           case 'v': c = '\v'; break;
+          case 'x': {
+            int i;
+            next(ls);
+            c = 0;
+            for (i=0; i<2; i++) {
+              if (isdigit(ls->current))
+                c = 16*c + (ls->current-'0');
+              else if (isxdigit(ls->current))
+                c = 16*c + (tolower(ls->current)-'a'+10);
+              else
+                 luaX_lexerror(ls, "invalid escape sequence", TK_STRING);
+              next(ls);
+            }
+            save(ls, c);
+            continue;
+          }
           case '\n':  /* go through */
           case '\r': save(ls, '\n'); inclinenumber(ls); continue;
           case EOZ: continue;  /* will raise an error next loop */
