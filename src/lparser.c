@@ -973,7 +973,6 @@ static void assignment (LexState *ls, struct LHS_assign *lh, int nvars) {
     luaY_checklimit(ls->fs, nvars, LUAI_MAXCCALLS - ls->L->nCcalls,
                     "variables in assignment");
     assignment(ls, &nv, nvars+1);
-    ls->fs->freereg--;  /* remove last expression */
   }
   else {  /* assignment -> `=' explist1 */
     int nexps;
