@@ -368,6 +368,16 @@ static int llex (LexState *ls, SemInfo *seminfo) {
         if (ls->current != '=') return '<';
         else { next(ls); return TK_LE; }
       }
+      case '/': {
+        next(ls);
+        if (ls->current == '/') {
+           next(ls);
+           while (!currIsNewline(ls) && ls->current != EOZ)
+             next(ls);
+           continue;
+        }
+        return '/';
+      }
       case '>': {
         next(ls);
         if (ls->current != '=') return '>';
