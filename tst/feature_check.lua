@@ -30,15 +30,10 @@ else
     passed = false
 end
 
--- Test // comments
-mutable c = 10
-// c = 20  <-- This should be a comment
-if c == 10 then
-    print("// comments: PASS")
-else
-    print("// comments: FAIL (value changed)")
-    passed = false
-end
+-- // comments removed as requested
+-- mutable c = 10
+-- // c = 20
+-- if c == 10 then ...
 
 if passed then
     print("ALL CHECKS PASSED")
