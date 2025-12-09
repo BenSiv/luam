@@ -84,7 +84,7 @@ static void PrintCode(const Proto* f)
   int c=GETARG_C(i);
   int bx=GETARG_Bx(i);
   int sbx=GETARG_sBx(i);
-  int line=getline(f,pc);
+  int line=get_line_info(f,pc);
   printf("\t%d\t",pc+1);
   if (line>0) printf("[%d]\t",line); else printf("[-]\t");
   printf("%-9s\t",luaP_opnames[o]);
@@ -196,8 +196,9 @@ static void PrintLocals(const Proto* f)
  printf("locals (%d) for %p:\n",n,VOID(f));
  for (i=0; i<n; i++)
  {
-  printf("\t%d\t%s\t%d\t%d\n",
-  i,getstr(f->locvars[i].varname),f->locvars[i].startpc+1,f->locvars[i].endpc+1);
+  printf("\t%d\t%s\t%d\t%d\t%s\n",
+  i,getstr(f->locvars[i].varname),f->locvars[i].startpc+1,f->locvars[i].endpc+1,
+  f->locvars[i].is_mutable ? "mutable" : "const");
  }
 }
 
@@ -208,7 +209,7 @@ static void PrintUpvalues(const Proto* f)
  if (f->upvalues==NULL) return;
  for (i=0; i<n; i++)
  {
-  printf("\t%d\t%s\n",i,getstr(f->upvalues[i]));
+  printf("\t%d\t[%d]\t%s\n",i+1,get_line_info(f,i),getstr(f->upvalues[i]));
  }
 }
 

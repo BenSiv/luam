@@ -1,0 +1,50 @@
+-- Test immutable by default behavior
+
+-- 1. Implicit declaration is immutable
+a = 10
+-- a = 20 -- This should fail (uncomment to test manually, or use pcall if implemented? No pcall for syntax error?)
+-- Syntax error is compile time if parsed? No, check_immutable is parse time.
+-- We cannot catch parse error in same chunk easily without 'loadstring'.
+-- Assuming loadstring works.
+
+print("Testing immutable...")
+
+function fails(code, msg)
+    f, err = loadstring(code)
+    if f then
+        print("Expected failure for: " .. msg)
+        os.exit(1)
+    end
+    -- Check error message if possible, but loadstring returns nil, err.
+    if not string.find(err, "attempt to assign to immutable variable") then
+        print("Wrong error for: " .. msg .. ": " .. err)
+        os.exit(1)
+    end
+end
+
+-- Test 1: Reassign implicit local
+fails("a = 1; a = 2", "reassign implicit")
+
+-- Test 2: Reassign loop variable
+fails("for i=1,10 do i=5 end", "reassign loop var")
+
+-- Test 3: Reassign parameter
+fails("function f(x) x=2 end", "reassign parameter")
+
+-- Test 4: Mutable keyword
+mutable f, err = loadstring("mutable m = 1; m = 2")
+if not f then
+  print("Mutable failed: " .. err)
+  os.exit(1)
+end
+f()
+
+-- Test 5: Reassign global (should pass)
+f, err = loadstring("_G.res = 1; _G.res = 2")
+if not f then
+    print("Global reassignment failed: " .. tostring(err))
+    os.exit(1)
+end
+f()
+
+print("Immutable tests passed")

@@ -2,19 +2,17 @@
 
 -- very inefficient fibonacci function
 function fib(n)
+  mutable n = n
 	_G.N=_G.N+1
-	if n<2 then
-		return n
-	else
-		return fib(n-1)+fib(n-2)
-	end
+  if n<2 then return n end
+	return fib(n-1)+fib(n-2)
 end
 
 -- a general-purpose value cache
 function cache(f)
 	c={}
 	return function (x)
-		y=c[x]
+		mutable y=c[x]
 		if not y then
 			y=f(x)
 			c[x]=y

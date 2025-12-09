@@ -24,6 +24,7 @@
 #include "lstate.h"
 #include "lstring.h"
 #include "ltable.h"
+#include <stdio.h>
 
 
 
@@ -140,6 +141,34 @@ static void checkname(LexState *ls, expdesc *e) {
 }
 
 
+static int is_mutable_aux (FuncState *fs, int k, int info) {
+    if (!fs) return 1;
+    if (k == VLOCAL) {
+        return getlocvar(fs, info).is_mutable;
+    } else if (k == VUPVAL) {
+        int idx = info;
+        return is_mutable_aux(fs->prev, fs->upvalues[idx].k, fs->upvalues[idx].info);
+    }
+    return 1;
+}
+
+static int is_mutable (FuncState *fs, expdesc *v) {
+  if (v->k == VLOCAL) {
+    return getlocvar(fs, v->u.s.info).is_mutable;
+  } else if (v->k == VUPVAL) {
+    int idx = v->u.s.info;
+    return is_mutable_aux(fs->prev, fs->upvalues[idx].k, fs->upvalues[idx].info);
+  }
+  return 1;
+}
+
+static void check_immutable (LexState *ls, expdesc *v) {
+  if (!is_mutable(ls->fs, v)) {
+    luaX_syntaxerror(ls, "attempt to assign to immutable variable");
+  }
+}
+
+
 static int registerlocalvar (LexState *ls, TString *varname) {
   FuncState *fs = ls->fs;
   Proto *f = fs->f;
@@ -153,14 +182,16 @@ static int registerlocalvar (LexState *ls, TString *varname) {
 }
 
 
+
 #define new_localvarliteral(ls,v,n) \
-  new_localvar(ls, luaX_newstring(ls, "" v, (sizeof(v)/sizeof(char))-1), n)
+  new_localvar(ls, luaX_newstring(ls, "" v, (sizeof(v)/sizeof(char))-1), n, 0)
 
 
-static void new_localvar (LexState *ls, TString *name, int n) {
+static void new_localvar (LexState *ls, TString *name, int n, int is_mutable) {
   FuncState *fs = ls->fs;
   luaY_checklimit(fs, fs->nactvar+n+1, LUAI_MAXVARS, "local variables");
   fs->actvar[fs->nactvar+n] = cast(unsigned short, registerlocalvar(ls, name));
+  fs->f->locvars[fs->nlocvars - 1].is_mutable = is_mutable;
 }
 
 
@@ -550,7 +581,7 @@ static void parlist (LexState *ls) {
     do {
       switch (ls->t.token) {
         case TK_NAME: {  /* param -> NAME */
-          new_localvar(ls, str_checkname(ls), nparams++);
+          new_localvar(ls, str_checkname(ls), nparams++, 0);
           break;
         }
         case TK_DOTS: {  /* param -> `...' */
@@ -932,6 +963,7 @@ static void assignment (LexState *ls, struct LHS_assign *lh, int nvars) {
   expdesc e;
   check_condition(ls, VLOCAL <= lh->v.k && lh->v.k <= VINDEXED,
                       "syntax error");
+  check_immutable(ls, &lh->v);
   if (testnext(ls, ',')) {  /* assignment -> `,' primaryexp assignment */
     struct LHS_assign nv;
     nv.prev = lh;
@@ -941,6 +973,7 @@ static void assignment (LexState *ls, struct LHS_assign *lh, int nvars) {
     luaY_checklimit(ls->fs, nvars, LUAI_MAXCCALLS - ls->L->nCcalls,
                     "variables in assignment");
     assignment(ls, &nv, nvars+1);
+    ls->fs->freereg--;  /* remove last expression */
   }
   else {  /* assignment -> `=' explist1 */
     int nexps;
@@ -980,7 +1013,7 @@ static void assignment (LexState *ls, struct LHS_assign *lh, int nvars) {
         {
           /* Retrieve TString from constant table info */
           TString *name = rawtsvalue(&ls->fs->f->k[vars[i]->v.u.s.info]);
-          new_localvar(ls, name, i);
+          new_localvar(ls, name, i, 0); // implicit local is immutable
           vars[i]->v.k = VLOCAL;
           vars[i]->v.u.s.info = reg;
         }
@@ -1003,8 +1036,29 @@ static void assignment (LexState *ls, struct LHS_assign *lh, int nvars) {
     }
     if (n_new > 0) adjustlocalvars(ls, n_new);
   }
+  /* assignment -> `=' explist1 */
   init_exp(&e, VNONRELOC, ls->fs->freereg-1);  /* default assignment */
   luaK_storevar(ls->fs, &lh->v, &e);
+}
+
+
+static void mutablestat (LexState *ls) {
+  /* mutablestat -> MUTABLE NAME {',' NAME} ['=' explist1] */
+  int nvars = 0;
+  int nexps;
+  expdesc e;
+  luaX_next(ls);  /* skip MUTABLE */
+  do {
+    new_localvar(ls, str_checkname(ls), nvars++, 1);
+  } while (testnext(ls, ','));
+  if (testnext(ls, '='))
+    nexps = explist1(ls, &e);
+  else {
+    e.k = VVOID;
+    nexps = 0;
+  }
+  adjust_assign(ls, nvars, nexps, &e);
+  adjustlocalvars(ls, nvars);
 }
 
 
@@ -1094,7 +1148,7 @@ static void fornum (LexState *ls, TString *varname, int line) {
   new_localvarliteral(ls, "(for index)", 0);
   new_localvarliteral(ls, "(for limit)", 1);
   new_localvarliteral(ls, "(for step)", 2);
-  new_localvar(ls, varname, 3);
+  new_localvar(ls, varname, 3, 0);
   checknext(ls, '=');
   exp1(ls);  /* initial value */
   checknext(ls, ',');
@@ -1121,9 +1175,9 @@ static void forlist (LexState *ls, TString *indexname) {
   new_localvarliteral(ls, "(for state)", nvars++);
   new_localvarliteral(ls, "(for control)", nvars++);
   /* create declared variables */
-  new_localvar(ls, indexname, nvars++);
+  new_localvar(ls, indexname, nvars++, 0);
   while (testnext(ls, ','))
-    new_localvar(ls, str_checkname(ls), nvars++);
+    new_localvar(ls, str_checkname(ls), nvars++, 0);
   checknext(ls, TK_IN);
   line = ls->linenumber;
   adjust_assign(ls, 3, explist1(ls, &e), &e);
@@ -1304,6 +1358,10 @@ static int statement (LexState *ls) {
       luaX_next(ls);  /* skip BREAK */
       breakstat(ls);
       return 1;  /* must be last statement */
+    }
+    case TK_MUTABLE: {
+      mutablestat(ls);
+      return 0;
     }
     default: {
       exprstat(ls);

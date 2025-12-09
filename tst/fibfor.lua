@@ -2,7 +2,7 @@
 
 function generatefib (n)
   return coroutine.wrap(function ()
-    a,b = 1, 1
+    mutable a,b = 1, 1
     while a <= n do
       coroutine.yield(a)
       a, b = b, a+b

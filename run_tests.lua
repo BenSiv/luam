@@ -6,16 +6,16 @@ tests = {
     "fib.lua", "fibfor.lua", "hello.lua", "life.lua", "printf.lua",
     "readonly.lua", "sieve.lua", "sort.lua", "trace-calls.lua",
     "xd.lua", "local_default.lua", "ne_test.lua",
-    "verify_multi.lua", "new_syntax.lua" -- added new verified tests
+    "verify_multi.lua", "new_syntax.lua", "immutable.lua"
 }
 
-failed = 0
-passed = 0
+mutable failed = 0
+mutable passed = 0
 
 print("Running tests...")
 
 for _, test in ipairs(tests) do
-    cmd = "bld/lua tst/" .. test
+    mutable cmd = "bld/lua tst/" .. test
     -- Some tests might need input or args, skipping complex ones for now or adding dummy input
     if test == "echo.lua" then cmd = cmd .. " arg1 arg2" end
     -- For tests that read stdin, we might pipe empty string or echo

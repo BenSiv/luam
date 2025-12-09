@@ -46,7 +46,7 @@ static int currentline (lua_State *L, CallInfo *ci) {
   if (pc < 0)
     return -1;  /* only active lua functions have current-line information */
   else
-    return getline(ci_func(ci)->l.p, pc);
+    return get_line_info(ci_func(ci)->l.p, pc);
 }
 
 
@@ -204,7 +204,13 @@ static int auxgetinfo (lua_State *L, const char *what, lua_Debug *ar,
         break;
       }
       case 'l': {
-        ar->currentline = (ci) ? currentline(L, ci) : -1;
+        if (ci && isLua(ci)) {
+          Proto *p = ci_func(ci)->l.p;
+          int pc = currentpc(L, ci);
+          ar->currentline = (pc != -1) ? get_line_info(p, pc) : -1;
+        } else {
+          ar->currentline = -1;
+        }
         break;
       }
       case 'u': {
@@ -608,9 +614,10 @@ static void addinfo (lua_State *L, const char *msg) {
   CallInfo *ci = L->ci;
   if (isLua(ci)) {  /* is Lua code? */
     char buff[LUA_IDSIZE];  /* add file:line information */
-    int line = currentline(L, ci);
-    luaO_chunkid(buff, getstr(getluaproto(ci)->source), LUA_IDSIZE);
-    luaO_pushfstring(L, "%s:%d: %s", buff, line, msg);
+    Proto *p = getluaproto(ci);
+    int pc = currentpc(L, ci);
+    luaO_chunkid(buff, getstr(p->source), LUA_IDSIZE);
+    luaO_pushfstring(L, "%s:%d: %s", buff, get_line_info(p, pc), msg);
   }
 }
 
