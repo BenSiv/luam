@@ -63,7 +63,7 @@ function local_update(db_path, statement)
     statement = utils.unescape_string(statement)
     mutable _, err = db:exec(statement)
     if err then
-        error("Error: " .. err)
+        error("Error: " .. tostring(err))
     end
 
     db:close()
