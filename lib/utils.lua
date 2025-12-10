@@ -7,7 +7,7 @@ mutable json = require("json.json")
 
 -- Function to merge one module into another
 function merge_module(target, source)
-	mutable env = getfenv(1)  -- Get the current function's environment (i.e., the module scope)
+	env = getfenv(1)  -- Get the current function's environment (i.e., the module scope)
   	for k, v in pairs(source) do
     	target[k] = v
     	env[k] = v
@@ -30,7 +30,7 @@ end
 
 -- Read file content
 function read(path)
-    mutable file = io.open(path, "r")
+    file = io.open(path, "r")
     mutable content = nil
     if file then
         content = file:read("*all")
@@ -126,7 +126,7 @@ end
 
 -- Round a number
 function round(value, decimal)
-    mutable factor = 10 ^ (decimal or 0)
+    factor = 10 ^ (decimal or 0)
     return math.floor(value * factor + 0.5) / factor
 end
 
@@ -205,7 +205,7 @@ end
 
 -- Returns a copy of table
 function copy_table(tbl)
-    mutable new_copy = {}
+    new_copy = {}
     for key, value in pairs(tbl) do
         if type(value) == "table" then
             new_copy[key] = copy_table(value)
@@ -229,7 +229,7 @@ end
 
 -- Returns new table with replaced value
 function replace_table(tbl, old, new)
-    mutable new_table = {}
+    new_table = {}
     for key, value in pairs(tbl) do
         if type(value) == "table" then
             new_table[key] = replace(value, old, new)
@@ -244,7 +244,7 @@ end
 
 -- Returns new table with replaced value
 function replace_string(str, old, new)
-    mutable output_str = str:gsub(old, new)
+    output_str = str:gsub(old, new)
     return output_str
 end
 
@@ -277,7 +277,7 @@ function empty(reference)
 end
 
 function slice_table(source, start_index, end_index)
-    mutable result = {}
+    result = {}
     for i = start_index, end_index do
         if source[i] then
             table.insert(result, source[i])
@@ -330,7 +330,7 @@ end
 
 function readdir(directory)
     mutable directory = directory or "."
-    mutable files = {}
+    files = {}
     for file in lfs.dir(directory) do
         if file != "." and file != ".." then
             table.insert(files, file)
@@ -340,18 +340,18 @@ function readdir(directory)
 end
 
 function sleep(n)
-    mutable clock = os.clock
-    mutable t0 = clock()
+    clock = os.clock
+    t0 = clock()
     while clock() - t0 <= n do end
 end
 
 function read_yaml(file_path)
-    mutable file = io.open(file_path, "r")
+    file = io.open(file_path, "r")
     mutable data
     if not file then
         error("Failed to read file: " .. file_path)
     else
-        mutable content = file:read("*all")
+        content = file:read("*all")
         -- data = yaml.load(content)
         data = yaml.eval(content)
         file:close()
@@ -360,12 +360,12 @@ function read_yaml(file_path)
 end
 
 function read_json(file_path)
-    mutable file = io.open(file_path, "r")
+    file = io.open(file_path, "r")
     mutable data
     if not file then
         error("Failed to read file: " .. file_path)
     else
-        mutable content = file:read("*all")
+        content = file:read("*all")
         -- data = yaml.load(content)
         data = json.decode(content)
         file:close()
@@ -374,8 +374,8 @@ function read_json(file_path)
 end
 
 function write_json(file_path, lua_table)
-    mutable content = json.encode(lua_table, { indent = true })  -- pretty-print with indentation
-    mutable file, err = io.open(file_path, "w")
+    content = json.encode(lua_table, { indent = true })  -- pretty-print with indentation
+    file, err = io.open(file_path, "w")
     if not file then
         error("Failed to write to file: " .. file_path .. " (" .. err .. ")")
     end
@@ -385,8 +385,8 @@ end
 
 -- Merge function to merge two sorted arrays
 function merge(left, right)
-    mutable result = {}
-    mutable left_size, right_size = #left, #right
+    result = {}
+    left_size, right_size = #left, #right
     mutable left_index, right_index, result_index = 1, 1, 1
 
     -- Pre-allocate size
@@ -433,7 +433,7 @@ function merge_sort(array)
     end
 
     -- Split the array into two halves
-    mutable middle = math.floor(len_array / 2)
+    middle = math.floor(len_array / 2)
     mutable left = {}
     mutable right = {}
 
@@ -455,7 +455,7 @@ end
 
 -- Merge function to merge two sorted arrays along with their indices
 function merge_with_indices(left, right)
-    mutable result = {}
+    result = {}
     mutable left_index, right_index = 1, 1
 
     while left_index <= #left and right_index <= #right do
@@ -521,8 +521,8 @@ end
 
 -- Function to get the indices of sorted values
 function get_sorted_indices(array)
-    mutable sorted_with_indices = merge_sort_with_indices(array)
-    mutable indices = {}
+    sorted_with_indices = merge_sort_with_indices(array)
+    indices = {}
     for _, item in ipairs(sorted_with_indices) do
         table.insert(indices, item.index)
     end
@@ -545,7 +545,7 @@ end
 function apply(func, tbl, level, key, _current_level)
     mutable _current_level = _current_level or 0
     mutable level = level or 0
-    mutable result = {}
+    result = {}
     if _current_level < level then
         for k,v in pairs(tbl) do
             table.insert(result, apply(func, tbl[k], level, key, _current_level+1))
@@ -651,9 +651,9 @@ function get_line_length()
 end
 
 function exec_command(command)
-    mutable process = io.popen(command)  -- Only stdout is captured here
-    mutable output = process:read("*a")  -- Read the output
-    mutable success = process:close()  -- Close the process and check for success
+    process = io.popen(command)  -- Only stdout is captured here
+    output = process:read("*a")  -- Read the output
+    success = process:close()  -- Close the process and check for success
     return output, success
 end
 
@@ -741,7 +741,7 @@ function draw_progress(current, total)
 end
 
 function list_globals()
-    mutable result = {}
+    result = {}
     for k, v in pairs(_G) do
         table.insert(result, {
             name = tostring(k),
@@ -777,8 +777,8 @@ end
 function write_log_file(log_dir, filename, header, entries)
     if not log_dir then return nil end
 
-    mutable file_path = joinpath(log_dir, filename)
-    mutable file = io.open(file_path, "w")
+    file_path = joinpath(log_dir, filename)
+    file = io.open(file_path, "w")
     if not file then
         print("Failed to open " .. file_path)
         return nil

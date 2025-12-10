@@ -20,16 +20,16 @@ function is_dataframe(tbl)
 
     mutable num_columns = nil
     for index, row in pairs(tbl) do
-        mutable valid_row_content = type(row) == "table"
-        mutable valid_row_index = type(index) == "number"
+        valid_row_content = type(row) == "table"
+        valid_row_index = type(index) == "number"
         if not valid_row_content or not valid_row_index then
             return false
         end
 
         mutable current_num_columns = 0
         for col_name, col_value in pairs(row) do
-            mutable valid_col_name = type(col_name) == "string"
-            mutable valid_col_value = type(col_value) == "number" or type(col_value) == "string"
+            valid_col_name = type(col_name) == "string"
+            valid_col_value = type(col_value) == "number" or type(col_value) == "string"
             if not valid_col_name or not valid_col_value then
                 return false
             end
@@ -52,7 +52,7 @@ function string_keys(obj)
         return obj
     end
 
-    mutable new_table = {}
+    new_table = {}
     for key, value in pairs(obj) do
         mutable key = key
         mutable value = value
@@ -77,11 +77,11 @@ function transpose(data_table)
     --     return
     -- end
 
-    mutable transposed_table = {}
+    transposed_table = {}
 
     -- Transpose the table
     -- Transpose the table
-    mutable first_key = utils.keys(data_table)[1]
+    first_key = utils.keys(data_table)[1]
     for col_index, col_data in pairs(data_table[first_key]) do
         transposed_table[col_index] = {}
         for row_index, row_data in pairs(data_table) do
@@ -103,7 +103,7 @@ function get_columns(data_table)
     end
 
     -- Retrieve the column names from the first row
-    mutable columns = {}
+    columns = {}
     for col_name, _ in pairs(data_table[1]) do
         table.insert(columns, col_name)
     end
@@ -115,7 +115,7 @@ end
 function view(data_table, args)
 	mutable args = args or {}
     -- Extract keyword arguments
-    mutable limit = args.limit
+    limit = args.limit
     mutable columns = args.columns
 
     if utils.isempty(data_table) then
@@ -138,11 +138,11 @@ function view(data_table, args)
     end
 
     -- Calculate column widths
-    mutable column_widths = {}
+    column_widths = {}
     for _, row in pairs(data_table) do
         for _, col_name in ipairs(columns) do
-            mutable col_width = #tostring(col_name)
-            mutable val_width = #tostring(row[col_name] or "")
+            col_width = #tostring(col_name)
+            val_width = #tostring(row[col_name] or "")
             column_widths[col_name] = math.max(column_widths[col_name] or 0, col_width, val_width)
         end
     end
@@ -155,8 +155,8 @@ function view(data_table, args)
 
     -- Constrain total width to line length
     if total_width > line_length then
-        mutable available_width = line_length - #columns -- Subtract space for separators
-        mutable width_per_column = math.floor(available_width / #columns)
+        available_width = line_length - #columns -- Subtract space for separators
+        width_per_column = math.floor(available_width / #columns)
         for _, col_name in ipairs(columns) do
             column_widths[col_name] = math.min(column_widths[col_name], width_per_column)
         end
@@ -188,7 +188,7 @@ function view(data_table, args)
 end
 
 function array_to_df(array)
-    mutable df = {}
+    df = {}
     for idx, val in pairs(array) do
         table.insert(df, {index = idx, value = val})
     end
@@ -215,20 +215,20 @@ function group_by(data, keys)
         keys = { keys } -- Normalize to table
     end
 
-    mutable result = {}
-    mutable seen = {}
+    result = {}
+    seen = {}
 
     for _, entry in ipairs(data) do
         -- Build group key
-        mutable key_parts = {}
+        key_parts = {}
         for _, k in ipairs(keys) do
             table.insert(key_parts, tostring(entry[k]))
         end
-        mutable key_string = table.concat(key_parts, "\0") -- use null as safe separator
+        key_string = table.concat(key_parts, "\0") -- use null as safe separator
 
         -- Initialize group if not seen
         if not seen[key_string] then
-            mutable group = {
+            group = {
                 cols = {},
                 rows = {}
             }
@@ -240,7 +240,7 @@ function group_by(data, keys)
         end
 
         -- Copy only non-group columns
-        mutable row = {}
+        row = {}
         for col, val in pairs(entry) do
             mutable is_group_col = false
             for _, k in ipairs(keys) do
@@ -286,14 +286,14 @@ end
 
 -- Function to sort a table by the values of a specific column
 function sort_by(tbl, col)
-    mutable to_sort = {}
+    to_sort = {}
     for _, row in pairs(tbl) do
-        mutable value = row[col]
+        value = row[col]
         table.insert(to_sort, value)
     end
 
-    mutable indices = utils.get_sorted_indices(to_sort)
-    mutable sorted_table = {}
+    indices = utils.get_sorted_indices(to_sort)
+    sorted_table = {}
     for _, row_index in pairs(indices) do
         table.insert(sorted_table, tbl[row_index])
     end
@@ -302,11 +302,11 @@ end
 
 -- Function to select specific columns
 function select(tbl, cols)
-    mutable result = {}
+    result = {}
     for _, row in pairs(tbl) do
-        mutable selected = {}
+        selected = {}
         for _, col in pairs(cols) do
-            mutable value = row[col]
+            value = row[col]
             selected[col] = value
         end
         table.insert(result, selected)
@@ -316,10 +316,10 @@ end
 
 -- Function to filter by column value
 function filter_by_value(tbl, column, condition)
-    mutable fcon = loadstring("return function(x) return " .. condition .. " end")()
-    mutable result = {}
+    fcon = loadstring("return function(x) return " .. condition .. " end")()
+    result = {}
     for row, values in pairs(tbl) do
-        mutable x = values[column]
+        x = values[column]
         if x and fcon(x) then
             table.insert(result, values)
         end
@@ -329,11 +329,11 @@ end
 
 -- Function to filter rows based on a condition involving one or two columns
 function filter_by_columns(tbl, col1, op, col2)
-    mutable result = {}
+    result = {}
     for _, values in pairs(tbl) do
-        mutable v1, v2 = values[col1], values[col2]
+        v1, v2 = values[col1], values[col2]
         if v1 and v2 then
-            mutable condition = loadstring(string.format("return %s %s %s", v1 ,op ,v2))
+            condition = loadstring(string.format("return %s %s %s", v1 ,op ,v2))
             if condition() then
                 table.insert(result, values)
             end
@@ -343,18 +343,18 @@ function filter_by_columns(tbl, col1, op, col2)
 end
 
 function filter_unique(tbl, column)
-    mutable count = {}
+    count = {}
     
     -- Count occurrences of each value in the specified column
     for _, row in pairs(tbl) do
-        mutable val = row[column]
+        val = row[column]
         if val then
             count[val] = (count[val] or 0) + 1
         end
     end
     
     -- Collect rows where the column value appears only once
-    mutable filtered = {}
+    filtered = {}
     mutable index = 1
     for _, row in pairs(tbl) do
         if count[row[column]] == 1 then
@@ -370,10 +370,10 @@ end
 function generate_column(tbl, new_col, col1, op, col2)
     new_tbl = copy(tbl)
     for row, values in pairs(new_tbl) do
-        mutable v1, v2 = values[col1], values[col2]
+        v1, v2 = values[col1], values[col2]
         if v1 and v2 then
-            mutable condition = loadstring(string.format("return %s %s %s", v1 ,op ,v2))
-            mutable result = condition()
+            condition = loadstring(string.format("return %s %s %s", v1 ,op ,v2))
+            result = condition()
             if result then
                 new_tbl[row][new_col] = result
             end
@@ -384,11 +384,11 @@ end
 
 -- Function to generate new column based on a transformation of pair columns
 function transform(tbl, new_col, col1, col2, transform_fn)
-    mutable new_tbl = copy(tbl)
+    new_tbl = copy(tbl)
     for row, values in pairs(new_tbl) do
-        mutable v1, v2 = values[col1], values[col2]
+        v1, v2 = values[col1], values[col2]
         if v1 and v2 then
-            mutable result = transform_fn(v1, v2)
+            result = transform_fn(v1, v2)
             if result then
                 new_tbl[row][new_col] = result
             end
@@ -400,7 +400,7 @@ end
 
 -- Function to rows on specific columns
 function diff(tbl, col)
-    mutable result = {}
+    result = {}
     mutable last_value = 0
     mutable value = 0
     for index, row in pairs(tbl) do
@@ -417,16 +417,16 @@ end
 
 function innerjoin(df1, df2, columns, prefixes)
     mutable prefixes = prefixes or {"df1", "df2"}
-    mutable joined_df = {}
+    joined_df = {}
 
     -- Convert join columns to a set for quick lookup
-    mutable join_columns = {}
+    join_columns = {}
     for _, col in ipairs(columns) do
         join_columns[col] = true
     end
 
     -- Identify overlapping non-join columns
-    mutable df1_columns, df2_columns = {}, {}
+    df1_columns, df2_columns = {}, {}
     for _, row in ipairs(df1) do
         for col in pairs(row) do
             if not join_columns[col] then
@@ -442,7 +442,7 @@ function innerjoin(df1, df2, columns, prefixes)
         end
     end
 
-    mutable shared_columns = {}
+    shared_columns = {}
     for col in pairs(df1_columns) do
         if df2_columns[col] then
             shared_columns[col] = true
@@ -463,7 +463,7 @@ function innerjoin(df1, df2, columns, prefixes)
     for _, row1 in ipairs(df1) do
         for _, row2 in ipairs(df2) do
             if rows_match(row1, row2) then
-                mutable joined_row = {}
+                joined_row = {}
 
                 -- Add join columns once
                 for _, col in ipairs(columns) do
@@ -473,7 +473,7 @@ function innerjoin(df1, df2, columns, prefixes)
                 -- Add non-join columns from df1
                 for col, val in pairs(row1) do
                     if not join_columns[col] then
-                        mutable key = shared_columns[col] and (prefixes[1] .. "_" .. col) or col
+                        key = shared_columns[col] and (prefixes[1] .. "_" .. col) or col
                         joined_row[key] = val
                     end
                 end
@@ -481,7 +481,7 @@ function innerjoin(df1, df2, columns, prefixes)
                 -- Add non-join columns from df2
                 for col, val in pairs(row2) do
                     if not join_columns[col] then
-                        mutable key = shared_columns[col] and (prefixes[2] .. "_" .. col) or col
+                        key = shared_columns[col] and (prefixes[2] .. "_" .. col) or col
                         joined_row[key] = val
                     end
                 end
@@ -497,8 +497,8 @@ end
 
 function innerjoin_multiple(tables, columns, prefixes)
     mutable prefixes = prefixes or {}
-    mutable joined_table = {}
-    mutable join_columns = {}
+    joined_table = {}
+    join_columns = {}
     
     -- Convert join columns to a set for quick lookup
     for _, col in ipairs(columns) do
@@ -506,7 +506,7 @@ function innerjoin_multiple(tables, columns, prefixes)
     end
     
     -- Identify overlapping non-join columns across all tables
-    mutable column_sets = {}
+    column_sets = {}
     for i, tbl in ipairs(tables) do
         column_sets[i] = {}
         for _, row in ipairs(tbl) do
@@ -519,7 +519,7 @@ function innerjoin_multiple(tables, columns, prefixes)
     end
     
     -- Determine shared columns across multiple tables
-    mutable shared_columns = {}
+    shared_columns = {}
     for i = 1, #tables - 1 do
         for col in pairs(column_sets[i]) do
             for j = i + 1, #tables do
@@ -547,7 +547,7 @@ function innerjoin_multiple(tables, columns, prefixes)
     function join_recursive(depth, selected_rows)
         if depth > #tables then
             if rows_match(selected_rows) then
-                mutable joined_row = {}
+                joined_row = {}
                 
                 -- Add join columns once
                 for _, col in ipairs(columns) do
@@ -556,10 +556,10 @@ function innerjoin_multiple(tables, columns, prefixes)
                 
                 -- Add non-join columns with prefixes if necessary
                 for i, row in ipairs(selected_rows) do
-                    mutable prefix = prefixes[i] or ("tbl" .. i)
+                    prefix = prefixes[i] or ("tbl" .. i)
                     for col, val in pairs(row) do
                         if not join_columns[col] then
-                            mutable key = shared_columns[col] and (prefix .. "_" .. col) or col
+                            key = shared_columns[col] and (prefix .. "_" .. col) or col
                             joined_row[key] = val
                         end
                     end

@@ -10,7 +10,7 @@ mutable database = {}
 
 function local_query(db_path, query)
     mutable query = query
-    mutable db = sqlite.open(db_path)
+    db = sqlite.open(db_path)
     if not db then
         error("Error opening database")
     end
@@ -23,8 +23,8 @@ function local_query(db_path, query)
         error("Invalid query: " .. err)
     end
 
-    mutable result_rows = {}
-    mutable column_names = {}
+    result_rows = {}
+    column_names = {}
 
     for row in stmt:rows() do
         table.insert(result_rows, row)
@@ -53,7 +53,7 @@ end
 
 function local_update(db_path, statement)
     mutable statement = statement
-    mutable db = sqlite.open(db_path)
+    db = sqlite.open(db_path)
 
     if not db then
         error("Error opening database")
@@ -61,7 +61,7 @@ function local_update(db_path, statement)
     db:exec("PRAGMA busy_timeout = 5000;")
     
     statement = utils.unescape_string(statement)
-    mutable _, err = db:exec(statement)
+    _, err = db:exec(statement)
     if err then
         error("Error: " .. tostring(err))
     end
@@ -85,29 +85,29 @@ function get_sql_values(row, col_names)
 end
 
 function import_delimited(db_path, file_path, table_name, delimiter)    
-    mutable db = sqlite.open(db_path)
+    db = sqlite.open(db_path)
     if not db then
         error("Error opening database")
     end
 
-    mutable content = delimited_files.readdlm(file_path, delimiter, true)
+    content = delimited_files.readdlm(file_path, delimiter, true)
     if not content then
         error("Error reading delimited file")
     end
     
-    mutable col_names = utils.keys(content[1]) -- problematic if first row does not have all the columns
-    mutable col_row = table.concat(col_names, "', '")
+    col_names = utils.keys(content[1]) -- problematic if first row does not have all the columns
+    col_row = table.concat(col_names, "', '")
     mutable insert_statement = string.format("INSERT INTO %s ('%s') VALUES ", table_name, col_row)
 
-    mutable value_rows = {}
+    value_rows = {}
     for _, row in pairs(content) do
-    	mutable sql_values = get_sql_values(row, col_names)
-        mutable row_values = string.format("(%s)", table.concat(sql_values, ", "))
+    	sql_values = get_sql_values(row, col_names)
+        row_values = string.format("(%s)", table.concat(sql_values, ", "))
         table.insert(value_rows, row_values)
     end
     insert_statement = insert_statement .. table.concat(value_rows, ", ") .. ";"
 
-    mutable _, err = db:exec(insert_statement)
+    _, err = db:exec(insert_statement)
     if err then
         error("Error: " .. err)
     end
@@ -117,7 +117,7 @@ function import_delimited(db_path, file_path, table_name, delimiter)
 end
 
 function export_delimited(db_path, query, file_path, delimiter, header)
-    mutable results = local_query(db_path, query)
+    results = local_query(db_path, query)
 
     if not results then
     	print("Failed query")
@@ -144,20 +144,20 @@ function load_df_rows(db_path, table_name, dataframe)
         error("The provided table is not a valid dataframe.")
     end
 
-    mutable columns = dataframes.get_columns(dataframe)
-    mutable col_names = "'" .. table.concat(columns, "', '") .. "'"
+    columns = dataframes.get_columns(dataframe)
+    col_names = "'" .. table.concat(columns, "', '") .. "'"
 
     -- Open DB
-    mutable db = sqlite.open(db_path)
+    db = sqlite.open(db_path)
     if not db then
         error("Error opening database")
     end
 
     -- Insert row by row
     for row_index, row in ipairs(dataframe) do
-        mutable sql_values = {}
+        sql_values = {}
         for _, col_name in ipairs(columns) do
-            mutable value = row[col_name]
+            value = row[col_name]
             if value and value != "" then
                 table.insert(sql_values, string.format("'%s'", escape_sqlite(value)))
             else
@@ -165,14 +165,14 @@ function load_df_rows(db_path, table_name, dataframe)
             end
         end
 
-        mutable insert_sql = string.format(
+        insert_sql = string.format(
             "INSERT INTO %s (%s) VALUES (%s);",
             table_name,
             col_names,
             table.concat(sql_values, ", ")
         )
 
-        mutable ok, err = db:exec(insert_sql)
+        ok, err = db:exec(insert_sql)
         if not ok and err then
             print(string.format(
                 "Row %d insert failed: %s\nSQL: %s",
@@ -193,26 +193,26 @@ function load_df(db_path, table_name, dataframe)
     end
 
     -- Get the columns from the dataframe
-    mutable columns = dataframes.get_columns(dataframe)
+    columns = dataframes.get_columns(dataframe)
     
     -- Open the SQLite database
-    mutable db = sqlite.open(db_path)
+    db = sqlite.open(db_path)
     if not db then
         print("Error opening database")
         return nil
     end
 
     -- Prepare column names for the insert statement
-    mutable col_row = table.concat(columns, "', '")
+    col_row = table.concat(columns, "', '")
     mutable insert_statement = string.format("INSERT INTO %s ('%s') VALUES ", table_name, col_row)
 
     -- Prepare the data rows for insertion
-    mutable value_rows = {}
+    value_rows = {}
     for _, row in ipairs(dataframe) do
-        mutable sql_values = {}
+        sql_values = {}
         -- Get values for each column in the row
         for _, col_name in ipairs(columns) do
-            mutable value = row[col_name]
+            value = row[col_name]
             if value and value != "" then
                 table.insert(sql_values, string.format("'%s'", escape_sqlite(value)))
             else
@@ -220,7 +220,7 @@ function load_df(db_path, table_name, dataframe)
             end
         end
         -- Format the row values
-        mutable row_values = string.format("(%s)", table.concat(sql_values, ", "))
+        row_values = string.format("(%s)", table.concat(sql_values, ", "))
         table.insert(value_rows, row_values)
     end
 
@@ -228,7 +228,7 @@ function load_df(db_path, table_name, dataframe)
     insert_statement = insert_statement .. table.concat(value_rows, ", ") .. ";"
 
     -- Execute the insert statement
-    mutable _, err = db:exec(insert_statement)
+    _, err = db:exec(insert_statement)
     if err then
         print("Error: " .. err)
         print("Insert Statement: " .. insert_statement)
@@ -242,7 +242,7 @@ function load_df(db_path, table_name, dataframe)
 end
 
 function get_tables(db_path)
-	mutable db = sqlite.open(db_path)
+	db = sqlite.open(db_path)
     if not db then
         print("Error opening database")
         return nil
@@ -258,13 +258,13 @@ function get_tables(db_path)
 end
 
 function get_columns(db_path, table_name)
-    mutable db = sqlite.open(db_path)
+    db = sqlite.open(db_path)
     if not db then
         error("Failed to open database at " .. db_path)
     end
 
-    mutable columns = {}
-    mutable query = string.format("PRAGMA table_info(%s);", table_name)
+    columns = {}
+    query = string.format("PRAGMA table_info(%s);", table_name)
 
     for row in db:rows(query) do
         table.insert(columns, row.name)
@@ -276,14 +276,14 @@ end
 
 function get_table_info(db_path, table_name)
     -- Open the database
-    mutable db = sqlite.open(db_path)
+    db = sqlite.open(db_path)
     if not db then
         error(("Failed to open database at %s"):format(db_path))
     end
 
     -- Collect column info
-    mutable columns = {}
-    mutable sql = ("PRAGMA table_info(%s);"):format(table_name)
+    columns = {}
+    sql = ("PRAGMA table_info(%s);"):format(table_name)
 
     for row in db:rows(sql) do
         columns[#columns + 1] = {
@@ -300,18 +300,18 @@ function get_table_info(db_path, table_name)
 end
 
 function get_schema(db_path)
-    mutable db = sqlite.open(db_path)
+    db = sqlite.open(db_path)
     if not db then
         error(("Failed to open database at %s"):format(db_path))
     end
 
-    mutable schema = {}
+    schema = {}
     -- Get all user tables
     for row in db:rows("SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%';") do
-        mutable table_name = row.name
+        table_name = row.name
         schema[table_name] = {}
 
-        mutable sql = ("PRAGMA table_info(%s);"):format(table_name)
+        sql = ("PRAGMA table_info(%s);"):format(table_name)
         for col in db:rows(sql) do
             schema[table_name][#schema[table_name] + 1] = {
                 name = col.name,
@@ -344,7 +344,7 @@ function compare_schemas(old_schema, new_schema, migration_config)
     migration_config.tables = migration_config.tables or {}
     migration_config.columns = migration_config.columns or {}
 
-    mutable changes = {
+    changes = {
         tables_dropped = {},
         tables_added = {},
         tables_changed = {},
@@ -354,8 +354,8 @@ function compare_schemas(old_schema, new_schema, migration_config)
 
     -- track tables dropped, renamed, or changed
     for old_tname, old_cols in pairs(old_schema) do
-        mutable mapped_new_tname = migration_config.tables[old_tname]
-        mutable new_tname = mapped_new_tname or old_tname
+        mapped_new_tname = migration_config.tables[old_tname]
+        new_tname = mapped_new_tname or old_tname
 
         if not new_schema[new_tname] then
             table.insert(changes.tables_dropped, old_tname)
@@ -364,31 +364,31 @@ function compare_schemas(old_schema, new_schema, migration_config)
                 changes.tables_renamed[old_tname] = mapped_new_tname
             end
 
-            mutable new_cols = new_schema[new_tname]
+            new_cols = new_schema[new_tname]
 
-            mutable old_col_map = {}
+            old_col_map = {}
             for _, col in ipairs(old_cols) do
                 old_col_map[col.name] = col
             end
 
-            mutable new_col_map = {}
+            new_col_map = {}
             for _, col in ipairs(new_cols) do
                 new_col_map[col.name] = col
             end
 
-            mutable diff = { 
+            diff = { 
                 columns_added = {}, 
                 columns_dropped = {}, 
                 columns_changed = {}, 
                 columns_renamed = {} 
             }
 
-            mutable column_renames = migration_config.columns[old_tname] or {}
+            column_renames = migration_config.columns[old_tname] or {}
 
             -- detect dropped, changed, and renamed columns
             for old_colname, oldcol in pairs(old_col_map) do
-                mutable mapped_new_colname = column_renames[old_colname]
-                mutable newcol = new_col_map[old_colname] or (mapped_new_colname and new_col_map[mapped_new_colname])
+                mapped_new_colname = column_renames[old_colname]
+                newcol = new_col_map[old_colname] or (mapped_new_colname and new_col_map[mapped_new_colname])
 
                 if not newcol then
                     table.insert(diff.columns_dropped, old_colname)

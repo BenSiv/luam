@@ -10,9 +10,9 @@ function print_help(cmd_args, expected_args, help_string)
         print(help_string)
     else
         print("Available arguments:")
-        mutable help_df = {}
+        help_df = {}
         for _, arg_parsed in pairs(expected_args) do
-            mutable row = {
+            row = {
                 short = "-" .. arg_parsed["short"],
                 long = "--" .. arg_parsed["long"],
                 kind = arg_parsed["arg_kind"],
@@ -30,7 +30,7 @@ function add_arg(expected_args, short, long, arg_kind, arg_type, is_required)
     if not expected_args then
         expected_args = {}
     end
-    mutable arg_to_add = {
+    arg_to_add = {
         short = short,
         long = long,
         arg_kind = arg_kind,
@@ -42,7 +42,6 @@ function add_arg(expected_args, short, long, arg_kind, arg_type, is_required)
 end
 
 function def_args(arg_string)
-    mutable arg_string = arg_string
     mutable expected_args = {}
     mutable short, long, arg_kind, arg_type, is_required
     for line in utils.match_all(arg_string, "[^\r\n]+") do
@@ -62,8 +61,8 @@ function def_args(arg_string)
 end
 
 function parse_args(cmd_args, expected_args, help_string)
-    mutable result = {}
-    mutable arg_map = {}
+    result = {}
+    arg_map = {}
 
     -- Create a map for quick lookup of parsed_args by short and long names
     for _, arg_parsed in pairs(expected_args) do
@@ -73,8 +72,8 @@ function parse_args(cmd_args, expected_args, help_string)
 
     mutable i = 1
     while i <= utils.length(cmd_args) do
-        mutable arg_name = cmd_args[i]
-        mutable parsed_arg = arg_map[arg_name]
+        arg_name = cmd_args[i]
+        parsed_arg = arg_map[arg_name]
 
         if not parsed_arg then
             print("Unknown argument: " .. arg_name)
