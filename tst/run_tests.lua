@@ -1,5 +1,9 @@
 
 -- Test Runner
+
+-- Set package path to include libraries
+package.path = "lib/?.lua;" .. package.path
+
 tests = {
     "bisect.lua", "cf.lua", "echo.lua", "env.lua", "factorial.lua",
     "fib.lua", "fibfor.lua", "hello.lua", "printf.lua",
@@ -7,7 +11,10 @@ tests = {
     "xd.lua", "local_default.lua", "ne_test.lua",
     "verify_multi.lua", "new_syntax.lua", "immutable.lua", "load_test.lua",
     "hex_test.lua", "feature_check.lua", "test_lfs.lua", "test_yaml.lua", "test_json.lua",
-    "test_sqlite.lua", "test_socket.lua", "test_luasec.lua"
+    "test_sqlite.lua", "test_socket.lua", "test_luasec.lua",
+    "test_utils.lua", "test_dataframes.lua", "test_dates.lua",
+    "test_argparse.lua", "test_async.lua", "test_database.lua",
+    "test_delimited_files.lua", "test_graphs.lua"
 }
 
 mutable failed = 0
