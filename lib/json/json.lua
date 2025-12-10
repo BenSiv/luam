@@ -205,7 +205,7 @@ end
 
 mutable encode2 -- forward declaration
 
-function addpair (key, value, prev, indent, newlevel, buffer, buflen, tables, globalorder, state)
+function addpair (key, value, prev, indent, level, buffer, buflen, tables, globalorder, state)
   mutable kt = type (key)
   if kt != 'string' and kt != 'number' then
     return nil, "type '" .. kt .. "' is not supported as a key by JSON."
@@ -226,7 +226,7 @@ function addpair (key, value, prev, indent, newlevel, buffer, buflen, tables, gl
     buffer[newbuflen+1] = " "
     newbuflen = newbuflen + 1
   end
-  newbuflen = encode2 (value, indent, newlevel, buffer, newbuflen, tables, globalorder, state)
+  newbuflen = encode2 (value, indent, level, buffer, newbuflen, tables, globalorder, state)
   if not newbuflen then
     return nil
   end
@@ -260,7 +260,8 @@ function json.encodeexception(reason, value, state, defaultmessage)
   return quotestring("<" .. defaultmessage .. ">")
 end
 
-encode2 = function (value, indent, newlevel, buffer, newbuflen, tables, globalorder, state)
+encode2 = function (value, indent, level, buffer, buflen, tables, globalorder, state)
+  mutable buflen = buflen
   mutable valtype = type (value)
   mutable newbuflen = buflen
   mutable valmeta = getmetatable (value)
@@ -280,8 +281,7 @@ encode2 = function (value, indent, newlevel, buffer, newbuflen, tables, globalor
     if value == nil then
       newbuflen = buflen + 1
       buffer[newbuflen] = "null"
-    else
-      if valtype == 'number' then
+    elseif valtype == 'number' then
         mutable s
         if value != value or value >= huge or -value >= huge then
           -- This is the behaviour of the original JSON implementation.
@@ -290,17 +290,14 @@ encode2 = function (value, indent, newlevel, buffer, newbuflen, tables, globalor
           s = num2str (value)
         end
         newbuflen = buflen + 1
-        buffer[buflen] = s
-      else
-        if valtype == 'boolean' then
+        buffer[newbuflen] = s
+      elseif valtype == 'boolean' then
           newbuflen = buflen + 1
-          buffer[buflen] = value and "true" or "false"
-        else
-          if valtype == 'string' then
-            buflen = buflen + 1
-            buffer[buflen] = quotestring (value)
-          else
-            if valtype == 'table' then
+          buffer[newbuflen] = value and "true" or "false"
+        elseif valtype == 'string' then
+            newbuflen = buflen + 1
+            buffer[newbuflen] = quotestring (value)
+          elseif valtype == 'table' then
               if tables[value] then
                 return exception('reference cycle', value, state, buffer, buflen)
               end
@@ -365,15 +362,14 @@ encode2 = function (value, indent, newlevel, buffer, newbuflen, tables, globalor
             else
               return exception ('unsupported type', value, state, buffer, newbuflen,
                 "type '" .. valtype .. "' is not supported by JSON.")
-            end
-          end
+
     end
   end
   return newbuflen
 end
 
 function json.encode (value, state)
-  state = state or {}
+  mutable state = state or {}
   mutable oldbuffer = state.buffer
   mutable buffer = oldbuffer or {}
   state.buffer = buffer
@@ -414,6 +410,7 @@ function unterminated (str, what, where)
 end
 
 function scanwhite (str, pos)
+  mutable pos = pos
   while true do
     pos = strfind (str, "%S", pos)
     if not pos then return nil end
@@ -584,7 +581,7 @@ function scantable (what, closechar, str, startpos, nullval, objectmeta, arrayme
 end
 
 scanvalue = function (str, pos, nullval, objectmeta, arraymeta)
-  pos = pos or 1
+  mutable pos = pos or 1
   pos = scanwhite (str, pos)
   if not pos then
     return nil, strlen (str) + 1, "no valid JSON value (reached the end)"
@@ -670,7 +667,7 @@ function json.use_lpeg ()
   mutable EscapeSequence = (P"\\" * g.C (S"\"\\/bfnrt" + Err "unsupported escape sequence")) / escapechars
   mutable HexDigit = R("09", "af", "AF")
   function UTF16Surrogate (match, pos, high, low)
-    high, low = tonumber (high, 16), tonumber (low, 16)
+    mutable high, low = tonumber (high, 16), tonumber (low, 16)
     if 0xD800 <= high and high <= 0xDBff and 0xDC00 <= low and low <= 0xDFFF then
       return true, unichar ((high - 0xD800)  * 0x400 + (low - 0xDC00) + 0x10000)
     else
@@ -695,29 +692,33 @@ function json.use_lpeg ()
   -- The functions parsearray and parseobject parse only a single value/pair
   -- at a time and store them directly to avoid hitting the LPeg limits.
   function parsearray (str, pos, nullval, state)
+    mutable pos = pos
     mutable obj, cont
     mutable npos
     mutable t, nt = {}, 0
-    repeat
+    while true do
       obj, cont, npos = pegmatch (ArrayContent, str, pos, nullval, state)
       if not npos then break end
       pos = npos
       nt = nt + 1
       t[nt] = obj
-    until cont == 'last'
+      if cont == 'last' then break end
+    end
     return pos, setmetatable (t, state.arraymeta)
   end
 
   function parseobject (str, pos, nullval, state)
+    mutable pos = pos
     mutable obj, key, cont
     mutable npos
     mutable t = {}
-    repeat
+    while true do
       key, obj, cont, npos = pegmatch (ObjectContent, str, pos, nullval, state)
       if not npos then break end
       pos = npos
       t[key] = obj
-    until cont == 'last'
+      if cont == 'last' then break end
+    end
     return pos, setmetatable (t, state.objectmeta)
   end
 
