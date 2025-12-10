@@ -6,7 +6,8 @@ tests = {
     "readonly.lua", "sieve.lua", "sort.lua", "trace-calls.lua",
     "xd.lua", "local_default.lua", "ne_test.lua",
     "verify_multi.lua", "new_syntax.lua", "immutable.lua", "load_test.lua",
-    "hex_test.lua", "feature_check.lua", "test_lfs.lua", "test_yaml.lua", "test_json.lua"
+    "hex_test.lua", "feature_check.lua", "test_lfs.lua", "test_yaml.lua", "test_json.lua",
+    "test_sqlite.lua"
 }
 
 mutable failed = 0
