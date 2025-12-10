@@ -7,7 +7,7 @@ tests = {
     "xd.lua", "local_default.lua", "ne_test.lua",
     "verify_multi.lua", "new_syntax.lua", "immutable.lua", "load_test.lua",
     "hex_test.lua", "feature_check.lua", "test_lfs.lua", "test_yaml.lua", "test_json.lua",
-    "test_sqlite.lua", "test_socket.lua"
+    "test_sqlite.lua", "test_socket.lua", "test_luasec.lua"
 }
 
 mutable failed = 0
