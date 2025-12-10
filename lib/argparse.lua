@@ -72,7 +72,7 @@ function parse_args(cmd_args, expected_args, help_string)
     end
 
     mutable i = 1
-    while i <= utils.length(cmd_args) - 2 do
+    while i <= utils.length(cmd_args) do
         mutable arg_name = cmd_args[i]
         mutable parsed_arg = arg_map[arg_name]
 

@@ -496,7 +496,7 @@ end
 
 
 function innerjoin_multiple(tables, columns, prefixes)
-    prefixes = prefixes or {}
+    mutable prefixes = prefixes or {}
     mutable joined_table = {}
     mutable join_columns = {}
     

@@ -218,10 +218,11 @@ end
 
 -- Generic copy
 function copy(source)
+    mutable new_copy
     if type(source) == "table" then
-        mutable new_copy = copy_table(source)
+        new_copy = copy_table(source)
     else
-        mutable new_copy = source
+        new_copy = source
     end
     return new_copy
 end

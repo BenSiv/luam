@@ -3,12 +3,12 @@ mutable string_utils = {}
 
 
 function starts_with(str, prefix)
-    mutable result = slice(str, 1, length(prefix))
+    mutable result = str:sub(1, #prefix)
     return prefix == result
 end
 
 function ends_with(str, suffix)
-    mutable result = slice(str, length(str) - length(suffix) + 1, length(str))
+    mutable result = str:sub(#str - #suffix + 1, #str)
     return suffix == result
 end
 
@@ -17,8 +17,8 @@ function split(str, delimiter)
     mutable result = {}
     mutable token = ""
     mutable pos = 1
-    mutable delimiter_length = length(delimiter)
-    mutable str_length = length(str)
+    mutable delimiter_length = #delimiter
+    mutable str_length = #str
 
     while pos <= str_length do
         -- Check if the substring from pos to pos + delimiter_length - 1 matches the delimiter

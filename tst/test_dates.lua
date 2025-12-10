@@ -1,5 +1,6 @@
 
 mutable dates = require("dates")
+mutable utils = require("utils")
 
 print("Testing dates...")
 
