@@ -41,7 +41,7 @@ RANLIB= ranlib
 PLATS= aix ansi bsd freebsd generic linux macosx mingw posix solaris
 
 # What to install.
-TO_BIN= ../bld/lua ../bld/luac
+TO_BIN= ../bld/luam ../bld/luamc
 TO_INC= lua.h luaconf.h lualib.h lauxlib.h ../etc/lua.hpp
 TO_LIB= ../obj/liblua.a
 TO_MAN= lua.1 luac.1
@@ -77,7 +77,7 @@ local:
 	$(MAKE) all MYCFLAGS=-DLUA_USE_LINUX MYLIBS="-Wl,-E -ldl -lreadline -lhistory -lncurses"
 
 test:
-	LUA_PATH="lib/?.lua;lib/lua-sqlite3/?.lua;tst/?.lua" LUA_CPATH="lib/luafilesystem/src/?.so;lib/lua-yaml/?.so;;" ./bld/lua tst/run_tests.lua
+	LUA_PATH="lib/?.lua;lib/lua-sqlite3/?.lua;tst/?.lua" LUA_CPATH="lib/luafilesystem/src/?.so;lib/lua-yaml/?.so;;" ./bld/luam tst/run_tests.lua
 	@echo "   make PLATFORM"
 	@echo "where PLATFORM is one of these:"
 	@echo "   $(PLATS)"
@@ -117,13 +117,13 @@ echo:
 	@echo ""
 
 banner:
-	@echo "  _                    "
-	@echo " | |    _   _  __ _    "
-	@echo " | |   | | | |/ _\` |   "
-	@echo " | |___| |_| | (_| |   "
-	@echo " |_____|\__,_|\__,_|   "
-	@echo "                       "
-	@echo " Build Complete!       "
+	@echo "  _                                      "
+	@echo " | |    _   _   __ _   _ __ ___        "
+	@echo " | |   | | | | / _\` | | '_ \` _ \       "
+	@echo " | |___| |_| || (_| | | | | | | |      "
+	@echo " |_____|\__,_| \__,_| |_| |_| |_|      "
+	@echo "                                       "
+	@echo " Build Complete!                       "
 
 
 # echo private config parameters

@@ -33,10 +33,10 @@ LIB_O=	$(OBJ_DIR)/lauxlib.o $(OBJ_DIR)/lbaselib.o $(OBJ_DIR)/ldblib.o $(OBJ_DIR)
 	$(OBJ_DIR)/lstrlib.o $(OBJ_DIR)/loadlib.o $(OBJ_DIR)/linit.o
 
 BIN_DIR= ../bld
-LUA_T=	$(BIN_DIR)/lua
+LUA_T=	$(BIN_DIR)/luam
 LUA_O=	$(OBJ_DIR)/lua.o
 
-LUAC_T=	$(BIN_DIR)/luac
+LUAC_T=	$(BIN_DIR)/luamc
 LUAC_O=	$(OBJ_DIR)/luac.o $(OBJ_DIR)/print.o
 
 ALL_O= $(CORE_O) $(LIB_O) $(LUA_O) $(LUAC_O)
@@ -118,10 +118,10 @@ macosx:
 #	$(MAKE) all MYCFLAGS=-DLUA_USE_MACOSX
 
 mingw:
-	$(MAKE) "LUA_A=lua51.dll" "LUA_T=lua.exe" \
+	$(MAKE) "LUA_A=lua51.dll" "LUA_T=luam.exe" \
 	"AR=$(CC) -shared -o" "RANLIB=strip --strip-unneeded" \
-	"MYCFLAGS=-DLUA_BUILD_AS_DLL" "MYLIBS=" "MYLDFLAGS=-s" lua.exe
-	$(MAKE) "LUAC_T=luac.exe" luac.exe
+	"MYCFLAGS=-DLUA_BUILD_AS_DLL" "MYLIBS=" "MYLDFLAGS=-s" luam.exe
+	$(MAKE) "LUAC_T=luamc.exe" luamc.exe
 
 posix:
 	$(MAKE) all MYCFLAGS=-DLUA_USE_POSIX
