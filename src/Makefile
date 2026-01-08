@@ -66,10 +66,20 @@ $(LUAC_T): $(LUAC_O) $(LUA_A)
 	@$(MKDIR) $(BIN_DIR)
 	@$(CC) -o $@ $(MYLDFLAGS) $(LUAC_O) $(LUA_A) $(LIBS) >> ../build.log 2>&1
 
+$(OBJ_DIR)/sqlite3.o: sqlite3.c sqlite3.h
+	@echo "  CC    $@"
+	@$(MKDIR) $(OBJ_DIR)
+	@$(CC) $(CFLAGS) -DSQLITE_ENABLE_FTS3 -DSQLITE_ENABLE_RTREE -fPIC -c -o $@ $< >> ../build.log 2>&1
+
+$(BIN_DIR)/sqlite3.so: $(OBJ_DIR)/libluasqlite3.o $(OBJ_DIR)/sqlite3.o
+	@echo "  LINK  $@"
+	@$(MKDIR) $(BIN_DIR)
+	@$(CC) -shared -o $@ $^ -lpthread -ldl >> ../build.log 2>&1
+
 $(OBJ_DIR)/%.o: %.c
 	@echo "  CC    $@"
 	@$(MKDIR) $(OBJ_DIR)
-	@$(CC) $(CFLAGS) -c -o $@ $< >> ../build.log 2>&1
+	@$(CC) $(CFLAGS) -I. -fPIC -c -o $@ $< >> ../build.log 2>&1
 
 clean:
 	$(RM) $(ALL_T) $(ALL_O)
@@ -111,6 +121,7 @@ generic:
 
 linux:
 	$(MAKE) all MYCFLAGS=-DLUA_USE_LINUX MYLIBS="-Wl,-E -ldl -lreadline -lhistory -lncurses"
+	$(MAKE) $(BIN_DIR)/sqlite3.so
 
 macosx:
 	$(MAKE) all MYCFLAGS=-DLUA_USE_LINUX MYLIBS="-lreadline"

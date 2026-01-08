@@ -4,14 +4,13 @@
 ** See Copyright Notice in lua.h
 */
 
-
 #define linit_c
 #define LUA_LIB
 
 #include "lua.h"
 
-#include "lualib.h"
 #include "lauxlib.h"
+#include "lualib.h"
 
 
 static const luaL_Reg lualibs[] = {
@@ -35,4 +34,3 @@ LUALIB_API void luaL_openlibs (lua_State *L) {
     lua_call(L, 1, 0);
   }
 }
-
