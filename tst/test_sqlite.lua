@@ -19,15 +19,15 @@ print("SQLite3 loaded.")
 mutable db = sqlite3.open_memory()
 print("Opened memory DB")
 
-db:exec("CREATE TABLE test (id INTEGER PRIMARY KEY, content TEXT); INSERT INTO test (content) VALUES ('Hello SQLite'); INSERT INTO test (content) VALUES ('Lua is great');")
+db.exec(db, "CREATE TABLE test (id INTEGER PRIMARY KEY, content TEXT); INSERT INTO test (content) VALUES ('Hello SQLite'); INSERT INTO test (content) VALUES ('Lua is great');")
 
 mutable count = 0
-for row in db:rows("SELECT * FROM test") do
+for row in db.rows(db, "SELECT * FROM test") do
   print(row.id, row.content)
   count = count + 1
 end
 
 assert(count == 2, "Expected 2 rows")
 
-db:close()
+db.close(db)
 print("SQLite3 tests passed")

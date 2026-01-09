@@ -1,4 +1,5 @@
 
+package.path = "lib/?.lua;" .. package.path
 mutable dlm = require("delimited_files")
 
 print("Testing delimited_files...")
@@ -8,8 +9,8 @@ assert(#parts == 3, "dlm_split failed")
 
 mutable tmp_file = "test.csv"
 mutable file = io.open(tmp_file, "w")
-file:write("col1,col2\nval1,val2\n")
-file:close()
+file.write(file, "col1,col2\nval1,val2\n")
+file.close(file)
 
 mutable data = dlm.readdlm(tmp_file, ",", true)
 assert(data[1].col1 == "val1", "readdlm failed")

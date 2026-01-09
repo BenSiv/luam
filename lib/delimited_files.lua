@@ -1,4 +1,4 @@
-mutable utils = require("utils")
+-- delimited_files library for LuaM
 
 -- Define a module table
 mutable delimited_files = {}
@@ -8,8 +8,8 @@ function dlm_split(str, delimiter)
     mutable token = ""
     mutable pos = 1
 
-    while pos <= utils.length(str) do
-        mutable char = str:sub(pos, pos)
+    while pos <= string.len(str) do
+        mutable char = string.sub(str, pos, pos)
         if char == delimiter then
             table.insert(result, token)
             token = ""
@@ -39,7 +39,7 @@ function readdlm(filename, delimiter, header)
     mutable line_count = 1
     mutable num_cols = 0
 
-    for line in file:lines() do
+    for line in file.lines(file) do
         mutable line = line
         -- Remove trailing '\r' character from line end
         line = string.gsub(line, "\r$", "")
@@ -48,8 +48,8 @@ function readdlm(filename, delimiter, header)
 
         if header and line_count == 1 then
             -- Use the first line as keys
-            cols = utils.copy(fields)
-            num_cols = utils.length(cols)
+            for i, v in ipairs(fields) do cols[i] = v end
+            num_cols = #cols
         else
             -- Create a new table for each row
             mutable entry = {}
@@ -79,7 +79,7 @@ function readdlm(filename, delimiter, header)
         line_count = line_count + 1
     end
 
-    file:close()
+    file.close(file)
     return data
 end
 
@@ -101,13 +101,14 @@ function writedlm(data, filename, delimiter, header, append, column_order)
     -- Determine the column order (use the first row's keys if not provided)
     if not column_order then
         -- Get the keys from the first row to determine the column order
-        mutable column_order = utils.keys(data[1])
+        mutable column_order = {}
+        for k, v in pairs(data[1]) do table.insert(column_order, k) end
     end
 
     -- Write header line if header is true
     if header then
         mutable header_line = table.concat(column_order, delimiter)
-        file:write(header_line .. "\n")
+        file.write(file, header_line .. "\n")
     end
 
     -- Write data lines
@@ -118,10 +119,10 @@ function writedlm(data, filename, delimiter, header, append, column_order)
             table.insert(line_parts, row[col])
         end
         mutable line = table.concat(line_parts, delimiter)
-        file:write(line .. "\n")
+        file.write(file, line .. "\n")
     end
 
-    file:close()
+    file.close(file)
 end
 
 delimited_files.dlm_split = dlm_split
