@@ -3,9 +3,9 @@
 -- LuaSocket toolkit.
 -- Author: Diego Nehab
 -----------------------------------------------------------------------------
-local socket = require("socket")
+socket = require("socket")
 socket.headers = {}
-local _M = socket.headers
+_M = socket.headers
 
 _M.canonic = {
     ["accept"] = "Accept",

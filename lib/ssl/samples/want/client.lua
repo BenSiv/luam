@@ -1,12 +1,12 @@
 --
--- Test the conn:want() function
+-- Test the conn.want(conn) function
 --
 -- Public domain
 --
-local socket = require("socket")
-local ssl    = require("ssl")
+socket = require("socket")
+ssl    = require("ssl")
 
-local params = {
+params = {
    mode = "client",
    protocol = "tlsv1_2",
    key = "../certs/clientAkey.pem",
@@ -17,11 +17,11 @@ local params = {
 }
 
 -- Wait until socket is ready (for reading or writing)
-local function wait(peer)
+function wait(peer)
    -- What event blocked us?
-   local err
+  err = nil
    if peer.want then  -- Is it an SSL connection?
-     err = peer:want()
+     err = peer.want(peer)
      print("Want? ", err)
    else
      -- No, it's a normal TCP connection...
@@ -33,34 +33,34 @@ local function wait(peer)
    elseif err == "write" then
       socket.select(nil, {peer})
    else
-      peer:close()
+      peer.close(peer)
       os.exit(1)
    end
 end
 
 -- Start the TCP connection
-local peer = socket.tcp()
-assert( peer:connect("127.0.0.1", 8888) )
+peer = socket.tcp()
+assert( peer.connect(peer, "127.0.0.1", 8888) )
 
 -- [[ SSL wrapper
 peer = assert( ssl.wrap(peer, params) )
-peer:settimeout(0.3)
-local succ = peer:dohandshake()
+peer.settimeout(peer, 0.3)
+succ = peer.dohandshake(peer)
 while not succ do
    wait(peer)
-   succ = peer:dohandshake()
+   succ = peer.dohandshake(peer)
 end
 print("** Handshake done")
 --]]
 
 -- If the section above is commented, the timeout is not set.
 -- We set it again for safetiness.
-peer:settimeout(0.3)
+peer.settimeout(peer, 0.3)
 
 -- Try to receive a line
-local str = peer:receive("*l")
+str = peer.receive(peer, "*l")
 while not str do
    wait(peer)
-   str = peer:receive("*l")
+   str = peer.receive(peer, "*l")
 end
-peer:close()
+peer.close(peer)

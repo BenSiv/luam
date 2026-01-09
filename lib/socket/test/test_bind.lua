@@ -1,6 +1,6 @@
-local socket = require "socket"
-local u = socket.udp() assert(u:setsockname("*", 5088)) u:close()
-local u = socket.udp() assert(u:setsockname("*", 0)) u:close()
-local t = socket.tcp() assert(t:bind("*", 5088)) t:close()
-local t = socket.tcp() assert(t:bind("*", 0)) t:close()
+socket = require "socket"
+u = socket.udp() assert(u.setsockname(u, "*", 5088)) u.close(u)
+u = socket.udp() assert(u.setsockname(u, "*", 0)) u.close(u)
+t = socket.tcp() assert(t.bind(t, "*", 5088)) t.close(t)
+t = socket.tcp() assert(t.bind(t, "*", 0)) t.close(t)
 print("done!")

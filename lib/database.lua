@@ -14,26 +14,26 @@ function local_query(db_path, query)
     if not db then
         error("Error opening database")
     end
-    db:exec("PRAGMA busy_timeout = 5000;")
+    db.exec(db, "PRAGMA busy_timeout = 5000;")
 
     query = utils.unescape_string(query)
-    stmt, err = db:prepare(query)
+    stmt, err = db.prepare(db, query)
     if not stmt then
-        db:close()
+        db.close(db)
         error("Invalid query: " .. err)
     end
 
     result_rows = {}
     column_names = {}
 
-    for row in stmt:rows() do
+    for row in stmt.rows(stmt) do
         table.insert(result_rows, row)
         for col_name, _ in pairs(row) do
         	table.insert(column_names, col_name)
         end
     end
 
-    db:close()
+    db.close(db)
 
     if utils.length(result_rows) == 0 then
         -- print("Query executed successfully, but no rows were returned.")
@@ -58,15 +58,15 @@ function local_update(db_path, statement)
     if not db then
         error("Error opening database")
     end
-    db:exec("PRAGMA busy_timeout = 5000;")
+    db.exec(db, "PRAGMA busy_timeout = 5000;")
     
     statement = utils.unescape_string(statement)
-    _, err = db:exec(statement)
+    _, err = db.exec(db, statement)
     if err then
         error("Error: " .. tostring(err))
     end
 
-    db:close()
+    db.close(db)
     return true
 end
 
@@ -107,12 +107,12 @@ function import_delimited(db_path, file_path, table_name, delimiter)
     end
     insert_statement = insert_statement .. table.concat(value_rows, ", ") .. ";"
 
-    _, err = db:exec(insert_statement)
+    _, err = db.exec(db, insert_statement)
     if err then
         error("Error: " .. err)
     end
 
-    db:close()
+    db.close(db)
     return true
 end
 
@@ -172,7 +172,7 @@ function load_df_rows(db_path, table_name, dataframe)
             table.concat(sql_values, ", ")
         )
 
-        ok, err = db:exec(insert_sql)
+        ok, err = db.exec(db, insert_sql)
         if not ok and err then
             print(string.format(
                 "Row %d insert failed: %s\nSQL: %s",
@@ -182,7 +182,7 @@ function load_df_rows(db_path, table_name, dataframe)
         end
     end
 
-    db:close()
+    db.close(db)
     return true
 end
 
@@ -228,16 +228,16 @@ function load_df(db_path, table_name, dataframe)
     insert_statement = insert_statement .. table.concat(value_rows, ", ") .. ";"
 
     -- Execute the insert statement
-    _, err = db:exec(insert_statement)
+    _, err = db.exec(db, insert_statement)
     if err then
         print("Error: " .. err)
         print("Insert Statement: " .. insert_statement)
-        db:close()
+        db.close(db)
         return nil
     end
 
     -- Close the database connection
-    db:close()
+    db.close(db)
     return true
 end
 
@@ -249,11 +249,11 @@ function get_tables(db_path)
     end
     
 	table_list = {}
-	for row in db:rows("SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%';") do
+	for row in db.rows(db, "SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%';") do
 	    table.insert(table_list, row.name)
 	end
 
-	db:close()
+	db.close(db)
 	return table_list
 end
 
@@ -266,11 +266,11 @@ function get_columns(db_path, table_name)
     columns = {}
     query = string.format("PRAGMA table_info(%s);", table_name)
 
-    for row in db:rows(query) do
+    for row in db.rows(db, query) do
         table.insert(columns, row.name)
     end
 
-    db:close()
+    db.close(db)
     return columns
 end
 
@@ -285,7 +285,7 @@ function get_table_info(db_path, table_name)
     columns = {}
     sql = ("PRAGMA table_info(%s);"):format(table_name)
 
-    for row in db:rows(sql) do
+    for row in db.rows(db, sql) do
         columns[#columns + 1] = {
             name = row.name,
             type = row.type,
@@ -295,7 +295,7 @@ function get_table_info(db_path, table_name)
         }
     end
 
-    db:close()
+    db.close(db)
     return columns
 end
 
@@ -307,12 +307,12 @@ function get_schema(db_path)
 
     schema = {}
     -- Get all user tables
-    for row in db:rows("SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%';") do
+    for row in db.rows(db, "SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%';") do
         table_name = row.name
         schema[table_name] = {}
 
         sql = ("PRAGMA table_info(%s);"):format(table_name)
-        for col in db:rows(sql) do
+        for col in db.rows(db, sql) do
             schema[table_name][#schema[table_name] + 1] = {
                 name = col.name,
                 type = col.type,
@@ -323,7 +323,7 @@ function get_schema(db_path)
         end
     end
 
-    db:close()
+    db.close(db)
     return schema
 end
 

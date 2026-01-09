@@ -7,19 +7,19 @@
 -----------------------------------------------------------------------------
 -- Declare module and import dependencies
 -----------------------------------------------------------------------------
-local base = _G
-local coroutine = require("coroutine")
-local string = require("string")
-local math = require("math")
-local os = require("os")
-local socket = require("socket")
-local tp = require("socket.tp")
-local ltn12 = require("ltn12")
-local headers = require("socket.headers")
-local mime = require("mime")
+base = _G
+coroutine = require("coroutine")
+string = require("string")
+math = require("math")
+os = require("os")
+socket = require("socket")
+tp = require("socket.tp")
+ltn12 = require("ltn12")
+headers = require("socket.headers")
+mime = require("mime")
 
 socket.smtp = {}
-local _M = socket.smtp
+_M = socket.smtp
 
 -----------------------------------------------------------------------------
 -- Program constants
@@ -39,94 +39,94 @@ _M.ZONE = "-0000"
 ---------------------------------------------------------------------------
 -- Low level SMTP API
 -----------------------------------------------------------------------------
-local metat = { __index = {} }
+metat = { __index = {} }
 
-function metat.__index:greet(domain)
-    self.try(self.tp:check("2.."))
-    self.try(self.tp:command("EHLO", domain or _M.DOMAIN))
-    return socket.skip(1, self.try(self.tp:check("2..")))
+function metat.__index.greet(__index, domain)
+    self.try(self.tp.check(self.tp, "2.."))
+    self.try(self.tp.command(self.tp, "EHLO", domain or _M.DOMAIN))
+    return socket.skip(1, self.try(self.tp.check(self.tp, "2..")))
 end
 
-function metat.__index:mail(from)
-    self.try(self.tp:command("MAIL", "FROM:" .. from))
-    return self.try(self.tp:check("2.."))
+function metat.__index.mail(__index, from)
+    self.try(self.tp.command(self.tp, "MAIL", "FROM:" .. from))
+    return self.try(self.tp.check(self.tp, "2.."))
 end
 
-function metat.__index:rcpt(to)
-    self.try(self.tp:command("RCPT", "TO:" .. to))
-    return self.try(self.tp:check("2.."))
+function metat.__index.rcpt(__index, to)
+    self.try(self.tp.command(self.tp, "RCPT", "TO:" .. to))
+    return self.try(self.tp.check(self.tp, "2.."))
 end
 
-function metat.__index:data(src, step)
-    self.try(self.tp:command("DATA"))
-    self.try(self.tp:check("3.."))
-    self.try(self.tp:source(src, step))
-    self.try(self.tp:send("\r\n.\r\n"))
-    return self.try(self.tp:check("2.."))
+function metat.__index.data(__index, src, step)
+    self.try(self.tp.command(self.tp, "DATA"))
+    self.try(self.tp.check(self.tp, "3.."))
+    self.try(self.tp.source(self.tp, src, step))
+    self.try(self.tp.send(self.tp, "\r\n.\r\n"))
+    return self.try(self.tp.check(self.tp, "2.."))
 end
 
-function metat.__index:quit()
-    self.try(self.tp:command("QUIT"))
-    return self.try(self.tp:check("2.."))
+function metat.__index.quit(__index)
+    self.try(self.tp.command(self.tp, "QUIT"))
+    return self.try(self.tp.check(self.tp, "2.."))
 end
 
-function metat.__index:close()
-    return self.tp:close()
+function metat.__index.close(__index)
+    return self.tp.close(self.tp)
 end
 
-function metat.__index:login(user, password)
-    self.try(self.tp:command("AUTH", "LOGIN"))
-    self.try(self.tp:check("3.."))
-    self.try(self.tp:send(mime.b64(user) .. "\r\n"))
-    self.try(self.tp:check("3.."))
-    self.try(self.tp:send(mime.b64(password) .. "\r\n"))
-    return self.try(self.tp:check("2.."))
+function metat.__index.login(__index, user, password)
+    self.try(self.tp.command(self.tp, "AUTH", "LOGIN"))
+    self.try(self.tp.check(self.tp, "3.."))
+    self.try(self.tp.send(self.tp, mime.b64(user) .. "\r\n"))
+    self.try(self.tp.check(self.tp, "3.."))
+    self.try(self.tp.send(self.tp, mime.b64(password) .. "\r\n"))
+    return self.try(self.tp.check(self.tp, "2.."))
 end
 
-function metat.__index:plain(user, password)
-    local auth = "PLAIN " .. mime.b64("\0" .. user .. "\0" .. password)
-    self.try(self.tp:command("AUTH", auth))
-    return self.try(self.tp:check("2.."))
+function metat.__index.plain(__index, user, password)
+   auth = "PLAIN " .. mime.b64("\0" .. user .. "\0" .. password)
+    self.try(self.tp.command(self.tp, "AUTH", auth))
+    return self.try(self.tp.check(self.tp, "2.."))
 end
 
-function metat.__index:auth(user, password, ext)
+function metat.__index.auth(__index, user, password, ext)
     if not user or not password then return 1 end
     if string.find(ext, "AUTH[^\n]+LOGIN") then
-        return self:login(user, password)
+        return self.login(self, user, password)
     elseif string.find(ext, "AUTH[^\n]+PLAIN") then
-        return self:plain(user, password)
+        return self.plain(self, user, password)
     else
         self.try(nil, "authentication not supported")
     end
 end
 
 -- send message or throw an exception
-function metat.__index:send(mailt)
-    self:mail(mailt.from)
+function metat.__index.send(__index, mailt)
+    self.mail(self, mailt.from)
     if base.type(mailt.rcpt) == "table" then
         for i,v in base.ipairs(mailt.rcpt) do
-            self:rcpt(v)
+            self.rcpt(self, v)
         end
     else
-        self:rcpt(mailt.rcpt)
+        self.rcpt(self, mailt.rcpt)
     end
-    self:data(ltn12.source.chain(mailt.source, mime.stuff()), mailt.step)
+    self.data(self, ltn12.source.chain(mailt.source, mime.stuff()), mailt.step)
 end
 
 function _M.open(server, port, create)
-    local tp = socket.try(tp.connect(server or _M.SERVER, port or _M.PORT,
+   tp = socket.try(tp.connect(server or _M.SERVER, port or _M.PORT,
         _M.TIMEOUT, create))
-    local s = base.setmetatable({tp = tp}, metat)
+   s = base.setmetatable({tp = tp}, metat)
     -- make sure tp is closed if we get an exception
     s.try = socket.newtry(function()
-        s:close()
+        s.close(s)
     end)
     return s
 end
 
 -- convert headers to lowercase
-local function lower_headers(headers)
-    local lower = {}
+function lower_headers(headers)
+   lower = {}
     for i,v in base.pairs(headers or lower) do
         lower[string.lower(i)] = v
     end
@@ -137,20 +137,20 @@ end
 -- Multipart message source
 -----------------------------------------------------------------------------
 -- returns a hopefully unique mime boundary
-local seqno = 0
-local function newboundary()
+seqno = 0
+function newboundary()
     seqno = seqno + 1
     return string.format('%s%05d==%05u', os.date('%d%m%Y%H%M%S'),
         math.random(0, 99999), seqno)
 end
 
 -- send_message forward declaration
-local send_message
+send_message = nil
 
 -- yield the headers all at once, it's faster
-local function send_headers(tosend)
-    local canonic = headers.canonic
-    local h = "\r\n"
+function send_headers(tosend)
+   canonic = headers.canonic
+   h = "\r\n"
     for f,v in base.pairs(tosend) do
         h = (canonic[f] or f) .. ': ' .. v .. "\r\n" .. h
     end
@@ -158,10 +158,10 @@ local function send_headers(tosend)
 end
 
 -- yield multipart message body from a multipart message table
-local function send_multipart(mesgt)
+function send_multipart(mesgt)
     -- make sure we have our boundary and send headers
-    local bd = newboundary()
-    local headers = lower_headers(mesgt.headers or {})
+   bd = newboundary()
+   headers = lower_headers(mesgt.headers or {})
     headers['content-type'] = headers['content-type'] or 'multipart/mixed'
     headers['content-type'] = headers['content-type'] ..
         '; boundary="' ..  bd .. '"'
@@ -186,15 +186,15 @@ local function send_multipart(mesgt)
 end
 
 -- yield message body from a source
-local function send_source(mesgt)
+function send_source(mesgt)
     -- make sure we have a content-type
-    local headers = lower_headers(mesgt.headers or {})
+   headers = lower_headers(mesgt.headers or {})
     headers['content-type'] = headers['content-type'] or
         'text/plain; charset="iso-8859-1"'
     send_headers(headers)
     -- send body from source
     while true do
-        local chunk, err = mesgt.body()
+       chunk, err = mesgt.body()
         if err then coroutine.yield(nil, err)
         elseif chunk then coroutine.yield(chunk)
         else break end
@@ -202,9 +202,9 @@ local function send_source(mesgt)
 end
 
 -- yield message body from a string
-local function send_string(mesgt)
+function send_string(mesgt)
     -- make sure we have a content-type
-    local headers = lower_headers(mesgt.headers or {})
+   headers = lower_headers(mesgt.headers or {})
     headers['content-type'] = headers['content-type'] or
         'text/plain; charset="iso-8859-1"'
     send_headers(headers)
@@ -220,8 +220,8 @@ function send_message(mesgt)
 end
 
 -- set defaul headers
-local function adjust_headers(mesgt)
-    local lower = lower_headers(mesgt.headers)
+function adjust_headers(mesgt)
+   lower = lower_headers(mesgt.headers)
     lower["date"] = lower["date"] or
         os.date("!%a, %d %b %Y %H:%M:%S ") .. (mesgt.zone or _M.ZONE)
     lower["x-mailer"] = lower["x-mailer"] or socket._VERSION
@@ -233,9 +233,9 @@ end
 function _M.message(mesgt)
     mesgt.headers = adjust_headers(mesgt)
     -- create and return message source
-    local co = coroutine.create(function() send_message(mesgt) end)
+   co = coroutine.create(function() send_message(mesgt) end)
     return function()
-        local ret, a, b = coroutine.resume(co)
+       ret, a, b = coroutine.resume(co)
         if ret then return a, b
         else return nil, a end
     end
@@ -245,12 +245,12 @@ end
 -- High level SMTP API
 -----------------------------------------------------------------------------
 _M.send = socket.protect(function(mailt)
-    local s = _M.open(mailt.server, mailt.port, mailt.create)
-    local ext = s:greet(mailt.domain)
-    s:auth(mailt.user, mailt.password, ext)
-    s:send(mailt)
-    s:quit()
-    return s:close()
+   s = _M.open(mailt.server, mailt.port, mailt.create)
+   ext = s.greet(s, mailt.domain)
+    s.auth(s, mailt.user, mailt.password, ext)
+    s.send(s, mailt)
+    s.quit(s)
+    return s.close(s)
 end)
 
 return _M

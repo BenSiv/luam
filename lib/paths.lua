@@ -4,8 +4,8 @@ paths = {}
 -- Capture the path of the file that required this module
 do
     info = debug.getinfo(4, "S") or debug.getinfo(3, "S")
-    if info and info.source:sub(1, 1) == "@" then
-        paths._caller_script = info.source:sub(2)
+    if info and info.source.sub(source, 1, 1) == "@" then
+        paths._caller_script = info.source.sub(source, 2)
     else
         paths._caller_script = nil
     end
@@ -16,18 +16,18 @@ function get_script_path()
 end
 
 function get_parent_dir(path)
-    path = path:gsub("[\\/]+$", "")
-    parent_dir = path:match("(.*/)")
+    path = path.gsub(path, "[\\/]+$", "")
+    parent_dir = path.match(path, "(.*/)")
     return parent_dir
 end
 
 function remove_trailing_slash(path)
     -- Remove the trailing slash if it exists
-    return path:gsub("[\\/]+$", "")
+    return path.gsub(path, "[\\/]+$", "")
 end
 
 function get_file_name(path)
-    return path:match("([^\\/]+)$")
+    return path.match(path, "([^\\/]+)$")
 end
 
 function get_dir_name(path)
@@ -35,7 +35,7 @@ function get_dir_name(path)
 	dir_name = nil 
 	file_name = get_file_name(path)
 	if file_name then
-		dir_name = path:match(".*/([^/]*)/[^/]+$")
+		dir_name = path.match(path, ".*/([^/]*)/[^/]+$")
 	else
 		path = remove_trailing_slash(path)
 		dir_name = get_file_name(path)
@@ -52,14 +52,14 @@ end
 -- Function to join paths
 function joinpath(...)
     parts = {...}
-    separator = package.config:sub(1,1)
+    separator = package.config.sub(config, 1,1)
 
     joined_path = table.concat(parts, separator)
 
     if separator == '\\' then
-        joined_path = joined_path:gsub('[\\/]+', '\\')
+        joined_path = joined_path.gsub(joined_path, '[\\/]+', '\\')
     else
-        joined_path = joined_path:gsub('[\\/]+', '/')
+        joined_path = joined_path.gsub(joined_path, '[\\/]+', '/')
     end
 
     return joined_path
@@ -83,7 +83,7 @@ function file_exists(path)
 	file = io.open(path, "r")
 	if file then
 		answer = true
-		file:close()
+		file.close(file)
 	end
 	return answer
 end
@@ -113,7 +113,7 @@ function create_file_if_not_exists(path)
 	        print("Error creating file:", err)
 	        return
 	    else
-	        file:close()  -- Close the file after creating it
+	        file.close(file)  -- Close the file after creating it
 	    end
 	end
 	return true

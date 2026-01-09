@@ -1,9 +1,9 @@
 
 require("lsqlite3")
 
-local db = sqlite3.open_memory()
+db = sqlite3.open_memory()
 
-db:trace( function(ud, sql)
+db.trace(db,  function(ud, sql)
   print("Sqlite Trace:", sql)
 end )
 
@@ -15,6 +15,6 @@ db:exec[[
   INSERT INTO test VALUES (NULL, 'Hello Sqlite3');
 ]]
 
-for row in db:rows("SELECT * FROM test") do
+for row in db.rows(db, "SELECT * FROM test") do
   -- NOP
 end

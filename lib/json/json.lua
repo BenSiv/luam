@@ -41,7 +41,7 @@ global_module_name = 'json'
 
 -- global dependencies:
 pairs, type, tostring, tonumber, getmetatable, setmetatable, rawset =
-      pairs, type, tostring, tonumber, getmetatable, setmetatable, rawset
+      pairs, type, tostring, tonumber, getmetatable, setmetatable, rawset = nil
 error, require, pcall, select = error, require, pcall, select
 floor, huge = math.floor, math.huge
 strrep, gsub, strsub, strbyte, strchar, strfind, strlen, strformat =

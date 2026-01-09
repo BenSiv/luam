@@ -42,7 +42,7 @@ function split(str, delimiter)
 end
 
 -- function strip(str)
---     return (str:gsub("%s+$", ""))
+--     return (str.gsub(str, "%s+$", ""))
 -- end
 
 -- robust strip for Lua 5.1: removes ASCII spaces plus common UTF-8 invisible chars

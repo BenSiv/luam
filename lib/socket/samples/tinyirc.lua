@@ -3,7 +3,7 @@
 -- LuaSocket sample files.
 -- Author: Diego Nehab
 -----------------------------------------------------------------------------
-local socket = require("socket")
+socket = require("socket")
 host = host or "*"
 port1 = port1 or 8080
 port2 = port2 or 8181
@@ -15,8 +15,8 @@ end
 
 server1 = assert(socket.bind(host, port1))
 server2 = assert(socket.bind(host, port2))
-server1:settimeout(1) -- make sure we don't block in accept
-server2:settimeout(1)
+server1.settimeout(server1, 1) -- make sure we don't block in accept
+server2.settimeout(server2, 1)
 
 io.write("Servers bound\n")
 
@@ -25,8 +25,8 @@ io.write("Servers bound\n")
 -- it behaves like a table
 -- creates a new set data structure
 function newset()
-    local reverse = {}
-    local set = {}
+   reverse = {}
+   set = {}
     return setmetatable(set, {__index = {
         insert = function(set, value)
             if not reverse[value] then
@@ -35,11 +35,11 @@ function newset()
             end
         end,
         remove = function(set, value)
-            local index = reverse[value]
+           index = reverse[value]
             if index then
                 reverse[value] = nil
-                local top = table.remove(set)
-                if top ~= value then
+               top = table.remove(set)
+                if top != value then
                     reverse[top] = index
                     set[index] = top
                 end
@@ -51,35 +51,35 @@ end
 set = newset()
 
 io.write("Inserting servers in set\n")
-set:insert(server1)
-set:insert(server2)
+set.insert(set, server1)
+set.insert(set, server2)
 
 while 1 do
-    local readable, _, error = socket.select(set, nil)
+   readable, _, error = socket.select(set, nil)
     for _, input in ipairs(readable) do
         -- is it a server socket?
         if input == server1 or input == server2 then
             io.write("Waiting for clients\n")
-            local new = input:accept()
+           new = input.accept(input)
             if new then
-                new:settimeout(1)
+                new.settimeout(new, 1)
                 io.write("Inserting client in set\n")
-                set:insert(new)
+                set.insert(set, new)
             end
         -- it is a client socket
         else
-            local line, error = input:receive()
+           line, error = input.receive(input)
             if error then
-                input:close()
+                input.close(input)
                 io.write("Removing client from set\n")
-                set:remove(input)
+                set.remove(set, input)
             else
             	io.write("Broadcasting line '", line, "'\n")
             	writable, error = socket.skip(1, socket.select(nil, set, 1))
             	if not error then
                 	for __, output in ipairs(writable) do
-                    	if output ~= input then
-                            output:send(line .. "\n")
+                    	if output != input then
+                            output.send(output, line .. "\n")
                         end
                 	end
             	else io.write("No client ready to receive!!!\n") end

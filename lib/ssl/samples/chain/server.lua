@@ -1,11 +1,11 @@
 --
 -- Public domain
 --
-local socket = require("socket")
-local ssl    = require("ssl")
-local util   = require("util")
+socket = require("socket")
+ssl    = require("ssl")
+util   = require("util")
 
-local params = {
+params = {
    mode = "server",
    protocol = "any",
    key = "../certs/serverAkey.pem",
@@ -15,58 +15,58 @@ local params = {
    options = "all",
 }
 
-local ctx = assert(ssl.newcontext(params))
+ctx = assert(ssl.newcontext(params))
 
-local server = socket.tcp()
-server:setoption('reuseaddr', true)
-assert( server:bind("127.0.0.1", 8888) )
-server:listen()
+server = socket.tcp()
+server.setoption(server, 'reuseaddr', true)
+assert( server.bind(server, "127.0.0.1", 8888) )
+server.listen(server)
 
-local conn = server:accept()
+conn = server.accept(server)
 
 conn = assert( ssl.wrap(conn, ctx) )
-assert( conn:dohandshake() )
+assert( conn.dohandshake(conn) )
 
-util.show( conn:getpeercertificate() )
+util.show( conn.getpeercertificate(conn) )
 
 print("----------------------------------------------------------------------")
 
-local expectedpeerchain = { "../certs/clientAcert.pem", "../certs/rootA.pem" }
+expectedpeerchain = { "../certs/clientAcert.pem", "../certs/rootA.pem" }
 
-local peerchain = conn:getpeerchain()
+peerchain = conn.getpeerchain(conn)
 assert(#peerchain == #expectedpeerchain)
 for k, cert in ipairs( peerchain ) do
   util.show(cert)
-  local expectedpem = assert(io.open(expectedpeerchain[k])):read("*a")
-  assert(cert:pem() == expectedpem, "peer chain mismatch @ "..tostring(k))
+ expectedpem = assert(io.open(expectedpeerchain[k])):read("*a")
+  assert(cert.pem(cert) == expectedpem, "peer chain mismatch @ "..tostring(k))
 end
 
-local expectedlocalchain = { "../certs/serverAcert.pem" }
+expectedlocalchain = { "../certs/serverAcert.pem" }
 
-local localchain = assert(conn:getlocalchain())
+localchain = assert(conn.getlocalchain(conn))
 assert(#localchain == #expectedlocalchain)
 for k, cert in ipairs( localchain ) do
   util.show(cert)
-  local expectedpem = assert(io.open(expectedlocalchain[k])):read("*a")
-  assert(cert:pem() == expectedpem, "local chain mismatch @ "..tostring(k))
+ expectedpem = assert(io.open(expectedlocalchain[k])):read("*a")
+  assert(cert.pem(cert) == expectedpem, "local chain mismatch @ "..tostring(k))
   if k == 1 then
-    assert(cert:pem() == conn:getlocalcertificate():pem())
+    assert(cert.pem(cert) == conn.getlocalcertificate(conn):pem())
   end
 end
 
-local f = io.open(params.certificate)
-local str = f:read("*a")
-f:close()
+f = io.open(params.certificate)
+str = f.read(f, "*a")
+f.close(f)
 
 util.show( ssl.loadcertificate(str) )
 
 print("----------------------------------------------------------------------")
-local cert = conn:getpeercertificate()
+cert = conn.getpeercertificate(conn)
 print( cert )
-print( cert:digest() )
-print( cert:digest("sha1") )
-print( cert:digest("sha256") )
-print( cert:digest("sha512") )
+print( cert.digest(cert) )
+print( cert.digest(cert, "sha1") )
+print( cert.digest(cert, "sha256") )
+print( cert.digest(cert, "sha512") )
 
-conn:close()
-server:close()
+conn.close(conn)
+server.close(server)

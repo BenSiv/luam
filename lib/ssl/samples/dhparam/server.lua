@@ -1,23 +1,23 @@
 --
 -- Public domain
 --
-local socket = require("socket")
-local ssl    = require("ssl")
+socket = require("socket")
+ssl    = require("ssl")
 
-local function readfile(filename)
-  local fd = assert(io.open(filename))
-  local dh = fd:read("*a")
-  fd:close()
+function readfile(filename)
+ fd = assert(io.open(filename))
+ dh = fd.read(fd, "*a")
+  fd.close(fd)
   return dh
 end
 
-local function dhparam_cb(export, keylength)
+function dhparam_cb(export, keylength)
   print("---")
   print("DH Callback")
   print("Export", export)
   print("Key length", keylength)
   print("---")
-  local filename
+ filename = nil
   if keylength == 512 then
     filename = "dh-512.pem"
   elseif keylength == 1024 then
@@ -29,7 +29,7 @@ local function dhparam_cb(export, keylength)
   return readfile(filename)
 end
 
-local params = {
+params = {
    mode = "server",
    protocol = "any",
    key = "../certs/serverAkey.pem",
@@ -43,20 +43,20 @@ local params = {
 
 
 -- [[ SSL context
-local ctx = assert(ssl.newcontext(params))
+ctx = assert(ssl.newcontext(params))
 --]]
 
-local server = socket.tcp()
-server:setoption('reuseaddr', true)
-assert( server:bind("127.0.0.1", 8888) )
-server:listen()
+server = socket.tcp()
+server.setoption(server, 'reuseaddr', true)
+assert( server.bind(server, "127.0.0.1", 8888) )
+server.listen(server)
 
-local peer = server:accept()
+peer = server.accept(server)
 
 -- [[ SSL wrapper
 peer = assert( ssl.wrap(peer, ctx) )
-assert( peer:dohandshake() )
+assert( peer.dohandshake(peer) )
 --]]
 
-peer:send("oneshot test\n")
-peer:close()
+peer.send(peer, "oneshot test\n")
+peer.close(peer)

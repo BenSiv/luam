@@ -1,7 +1,7 @@
 
 require("lsqlite3")
 
-local db = assert( sqlite3:open_memory() )
+db = assert( sqlite3.open_memory(sqlite3) )
 
 assert( db:exec[[
 
@@ -54,31 +54,31 @@ assert( db:exec[[
 ]] )
 
 
-local function customer_name(id)
-  local stmt = db:prepare("SELECT name FROM customer WHERE id = ?")
-  stmt:bind_values(id)
-  stmt:step()
-  local r = stmt:get_uvalues()
-  stmt:finalize()
+function customer_name(id)
+ stmt = db.prepare(db, "SELECT name FROM customer WHERE id = ?")
+  stmt.bind_values(stmt, id)
+  stmt.step(stmt)
+ r = stmt.get_uvalues(stmt)
+  stmt.finalize(stmt)
   return r
 end
 
 
-local function all_invoices()
-  return db:nrows("SELECT id, customer, title FROM invoice")
+function all_invoices()
+  return db.nrows(db, "SELECT id, customer, title FROM invoice")
 end
 
 
-local function all_articles(invoice)
+function all_articles(invoice)
 
-  local function iterator()
-    local stmt, row
+ function iterator()
+   stmt, row = nil
 
     -- Get the articles that are contained in the invoice table itself.
-    stmt = db:prepare("SELECT article1, price1, article2, price2 FROM invoice WHERE id = ?")
-    stmt:bind_values(invoice)
-    stmt:step()
-    row = stmt:get_named_values()
+    stmt = db.prepare(db, "SELECT article1, price1, article2, price2 FROM invoice WHERE id = ?")
+    stmt.bind_values(stmt, invoice)
+    stmt.step(stmt)
+    row = stmt.get_named_values(stmt)
 
     -- Every Invoice has at least one article.
     coroutine.yield(row.article1, row.price1)
@@ -92,10 +92,10 @@ local function all_articles(invoice)
       -- When there was an second article, maybe there are even
       -- more articles in the overflow table? We will see...
 
-      stmt = db:prepare("SELECT article, price FROM invoice_overflow WHERE invoice = ? ORDER BY id")
-      stmt:bind_values(invoice)
+      stmt = db.prepare(db, "SELECT article, price FROM invoice_overflow WHERE invoice = ? ORDER BY id")
+      stmt.bind_values(stmt, invoice)
       
-      for row in stmt:nrows() do
+      for row in stmt.nrows(stmt) do
         coroutine.yield(row.article, row.price)
       end
     end
@@ -106,9 +106,9 @@ end
 
 
 for invoice in all_invoices() do
-  local id    = invoice.id
-  local name  = customer_name(invoice.customer)
-  local title = invoice.title
+ id    = invoice.id
+ name  = customer_name(invoice.customer)
+ title = invoice.title
 
   print()
   print("Invoice #"..id..", "..name..": '"..title.."'")

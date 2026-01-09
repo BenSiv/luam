@@ -1,13 +1,13 @@
 --
 -- Public domain
 --
-local socket = require("socket")
-local ssl    = require("ssl")
+socket = require("socket")
+ssl    = require("ssl")
 
 --
 -- Callback that selects one protocol from client's list.
 --
-local function alpncb01(protocols)
+function alpncb01(protocols)
    print("--- ALPN protocols from client")
    for k, v in ipairs(protocols) do
       print(k, v)
@@ -19,7 +19,7 @@ end
 --
 -- Callback that returns a fixed list, ignoring the client's list.
 --
-local function alpncb02(protocols)
+function alpncb02(protocols)
    print("--- ALPN protocols from client")
    for k, v in ipairs(protocols) do
       print(k, v)
@@ -31,19 +31,19 @@ end
 --
 -- Callback that generates a list as it whishes.
 --
-local function alpncb03(protocols)
-   local resp = {}
+function alpncb03(protocols)
+  resp = {}
    print("--- ALPN protocols from client")
    for k, v in ipairs(protocols) do
       print(k, v)
-      if k%2 ~= 0 then resp[#resp+1] = v end
+      if k%2 != 0 then resp[#resp+1] = v end
    end
    print("--- Returning an odd list")
    return resp
 end
 
 
-local params = {
+params = {
    mode = "server",
    protocol = "any",
    key = "../certs/serverAkey.pem",
@@ -59,19 +59,19 @@ local params = {
 
 
 -- [[ SSL context
-local ctx = assert(ssl.newcontext(params))
+ctx = assert(ssl.newcontext(params))
 --]]
 
-local server = socket.tcp()
-server:setoption('reuseaddr', true)
-assert( server:bind("127.0.0.1", 8888) )
-server:listen()
+server = socket.tcp()
+server.setoption(server, 'reuseaddr', true)
+assert( server.bind(server, "127.0.0.1", 8888) )
+server.listen(server)
 
-local peer = server:accept()
+peer = server.accept(server)
 peer = assert( ssl.wrap(peer, ctx) )
-assert( peer:dohandshake() )
+assert( peer.dohandshake(peer) )
 
-print("ALPN", peer:getalpn())
+print("ALPN", peer.getalpn(peer))
 
-peer:close()
-server:close()
+peer.close(peer)
+server.close(server)

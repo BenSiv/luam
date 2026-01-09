@@ -37,26 +37,26 @@
 -- Intialize package --
 -----------------------
 
-local P = { }
+P = { }
 lunit = P
 
 -- Import
-local type = type
-local print = print
-local ipairs = ipairs
-local pairs = pairs
-local string = string
-local table = table
-local pcall = pcall
-local xpcall = xpcall
-local traceback = debug.traceback
-local error = error
-local setmetatable = setmetatable
-local rawset = rawset
-local orig_assert = assert
-local getfenv = getfenv
-local setfenv = setfenv
-local tostring = tostring
+type = type
+print = print
+ipairs = ipairs
+pairs = pairs
+string = string
+table = table
+pcall = pcall
+xpcall = xpcall
+traceback = debug.traceback
+error = error
+setmetatable = setmetatable
+rawset = rawset
+orig_assert = assert
+getfenv = getfenv
+setfenv = setfenv
+tostring = tostring
 
 
 -- Start package scope
@@ -69,11 +69,11 @@ setfenv(1, P)
 -- Private data and functions --
 --------------------------------
 
-local run_testcase
-local do_assert, check_msg
-local stats = { }
-local testcases = { }
-local stats_inc, tc_mt
+run_testcase = nil
+do_assert, check_msg = nil
+stats = { }
+testcases = { }
+stats_inc, tc_mt = nil
 
 
 
@@ -165,7 +165,7 @@ end
 function assert_not_equal(unexpected, actual, msg)
   stats_inc("assertions")
   check_msg("assert_not_equal", msg)
-  do_assert(unexpected ~= actual, "'"..tostring(expected).."' not expected but was one", msg)
+  do_assert(unexpected != actual, "'"..tostring(expected).."' not expected but was one", msg)
   return actual
 end
 
@@ -322,7 +322,7 @@ function assert_error(msg, func)
   if is_nil(func) then func, msg = msg, nil end
   check_msg("assert_error", msg)
   do_assert(is_function(func), "assert_error expects a function as the last argument but it was a "..type(func))
-  local ok, errmsg = pcall(func)
+ ok, errmsg = pcall(func)
   do_assert(ok == false, "error expected but no error occurred", msg)
 end
 
@@ -332,7 +332,7 @@ function assert_pass(msg, func)
   if is_nil(func) then func, msg = msg, nil end
   check_msg("assert_pass", msg)
   do_assert(is_function(func), "assert_pass expects a function as the last argument but it was a "..type(func))
-  local ok, errmsg = pcall(func)
+ ok, errmsg = pcall(func)
   if not ok then do_assert(ok == true, "no error expected but error was: "..errmsg, msg) end
 end
 
@@ -377,7 +377,7 @@ end
 
 function TestCase(name)
   do_assert(is_string(name), "lunit.TestCase() needs a string as an argument")
-  local tc = {
+ tc = {
     __lunit_name = name;
     __lunit_setup = nil;
     __lunit_tests = { };
@@ -392,7 +392,7 @@ tc_mt = {
   __newindex = function(tc, key, value)
     rawset(tc, key, value)
     if is_string(key) and is_function(value) then
-      local name = string.lower(key)
+     name = string.lower(key)
       if string.find(name, "^test") or string.find(name, "test$") then
         table.insert(tc.__lunit_tests, key)
       elseif name == "setup" then
@@ -416,7 +416,7 @@ function wrap(name, ...)
     name = "Anonymous Testcase"
   end
   
-  local tc = TestCase(name)
+ tc = TestCase(name)
   for index, test in ipairs({...}) do
     tc["Test #"..index] = test
   end
@@ -480,11 +480,11 @@ function run()
   print()
   print("#### Test Suite finished.")
   
-  local msg_assertions = stats.assertions.." Assertions checked. "
-  local msg_passed     = stats.passed == stats.tests and "All Tests passed" or  stats.passed.." Tests passed"
-  local msg_failed     = stats.failed > 0 and ", "..stats.failed.." failed" or ""
-  local msg_run	       = stats.notrun > 0 and ", "..stats.notrun.." not run" or ""
-  local msg_warn       = stats.warnings > 0 and ", "..stats.warnings.." warnings" or ""
+ msg_assertions = stats.assertions.." Assertions checked. "
+ msg_passed     = stats.passed == stats.tests and "All Tests passed" or  stats.passed.." Tests passed"
+ msg_failed     = stats.failed > 0 and ", "..stats.failed.." failed" or ""
+ msg_run	       = stats.notrun > 0 and ", "..stats.notrun.." not run" or ""
+ msg_warn       = stats.warnings > 0 and ", "..stats.warnings.." warnings" or ""
   
   print()
   print(msg_assertions..msg_passed..msg_failed..msg_run..msg_warn.."!")
@@ -519,10 +519,10 @@ function run_testcase(tc)
   -- Protected call to a function --
   ----------------------------------
   
-  local function call(errprefix, func)
+ function call(errprefix, func)
     orig_assert(is_string(errprefix))
     orig_assert(is_function(func))
-    local ok, errmsg = xpcall(function() func(tc) end, traceback)
+   ok, errmsg = xpcall(function() func(tc) end, traceback)
     if not ok then
       print()
       print(errprefix..": "..errmsg)
@@ -534,7 +534,7 @@ function run_testcase(tc)
   -- Calls setup() on the Test Case --
   ------------------------------------
   
-  local function setup(testname)
+ function setup(testname)
     if tc.__lunit_setup then 
       return call("ERROR: "..testname..": setup() failed", tc.__lunit_setup)
     else
@@ -546,10 +546,10 @@ function run_testcase(tc)
   -- Calls a single Test on the Test Case --
   ------------------------------------------
   
-  local function run(testname)
+ function run(testname)
     orig_assert(is_string(testname))
     orig_assert(is_function(tc[testname]))
-    local ok = call("FAIL: "..testname, tc[testname])
+   ok = call("FAIL: "..testname, tc[testname])
     if not ok then
       stats_inc("failed")
     else
@@ -562,7 +562,7 @@ function run_testcase(tc)
   -- Calls teardown() on the Test Case --
   ---------------------------------------
   
-  local function teardown(testname)
+ function teardown(testname)
      if tc.__lunit_teardown then
        if not call("WARNING: "..testname..": teardown() failed", tc.__lunit_teardown) then
          stats_inc("warnings")
@@ -601,13 +601,13 @@ function import(name)
   
   do_assert(is_string(name), "lunit.import() expects a single string as argument")
   
-  local user_env = getfenv(2)
+ user_env = getfenv(2)
   
   --------------------------------------------------
   -- Installs a specific function in the user env --
   --------------------------------------------------
   
-  local function install(funcname)
+ function install(funcname)
     user_env[funcname] = P[funcname]
   end
   
@@ -616,7 +616,7 @@ function import(name)
   -- Install functions matching a pattern in the user env --
   ----------------------------------------------------------
   
-  local function install_pattern(pattern)
+ function install_pattern(pattern)
     for funcname, _ in pairs(P) do
       if string.find(funcname, pattern) then
         install(funcname)
@@ -628,7 +628,7 @@ function import(name)
   -- Installs assert() and all assert_xxx() in the user env --
   ------------------------------------------------------------
   
-  local function install_asserts()
+ function install_asserts()
     install_pattern("^assert.*")
   end
   
@@ -636,7 +636,7 @@ function import(name)
   -- Installs all is_xxx() in the user env --
   -------------------------------------------
   
-  local function install_tests()
+ function install_tests()
     install_pattern("^is_.+")
   end
   
@@ -667,8 +667,8 @@ end
 --------------------------------------------------
 
 function setprivfenv()
-  local new_env = { }
-  local new_env_mt = { __index = getfenv(2) }
+ new_env = { }
+ new_env_mt = { __index = getfenv(2) }
   setmetatable(new_env, new_env_mt)
   setfenv(2, new_env)
 end

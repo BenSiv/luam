@@ -6,12 +6,12 @@
 -----------------------------------------------------------------------------
 -- Declare module and import dependencies
 -----------------------------------------------------------------------------
-local base = _G
-local string = require("string")
-local math = require("math")
-local socket = require("socket.core")
+base = _G
+string = require("string")
+math = require("math")
+socket = require("socket.core")
 
-local _M = socket
+_M = socket
 
 -----------------------------------------------------------------------------
 -- Exported auxiliar functions
@@ -26,9 +26,9 @@ end
 
 function _M.bind(host, port, backlog)
     if host == "*" then host = "0.0.0.0" end
-    local addrinfo, err = socket.dns.getaddrinfo(host);
+   addrinfo, err = socket.dns.getaddrinfo(host);
     if not addrinfo then return nil, err end
-    local sock, res
+   sock, res = nil, nil
     err = "no info on address"
     for i, alt in base.ipairs(addrinfo) do
         if alt.family == "inet" then
@@ -37,14 +37,14 @@ function _M.bind(host, port, backlog)
             sock, err = socket.tcp6()
         end
         if not sock then return nil, err end
-        sock:setoption("reuseaddr", true)
-        res, err = sock:bind(alt.addr, port)
+        sock.setoption(sock, "reuseaddr", true)
+        res, err = sock.bind(sock, alt.addr, port)
         if not res then
-            sock:close()
+            sock.close(sock)
         else
-            res, err = sock:listen(backlog)
+            res, err = sock.listen(sock, backlog)
             if not res then
-                sock:close()
+                sock.close(sock)
             else
                 return sock
             end
@@ -57,10 +57,10 @@ _M.try = _M.newtry()
 
 function _M.choose(table)
     return function(name, opt1, opt2)
-        if base.type(name) ~= "string" then
+        if base.type(name) != "string" then
             name, opt1, opt2 = "default", name, opt1
         end
-        local f = table[name or "nil"]
+       f = table[name or "nil"]
         if not f then base.error("unknown key (".. base.tostring(name) ..")", 3)
         else return f(opt1, opt2) end
     end
@@ -70,7 +70,7 @@ end
 -- Socket sources and sinks, conforming to LTN12
 -----------------------------------------------------------------------------
 -- create namespaces inside LuaSocket namespace
-local sourcet, sinkt = {}, {}
+sourcet, sinkt = {}, {}
 _M.sourcet = sourcet
 _M.sinkt = sinkt
 
@@ -78,25 +78,25 @@ _M.BLOCKSIZE = 2048
 
 sinkt["close-when-done"] = function(sock)
     return base.setmetatable({
-        getfd = function() return sock:getfd() end,
-        dirty = function() return sock:dirty() end
+        getfd = function() return sock.getfd(sock) end,
+        dirty = function() return sock.dirty(sock) end
     }, {
         __call = function(self, chunk, err)
             if not chunk then
-                sock:close()
+                sock.close(sock)
                 return 1
-            else return sock:send(chunk) end
+            else return sock.send(sock, chunk) end
         end
     })
 end
 
 sinkt["keep-open"] = function(sock)
     return base.setmetatable({
-        getfd = function() return sock:getfd() end,
-        dirty = function() return sock:dirty() end
+        getfd = function() return sock.getfd(sock) end,
+        dirty = function() return sock.dirty(sock) end
     }, {
         __call = function(self, chunk, err)
-            if chunk then return sock:send(chunk)
+            if chunk then return sock.send(sock, chunk)
             else return 1 end
         end
     })
@@ -108,13 +108,13 @@ _M.sink = _M.choose(sinkt)
 
 sourcet["by-length"] = function(sock, length)
     return base.setmetatable({
-        getfd = function() return sock:getfd() end,
-        dirty = function() return sock:dirty() end
+        getfd = function() return sock.getfd(sock) end,
+        dirty = function() return sock.dirty(sock) end
     }, {
         __call = function()
             if length <= 0 then return nil end
-            local size = math.min(socket.BLOCKSIZE, length)
-            local chunk, err = sock:receive(size)
+           size = math.min(socket.BLOCKSIZE, length)
+           chunk, err = sock.receive(sock, size)
             if err then return nil, err end
             length = length - string.len(chunk)
             return chunk
@@ -123,17 +123,17 @@ sourcet["by-length"] = function(sock, length)
 end
 
 sourcet["until-closed"] = function(sock)
-    local done
+   done = nil
     return base.setmetatable({
-        getfd = function() return sock:getfd() end,
-        dirty = function() return sock:dirty() end
+        getfd = function() return sock.getfd(sock) end,
+        dirty = function() return sock.dirty(sock) end
     }, {
         __call = function()
             if done then return nil end
-            local chunk, err, partial = sock:receive(socket.BLOCKSIZE)
+           chunk, err, partial = sock.receive(sock, socket.BLOCKSIZE)
             if not err then return chunk
             elseif err == "closed" then
-                sock:close()
+                sock.close(sock)
                 done = 1
                 return partial
             else return nil, err end

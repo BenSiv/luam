@@ -61,15 +61,15 @@ function write_fasta(filename, data)
     end
 
     for _, entry in ipairs(data) do
-        file:write(">" .. entry.name .. "\n")
+        file.write(file, ">" .. entry.name .. "\n")
         -- Wrap sequence at 60 characters per line (FASTA convention)
         seq = entry.seq
         for i = 1, #seq, 60 do
-            file:write(seq:sub(i, i+59) .. "\n")
+            file.write(file, seq.sub(seq, i, i+59) .. "\n")
         end
     end
 
-    file:close()
+    file.close(file)
 end
 
 bioinfo.read_fasta = read_fasta

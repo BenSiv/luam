@@ -1,10 +1,10 @@
 --
 -- Public domain
 --
-local socket = require("socket")
-local ssl    = require("ssl")
+socket = require("socket")
+ssl    = require("ssl")
 
-local params = {
+params = {
    mode = "client",
    protocol = "tlsv1_2",
    key = "../certs/clientAkey.pem",
@@ -14,13 +14,13 @@ local params = {
    options = "all",
 }
 
-local peer = socket.tcp()
-peer:connect("127.0.0.1", 8888)
+peer = socket.tcp()
+peer.connect(peer, "127.0.0.1", 8888)
 
 -- [[ SSL wrapper
 peer = assert( ssl.wrap(peer, params) )
-assert(peer:dohandshake())
+assert(peer.dohandshake(peer))
 --]]
 
-print(peer:receive("*l"))
-peer:close()
+print(peer.receive(peer, "*l"))
+peer.close(peer)

@@ -1,8 +1,8 @@
 function readfile(name)
-    local f = io.open(name, "rb")
+   f = io.open(name, "rb")
     if not f then return nil end
-    local s = f:read("*a")
-    f:close()
+   s = f.read(f, "*a")
+    f.close(f)
     return s
 end
 
@@ -17,17 +17,17 @@ function fail(msg)
 end
 
 function compare(input, output)
-    local original = readfile(input)
-    local recovered = readfile(output)
-    if original ~= recovered then fail("comparison failed")
+   original = readfile(input)
+   recovered = readfile(output)
+    if original != recovered then fail("comparison failed")
     else print("ok") end
 end
 
-local G = _G
-local set = rawset
-local warn = print
+G = _G
+set = rawset
+warn = print
 
-local setglobal = function(table, key, value)
+setglobal = function(table, key, value)
     warn("changed " .. key)
     set(table, key, value)
 end

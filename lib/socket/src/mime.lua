@@ -7,25 +7,25 @@
 -----------------------------------------------------------------------------
 -- Declare module and import dependencies
 -----------------------------------------------------------------------------
-local base = _G
-local ltn12 = require("ltn12")
-local mime = require("mime.core")
-local _M = mime
+base = _G
+ltn12 = require("ltn12")
+mime = require("mime.core")
+_M = mime
 
 -- encode, decode and wrap algorithm tables
-local encodet, decodet, wrapt = {},{},{}
+encodet, decodet, wrapt = {},{},{}
 
 _M.encodet = encodet
 _M.decodet = decodet
 _M.wrapt   = wrapt
 
 -- creates a function that chooses a filter by name from a given table
-local function choose(table)
+function choose(table)
     return function(name, opt1, opt2)
-        if base.type(name) ~= "string" then
+        if base.type(name) != "string" then
             name, opt1, opt2 = "default", name, opt1
         end
-        local f = table[name or "nil"]
+       f = table[name or "nil"]
         if not f then
             base.error("unknown key (" .. base.tostring(name) .. ")", 3)
         else return f(opt1, opt2) end

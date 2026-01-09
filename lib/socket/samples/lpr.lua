@@ -1,6 +1,6 @@
-local lp = require("socket.lp")
+lp = require("socket.lp")
 
-local function usage()
+function usage()
   print('\nUsage: lua lpr.lua [filename] [keyword=val...]\n')
   print('Valid keywords are :')
   print(
@@ -27,21 +27,21 @@ if not arg or not arg[1] then
 end
 
 do
-    local opt = {}
-    local pat = "[%s%c%p]*([%w]*)=([\"]?[%w%s_!@#$%%^&*()<>:;]+[\"]?.?)"
+   opt = {}
+   pat = "[%s%c%p]*([%w]*)=([\"]?[%w%s_!@#$%%^&*()<>:;]+[\"]?.?)"
     for i = 2, #arg, 1 do
       string.gsub(arg[i], pat, function(name, value) opt[name] = value end)
     end
     if not arg[2] then
       return usage()
     end
-    if arg[1] ~= "query" then
+    if arg[1] != "query" then
         opt.file = arg[1]
         r,e=lp.send(opt)
-        io.stdout:write(tostring(r or e),'\n')
+        io.stdout.write(stdout, tostring(r or e),'\n')
     else
         r,e=lp.query(opt)
-        io.stdout:write(tostring(r or e), '\n')
+        io.stdout.write(stdout, tostring(r or e), '\n')
     end
 end
 

@@ -8,13 +8,13 @@
      if you have any questions: RFC 1179
 ]]
 -- make sure LuaSocket is loaded
-local io = require("io")
-local base = _G
-local os = require("os")
-local math = require("math")
-local string = require("string")
-local socket = require("socket")
-local ltn12 = require("ltn12")
+io = require("io")
+base = _G
+os = require("os")
+math = require("math")
+string = require("string")
+socket = require("socket")
+ltn12 = require("ltn12")
 module("socket.lp")
 
 -- default port
@@ -22,28 +22,28 @@ PORT = 515
 SERVER = os.getenv("SERVER_NAME") or os.getenv("COMPUTERNAME") or "localhost"
 PRINTER = os.getenv("PRINTER") or "printer"
 
-local function connect(localhost, option)
-    local host = option.host or SERVER
-    local port = option.port or PORT
-    local skt
-    local try = socket.newtry(function() if skt then skt:close() end end)
+function connect(localhost, option)
+   host = option.host or SERVER
+   port = option.port or PORT
+   skt = nil
+   try = socket.newtry(function() if skt then skt.close(skt) end end)
     if option.localbind then
-        -- bind to a local port (if we can)
-        local localport = 721
-        local done, err
+        -- bind to aport (if we can)
+       localport = 721
+       done, err = nil
         repeat
             skt = socket.try(socket.tcp())
-            try(skt:settimeout(30))
-            done, err = skt:bind(localhost, localport)
+            try(skt.settimeout(skt, 30))
+            done, err = skt.bind(skt, localhost, localport)
             if not done then
                 localport = localport + 1
-                skt:close()
+                skt.close(skt)
                 skt = nil
             else break end
         until localport > 731
         socket.try(skt, err)
     else skt = socket.try(socket.tcp()) end
-    try(skt:connect(host, port))
+    try(skt.connect(skt, host, port))
     return { skt = skt, try = try }
 end
 
@@ -85,14 +85,14 @@ RFC 1179
 ]]
 
 -- gets server acknowledement
-local function recv_ack(con)
-  local ack = con.skt:receive(1)
+function recv_ack(con)
+ ack = con.skt.receive(skt, 1)
   con.try(string.char(0) == ack, "failed to receive server acknowledgement")
 end
 
 -- sends client acknowledement
-local function send_ack(con)
-  local sent = con.skt:send(string.char(0))
+function send_ack(con)
+ sent = con.skt.send(skt, string.char(0))
   con.try(sent == 1, "failed to send acknowledgement")
 end
 
@@ -113,10 +113,10 @@ end
 --    octet from the daemon.  A positive acknowledgement is an octet of
 --    zero bits.  A negative acknowledgement is an octet of any other
 --    pattern.
-local function send_queue(con, queue)
+function send_queue(con, queue)
   queue = queue or PRINTER
-  local str = string.format("\2%s\10", queue)
-  local sent = con.skt:send(str)
+ str = string.format("\2%s\10", queue)
+ sent = con.skt.send(skt, str)
   con.try(sent == string.len(str), "failed to send print request")
   recv_ack(con)
 end
@@ -170,24 +170,24 @@ end
 --    processing must occur at this point.
 
 
-local function send_hdr(con, control)
-  local sent = con.skt:send(control)
+function send_hdr(con, control)
+ sent = con.skt.send(skt, control)
   con.try(sent and sent >= 1 , "failed to send header file")
   recv_ack(con)
 end
 
-local function send_control(con, control)
-  local sent = con.skt:send(control)
+function send_control(con, control)
+ sent = con.skt.send(skt, control)
   con.try(sent and sent >= 1, "failed to send control file")
   send_ack(con)
 end
 
-local function send_data(con,fh,size)
-  local buf
+function send_data(con,fh,size)
+ buf = nil
   while size > 0 do
-    buf,message = fh:read(8192)
+    buf,message = fh.read(fh, 8192)
     if buf then
-      st = con.try(con.skt:send(buf))
+      st = con.try(con.skt.send(skt, buf))
       size = size - st
     else
       con.try(size == 0, "file size mismatch")
@@ -201,7 +201,7 @@ end
 
 
 --[[
-local control_dflt = {
+control_dflt = {
   "H"..string.sub(socket.hostname,1,31).."\10",        -- host
   "C"..string.sub(socket.hostname,1,31).."\10",        -- class
   "J"..string.sub(filename,1,99).."\10",               -- jobname
@@ -223,14 +223,14 @@ local control_dflt = {
 ]]
 
 -- generate a varying job number
-local seq = 0
-local function newjob(connection)
+seq = 0
+function newjob(connection)
     seq = seq + 1
     return math.floor(socket.gettime() * 1000 + seq)%1000
 end
 
 
-local format_codes = {
+format_codes = {
   binary = 'l',
   text = 'f',
   ps = 'o',
@@ -248,26 +248,26 @@ local format_codes = {
 
 send = socket.protect(function(option)
   socket.try(option and base.type(option) == "table", "invalid options")
-  local file = option.file
+ file = option.file
   socket.try(file, "invalid file name")
-  local fh = socket.try(io.open(file,"rb"))
-  local datafile_size = fh:seek("end") -- get total size
-  fh:seek("set")                       -- go back to start of file
-  local localhost = socket.dns.gethostname() or os.getenv("COMPUTERNAME")
+ fh = socket.try(io.open(file,"rb"))
+ datafile_size = fh.seek(fh, "end") -- get total size
+  fh.seek(fh, "set")                       -- go back to start of file
+ localhost = socket.dns.gethostname() or os.getenv("COMPUTERNAME")
     or "localhost"
-  local con = connect(localhost, option)
+ con = connect(localhost, option)
 -- format the control file
-  local jobno = newjob()
-  local localip = socket.dns.toip(localhost)
+ jobno = newjob()
+ localip = socket.dns.toip(localhost)
   localhost = string.sub(localhost,1,31)
-  local user = string.sub(option.user or os.getenv("LPRUSER") or
+ user = string.sub(option.user or os.getenv("LPRUSER") or
     os.getenv("USERNAME") or os.getenv("USER") or "anonymous", 1,31)
-  local lpfile = string.format("dfA%3.3d%-s", jobno, localhost);
-  local fmt = format_codes[option.format] or 'l'
-  local class = string.sub(option.class or localip or localhost,1,31)
-  local _,_,ctlfn = string.find(file,".*[%/%\\](.*)")
+ lpfile = string.format("dfA%3.3d%-s", jobno, localhost);
+ fmt = format_codes[option.format] or 'l'
+ class = string.sub(option.class or localip or localhost,1,31)
+ _,_,ctlfn = string.find(file,".*[%/%\\](.*)")
   ctlfn = string.sub(ctlfn  or file,1,131)
-    local cfile =
+   cfile =
       string.format("H%-s\nC%-s\nJ%-s\nP%-s\n%.1s%-s\nU%-s\nN%-s\n",
       localhost,
     class,
@@ -284,24 +284,24 @@ send = socket.protect(function(option)
     cfile = cfile .. 'W'..base.tonumber(option,width)..'\10'
   end
 
-  con.skt:settimeout(option.timeout or 65)
+  con.skt.settimeout(skt, option.timeout or 65)
 -- send the queue header
   send_queue(con, option.queue)
 -- send the control file header
-  local cfilecmd = string.format("\2%d cfA%3.3d%-s\n",string.len(cfile), jobno, localhost);
+ cfilecmd = string.format("\2%d cfA%3.3d%-s\n",string.len(cfile), jobno, localhost);
   send_hdr(con,cfilecmd)
 
 -- send the control file
   send_control(con,cfile)
 
 -- send the data file header
-  local dfilecmd = string.format("\3%d dfA%3.3d%-s\n",datafile_size, jobno, localhost);
+ dfilecmd = string.format("\3%d dfA%3.3d%-s\n",datafile_size, jobno, localhost);
   send_hdr(con,dfilecmd)
 
 -- send the data file
   send_data(con,fh,datafile_size)
-  fh:close()
-  con.skt:close();
+  fh.close(fh)
+  con.skt.close(skt);
   return jobno, datafile_size
 end)
 
@@ -310,14 +310,14 @@ end)
 --
 query = socket.protect(function(p)
   p = p or {}
-  local localhost = socket.dns.gethostname() or os.getenv("COMPUTERNAME")
+ localhost = socket.dns.gethostname() or os.getenv("COMPUTERNAME")
     or "localhost"
-  local con = connect(localhost,p)
-  local fmt
+ con = connect(localhost,p)
+ fmt = nil
   if string.sub(p.format or 's',1,1) == 's' then fmt = 3 else fmt = 4 end
-  con.try(con.skt:send(string.format("%c%s %s\n", fmt, p.queue or "*",
+  con.try(con.skt.send(skt, string.format("%c%s %s\n", fmt, p.queue or "*",
     p.list or "")))
-  local data = con.try(con.skt:receive("*a"))
-  con.skt:close()
+ data = con.try(con.skt.receive(skt, "*a"))
+  con.skt.close(skt)
   return data
 end)

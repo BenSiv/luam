@@ -7,13 +7,13 @@
 -----------------------------------------------------------------------------
 -- Declare module and import dependencies
 -----------------------------------------------------------------------------
-local base = _G
-local string = require("string")
-local socket = require("socket")
-local ltn12 = require("ltn12")
+base = _G
+string = require("string")
+socket = require("socket")
+ltn12 = require("ltn12")
 
 socket.tp = {}
-local _M = socket.tp
+_M = socket.tp
 
 -----------------------------------------------------------------------------
 -- Program constants
@@ -24,40 +24,41 @@ _M.TIMEOUT = 60
 -- Implementation
 -----------------------------------------------------------------------------
 -- gets server reply (works for SMTP and FTP)
-local function get_reply(c)
-    local code, current, sep
-    local line, err = c:receive()
-    local reply = line
+function get_reply(c)
+   code, current, sep = nil
+   line, err = c.receive(c)
+   reply = line
     if err then return nil, err end
     code, sep = socket.skip(2, string.find(line, "^(%d%d%d)(.?)"))
     if not code then return nil, "invalid server reply" end
     if sep == "-" then -- reply is multiline
-        repeat
-            line, err = c:receive()
+        while true do
+            line, err = c.receive(c)
             if err then return nil, err end
             current, sep = socket.skip(2, string.find(line, "^(%d%d%d)(.?)"))
             reply = reply .. "\n" .. line
         -- reply ends with same code
-        until code == current and sep == " "
+            if code == current and sep == " " then break end
+        end
     end
     return code, reply
 end
 
 -- metatable for sock object
-local metat = { __index = {} }
+metat = { __index = {} }
 
-function metat.__index:getpeername()
-    return self.c:getpeername()
+function metat.__index.getpeername(__index)
+    return self.c.getpeername(self.c)
 end
 
-function metat.__index:getsockname()
-    return self.c:getpeername()
+function metat.__index.getsockname(__index)
+    return self.c.getpeername(self.c)
 end
 
-function metat.__index:check(ok)
-    local code, reply = get_reply(self.c)
+function metat.__index.check(__index, ok)
+   code, reply = get_reply(self.c)
     if not code then return nil, reply end
-    if base.type(ok) ~= "function" then
+    if base.type(ok) != "function" then
         if base.type(ok) == "table" then
             for i, v in base.ipairs(ok) do
                 if string.find(code, v) then
@@ -72,60 +73,60 @@ function metat.__index:check(ok)
     else return ok(base.tonumber(code), reply) end
 end
 
-function metat.__index:command(cmd, arg)
+function metat.__index.command(__index, cmd, arg)
     cmd = string.upper(cmd)
     if arg then
-        return self.c:send(cmd .. " " .. arg.. "\r\n")
+        return self.c.send(self.c, cmd .. " " .. arg.. "\r\n")
     else
-        return self.c:send(cmd .. "\r\n")
+        return self.c.send(self.c, cmd .. "\r\n")
     end
 end
 
-function metat.__index:sink(snk, pat)
-    local chunk, err = self.c:receive(pat)
+function metat.__index.sink(__index, snk, pat)
+   chunk, err = self.c.receive(self.c, pat)
     return snk(chunk, err)
 end
 
-function metat.__index:send(data)
-    return self.c:send(data)
+function metat.__index.send(__index, data)
+    return self.c.send(self.c, data)
 end
 
-function metat.__index:receive(pat)
-    return self.c:receive(pat)
+function metat.__index.receive(__index, pat)
+    return self.c.receive(self.c, pat)
 end
 
-function metat.__index:getfd()
-    return self.c:getfd()
+function metat.__index.getfd(__index)
+    return self.c.getfd(self.c)
 end
 
-function metat.__index:dirty()
-    return self.c:dirty()
+function metat.__index.dirty(__index)
+    return self.c.dirty(self.c)
 end
 
-function metat.__index:getcontrol()
+function metat.__index.getcontrol(__index)
     return self.c
 end
 
-function metat.__index:source(source, step)
-    local sink = socket.sink("keep-open", self.c)
-    local ret, err = ltn12.pump.all(source, sink, step or ltn12.pump.step)
+function metat.__index.source(__index, source, step)
+   sink = socket.sink("keep-open", self.c)
+   ret, err = ltn12.pump.all(source, sink, step or ltn12.pump.step)
     return ret, err
 end
 
 -- closes the underlying c
-function metat.__index:close()
-    self.c:close()
+function metat.__index.close(__index)
+    self.c.close(self.c)
     return 1
 end
 
 -- connect with server and return c object
 function _M.connect(host, port, timeout, create)
-    local c, e = (create or socket.tcp)()
+   c, e = (create or socket.tcp)()
     if not c then return nil, e end
-    c:settimeout(timeout or _M.TIMEOUT)
-    local r, e = c:connect(host, port)
+    c.settimeout(c, timeout or _M.TIMEOUT)
+   r, e = c.connect(c, host, port)
     if not r then
-        c:close()
+        c.close(c)
         return nil, e
     end
     return base.setmetatable({c = c}, metat)

@@ -15,6 +15,8 @@
 #include "lua.h"
 
 #include "lauxlib.h"
+#include "lobject.h"
+#include "lstate.h"
 #include "lualib.h"
 
 /*
@@ -243,9 +245,12 @@ static int luaB_ipairs(lua_State *L) {
 }
 
 static int load_aux(lua_State *L, int status) {
-  if (status == 0) /* OK? */
+  if (status == 0) { /* OK? */
+    /* [ANTIGRAVITY] DEBUG: Check if we have a function */
+    printf("DEBUG: load_aux OK. Top type: %d, Top: %p, Base: %p\n",
+           lua_type(L, -1), L->top, L->base);
     return 1;
-  else {
+  } else {
     lua_pushnil(L);
     lua_insert(L, -2); /* put before error message */
     return 2;          /* return nil plus error message */

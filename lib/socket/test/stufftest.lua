@@ -1,13 +1,13 @@
-local mime = require("mime")
+mime = require("mime")
 
 function test_dot(original, right)
-    local result, n = mime.dot(2, original)
+   result, n = mime.dot(2, original)
     assert(result == right, "->" .. result .. "<-")
     print("ok")
 end
 
 function test_stuff(original, right)
-    local result, n = mime.dot(2, original)
+   result, n = mime.dot(2, original)
     assert(result == right, "->" .. result .. "<-")
     print("ok")
 end

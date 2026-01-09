@@ -7,13 +7,13 @@
 -----------------------------------------------------------------------------
 -- Declare module
 -----------------------------------------------------------------------------
-local string = require("string")
-local base = _G
-local table = require("table")
-local socket = require("socket")
+string = require("string")
+base = _G
+table = require("table")
+socket = require("socket")
 
 socket.url = {}
-local _M = socket.url
+_M = socket.url
 
 -----------------------------------------------------------------------------
 -- Module version
@@ -41,8 +41,8 @@ end
 -- Returns
 --   escaped representation of string binary
 -----------------------------------------------------------------------------
-local function make_set(t)
-    local s = {}
+function make_set(t)
+   s = {}
     for i,v in base.ipairs(t) do
         s[t[i]] = 1
     end
@@ -51,12 +51,12 @@ end
 
 -- these are allowed within a path segment, along with alphanum
 -- other characters must be escaped
-local segment_set = make_set {
+segment_set = make_set {
     "-", "_", ".", "!", "~", "*", "'", "(",
     ")", ":", "@", "&", "=", "+", "$", ",",
 }
 
-local function protect_segment(s)
+function protect_segment(s)
     return string.gsub(s, "([^A-Za-z0-9_])", function (c)
         if segment_set[c] then return c
         else return string.format("%%%02X", string.byte(c)) end
@@ -82,25 +82,28 @@ end
 --   path
 -- Returns
 --   dot-normalized path
-local function remove_dot_components(path)
-    local marker = string.char(1)
-    repeat
-        local was = path
-        path = path:gsub('//', '/'..marker..'/', 1)
-    until path == was
-    repeat
-        local was = path
-        path = path:gsub('/%./', '/', 1)
-    until path == was
-    repeat
-        local was = path
-        path = path:gsub('[^/]+/%.%./([^/]+)', '%1', 1)
-    until path == was
-    path = path:gsub('[^/]+/%.%./*$', '')
-    path = path:gsub('/%.%.$', '/')
-    path = path:gsub('/%.$', '/')
-    path = path:gsub('^/%.%./', '/')
-    path = path:gsub(marker, '')
+function remove_dot_components(path)
+   marker = string.char(1)
+    while true do
+       was = path
+        path = path.gsub(path, '//', '/'..marker..'/', 1)
+        if path == was then break end
+    end
+    while true do
+       was = path
+        path = path.gsub(path, '/%./', '/', 1)
+        if path == was then break end
+    end
+    while true do
+       was = path
+        path = path.gsub(path, '[^/]+/%.%./([^/]+)', '%1', 1)
+        if path == was then break end
+    end
+    path = path.gsub(path, '[^/]+/%.%./*$', '')
+    path = path.gsub(path, '/%.%.$', '/')
+    path = path.gsub(path, '/%.$', '/')
+    path = path.gsub(path, '^/%.%./', '/')
+    path = path.gsub(path, marker, '')
     return path
 end
 
@@ -112,12 +115,12 @@ end
 -- Returns
 --   corresponding absolute path
 -----------------------------------------------------------------------------
-local function absolute_path(base_path, relative_path)
+function absolute_path(base_path, relative_path)
     if string.sub(relative_path, 1, 1) == "/" then
       return remove_dot_components(relative_path) end
-    base_path = base_path:gsub("[^/]*$", "")
-    if not base_path:find'/$' then base_path = base_path .. '/' end
-    local path = base_path .. relative_path
+    base_path = base_path.gsub(base_path, "[^/]*$", "")
+    if not base_path.find(base_path, '/$') then base_path = base_path .. '/' end
+   path = base_path .. relative_path
     path = remove_dot_components(path)
     return path
 end
@@ -142,7 +145,7 @@ end
 -----------------------------------------------------------------------------
 function _M.parse(url, default)
     -- initialize default parameters
-    local parsed = {}
+   parsed = {}
     for i,v in base.pairs(default or parsed) do parsed[i] = v end
     -- empty url is parsed to nil
     if not url or url == "" then return nil, "invalid url" end
@@ -172,18 +175,18 @@ function _M.parse(url, default)
         return ""
     end)
     -- path is whatever was left
-    if url ~= "" then parsed.path = url end
-    local authority = parsed.authority
+    if url != "" then parsed.path = url end
+   authority = parsed.authority
     if not authority then return parsed end
     authority = string.gsub(authority,"^([^@]*)@",
         function(u) parsed.userinfo = u; return "" end)
     authority = string.gsub(authority, ":([^:%]]*)$",
         function(p) parsed.port = p; return "" end)
-    if authority ~= "" then
+    if authority != "" then
         -- IPv6?
         parsed.host = string.match(authority, "^%[(.+)%]$") or authority
     end
-    local userinfo = parsed.userinfo
+   userinfo = parsed.userinfo
     if not userinfo then return parsed end
     userinfo = string.gsub(userinfo, ":([^:]*)$",
         function(p) parsed.password = p; return "" end)
@@ -202,17 +205,17 @@ end
 function _M.build(parsed)
     --local ppath = _M.parse_path(parsed.path or "")
     --local url = _M.build_path(ppath)
-    local url = parsed.path or ""
+   url = parsed.path or ""
     if parsed.params then url = url .. ";" .. parsed.params end
     if parsed.query then url = url .. "?" .. parsed.query end
-    local authority = parsed.authority
+   authority = parsed.authority
     if parsed.host then
         authority = parsed.host
         if string.find(authority, ":") then -- IPv6?
             authority = "[" .. authority .. "]"
         end
         if parsed.port then authority = authority .. ":" .. base.tostring(parsed.port) end
-        local userinfo = parsed.userinfo
+       userinfo = parsed.userinfo
         if parsed.user then
             userinfo = parsed.user
             if parsed.password then
@@ -237,15 +240,15 @@ end
 --   corresponding absolute url
 -----------------------------------------------------------------------------
 function _M.absolute(base_url, relative_url)
-    local base_parsed
+   base_parsed = nil
     if base.type(base_url) == "table" then
         base_parsed = base_url
         base_url = _M.build(base_parsed)
     else
         base_parsed = _M.parse(base_url)
     end
-    local result
-    local relative_parsed = _M.parse(relative_url)
+   result = nil
+   relative_parsed = _M.parse(relative_url)
     if not base_parsed then
         result = relative_url
     elseif not relative_parsed then
@@ -282,7 +285,7 @@ end
 --   segment: a table with one entry per segment
 -----------------------------------------------------------------------------
 function _M.parse_path(path)
-    local parsed = {}
+   parsed = {}
     path = path or ""
     --path = string.gsub(path, "%s", "")
     string.gsub(path, "([^/]+)", function (s) table.insert(parsed, s) end)
@@ -303,8 +306,8 @@ end
 --   path: corresponding path stringing
 -----------------------------------------------------------------------------
 function _M.build_path(parsed, unsafe)
-    local path = ""
-    local n = #parsed
+   path = ""
+   n = #parsed
     if unsafe then
         for i = 1, n-1 do
             path = path .. parsed[i]

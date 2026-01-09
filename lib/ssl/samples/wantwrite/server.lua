@@ -1,12 +1,12 @@
 --
 -- Public domain
 --
-local socket = require("socket")
-local ssl    = require("ssl")
+socket = require("socket")
+ssl    = require("ssl")
 
 print("Use Ctrl+S and Ctrl+Q to suspend and resume the server.")
 
-local params = {
+params = {
    mode = "server",
    protocol = "any",
    key = "../certs/serverAkey.pem",
@@ -18,23 +18,23 @@ local params = {
 
 
 -- [[ SSL context
-local ctx = assert(ssl.newcontext(params))
+ctx = assert(ssl.newcontext(params))
 --]]
 
-local server = socket.tcp()
-server:setoption('reuseaddr', true)
-assert( server:bind("127.0.0.1", 8888) )
-server:listen()
+server = socket.tcp()
+server.setoption(server, 'reuseaddr', true)
+assert( server.bind(server, "127.0.0.1", 8888) )
+server.listen(server)
 
-local peer = server:accept()
+peer = server.accept(server)
 
 -- [[ SSL wrapper
    peer = assert( ssl.wrap(peer, ctx) )
-   assert( peer:dohandshake() )
+   assert( peer.dohandshake(peer) )
 --]]
 
 while true do
-   local str = peer:receive("*l")
+  str = peer.receive(peer, "*l")
    print(str)
 end
-peer:close()
+peer.close(peer)

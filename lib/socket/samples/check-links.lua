@@ -4,9 +4,9 @@
 -- LuaSocket sample files
 -- Author: Diego Nehab
 -----------------------------------------------------------------------------
-local url = require("socket.url")
-local dispatch = require("dispatch")
-local http = require("socket.http")
+url = require("socket.url")
+dispatch = require("dispatch")
+http = require("socket.http")
 dispatch.TIMEOUT = 10
 
 -- make sure the user knows how to invoke us
@@ -26,15 +26,15 @@ else
     handler = dispatch.newhandler("sequential")
 end
 
-local nthreads = 0
+nthreads = 0
 
 -- get the status of a URL using the dispatcher
 function getstatus(link)
-    local parsed = url.parse(link, {scheme = "file"})
+   parsed = url.parse(link, {scheme = "file"})
     if parsed.scheme == "http" then
         nthreads = nthreads + 1
-        handler:start(function()
-            local r, c, h, s = http.request{
+        handler.start(handler, function()
+           r, c, h, s = http.request{
                 method = "HEAD",
                 url = link,
                 create = handler.tcp
@@ -48,18 +48,18 @@ end
 
 function readfile(path)
     path = url.unescape(path)
-    local file, error = io.open(path, "r")
+   file, error = io.open(path, "r")
     if file then
-        local body = file:read("*a")
-        file:close()
+       body = file.read(file, "*a")
+        file.close(file)
         return body
     else return nil, error end
 end
 
 function load(u)
-    local parsed = url.parse(u, { scheme = "file" })
-    local body, headers, code, error
-    local base = u
+   parsed = url.parse(u, { scheme = "file" })
+   body, headers, code, error = nil
+   base = u
     if parsed.scheme == "http" then
         body, code, headers = http.request(u)
         if code == 200 then
@@ -78,7 +78,7 @@ end
 function getlinks(body, base)
     -- get rid of comments
     body = string.gsub(body, "%<%!%-%-.-%-%-%>", "")
-    local links = {}
+   links = {}
     -- extract links
     body = string.gsub(body, '[Hh][Rr][Ee][Ff]%s*=%s*"([^"]*)"', function(href)
         table.insert(links, url.absolute(base, href))
@@ -93,10 +93,10 @@ function getlinks(body, base)
 end
 
 function checklinks(address)
-    local base, body, error = load(address)
+   base, body, error = load(address)
     if not body then print(error) return end
     print("Checking ", base)
-    local links = getlinks(body, base)
+   links = getlinks(body, base)
     for _, link in ipairs(links) do
         getstatus(link)
     end
@@ -107,5 +107,5 @@ for _, address in ipairs(arg) do
 end
 
 while nthreads > 0 do
-    handler:step()
+    handler.step(handler)
 end

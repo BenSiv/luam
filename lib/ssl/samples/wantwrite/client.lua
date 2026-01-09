@@ -1,10 +1,10 @@
 --
 -- Public domain
 --
-local socket = require("socket")
-local ssl    = require("ssl")
+socket = require("socket")
+ssl    = require("ssl")
 
-local params = {
+params = {
    mode = "client",
    protocol = "tlsv1_2",
    key = "../certs/clientAkey.pem",
@@ -14,36 +14,36 @@ local params = {
    options = "all",
 }
 
-local function wait(peer, err)
+function wait(peer, err)
    if err == "wantread" then
       socket.select({peer}, nil)
    elseif err == "timeout" or err == "wantwrite" then
       socket.select(nil, {peer})
    else
-      peer:close()
+      peer.close(peer)
       os.exit(1)
    end
 end
 
 
-local peer = socket.tcp()
-assert( peer:connect("127.0.0.1", 8888) )
+peer = socket.tcp()
+assert( peer.connect(peer, "127.0.0.1", 8888) )
 
 -- [[ SSL wrapper
 peer = assert( ssl.wrap(peer, params) )
-assert( peer:dohandshake() )
+assert( peer.dohandshake(peer) )
 --]]
 
-peer:settimeout(0.3)
+peer.settimeout(peer, 0.3)
 
-local str = "a rose is a rose is a rose is a...\n"
+str = "a rose is a rose is a rose is a...\n"
 while true do
    print("Sending...")
-   local succ, err = peer:send(str)
+  succ, err = peer.send(peer, str)
    while succ do
-      succ, err = peer:send(str)
+      succ, err = peer.send(peer, str)
    end
    print("Waiting...", err)
    wait(peer, err)
 end
-peer:close()
+peer.close(peer)

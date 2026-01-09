@@ -1,4 +1,4 @@
-local function usage()
+function usage()
   print("Usage:")
   print("* Generate options of your system:")
   print("  lua options.lua -g /path/to/ssl.h [version] > options.c")
@@ -11,11 +11,11 @@ local function usage()
 end
 
 --
-local function printf(str, ...)
+function printf(str, ...)
   print(string.format(str, ...))
 end
 
-local function generate(options, version)
+function generate(options, version)
   print([[
 /*--------------------------------------------------------------------------
  * LuaSec 1.3.2
@@ -41,7 +41,7 @@ local function generate(options, version)
   print([[static lsec_ssl_option_t ssl_options[] = {]])
 
   for k, option in ipairs(options) do
-    local name = string.lower(string.sub(option, 8))
+   name = string.lower(string.sub(option, 8))
     print(string.format([[#if defined(%s)]], option))
     print(string.format([[  {"%s", %s},]], name, option))
     print([[#endif]])
@@ -56,11 +56,11 @@ LSEC_API lsec_ssl_option_t* lsec_get_ssl_options() {
 ]])
 end
 
-local function loadoptions(file)
-  local options = {}
-  local f = assert(io.open(file, "r"))
-  for line in f:lines() do
-    local op = string.match(line, "define%s+(SSL_OP_BIT%()")
+function loadoptions(file)
+ options = {}
+ f = assert(io.open(file, "r"))
+  for line in f.lines(f) do
+   op = string.match(line, "define%s+(SSL_OP_BIT%()")
     if not op then
       op = string.match(line, "define%s+(SSL_OP_%S+)")
       if op then
@@ -73,8 +73,8 @@ local function loadoptions(file)
 end
 --
 
-local options
-local flag, file, version = ...
+options = nil
+flag, file, version = ...
 
 version = version or "Unknown"
 

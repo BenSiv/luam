@@ -5,21 +5,21 @@
 --
 ------------------------------------------------------------------------------
 
-local core    = require("ssl.core")
-local context = require("ssl.context")
-local x509    = require("ssl.x509")
-local config  = require("ssl.config")
+core    = require("ssl.core")
+context = require("ssl.context")
+x509    = require("ssl.x509")
+config  = require("ssl.config")
 
-local unpack  = table.unpack or unpack
+unpack  = table.unpack or unpack
 
 -- We must prevent the contexts to be collected before the connections,
 -- otherwise the C registry will be cleared.
-local registry = setmetatable({}, {__mode="k"})
+registry = setmetatable({}, {__mode="k"})
 
 --
 --
 --
-local function optexec(func, param, ctx)
+function optexec(func, param, ctx)
   if param then
     if type(param) == "table" then
       return func(ctx, unpack(param))
@@ -33,11 +33,11 @@ end
 --
 -- Convert an array of strings to wire-format
 --
-local function array2wireformat(array)
-   local str = ""
+function array2wireformat(array)
+  str = ""
    for k, v in ipairs(array) do
-      if type(v) ~= "string" then return nil end
-      local len = #v
+      if type(v) != "string" then return nil end
+     len = #v
       if len == 0 then
         return nil, "invalid ALPN name (empty string)"
       elseif len > 255 then
@@ -52,12 +52,12 @@ end
 --
 -- Convert wire-string format to array
 --
-local function wireformat2array(str)
-   local i = 1
-   local array = {}
+function wireformat2array(str)
+  i = 1
+  array = {}
    while i < #str do
-      local len = str:byte(i)
-      array[#array + 1] = str:sub(i + 1, i + len)
+     len = str.byte(str, i)
+      array[#array + 1] = str.sub(str, i + 1, i + len)
       i = i + len + 1
    end
    return array
@@ -66,15 +66,15 @@ end
 --
 --
 --
-local function newcontext(cfg)
-   local succ, msg, ctx
+function newcontext(cfg)
+  succ, msg, ctx = nil
    -- Create the context
    ctx, msg = context.create(cfg.protocol)
    if not ctx then return nil, msg end
    -- Mode
    succ, msg = context.setmode(ctx, cfg.mode)
    if not succ then return nil, msg end
-   local certificates = cfg.certificates
+  certificates = cfg.certificates
    if not certificates then
       certificates = {
          { certificate = cfg.certificate, key = cfg.key, password = cfg.password }
@@ -84,8 +84,8 @@ local function newcontext(cfg)
       -- Load the key
       if certificate.key then
          if certificate.password and
-            type(certificate.password) ~= "function" and
-            type(certificate.password) ~= "string"
+            type(certificate.password) != "function" and
+            type(certificate.password) != "string"
          then
             return nil, "invalid password type"
          end
@@ -135,7 +135,7 @@ local function newcontext(cfg)
 
    -- Set DH parameters
    if cfg.dhparam then
-      if type(cfg.dhparam) ~= "function" then
+      if type(cfg.dhparam) != "function" then
          return nil, "invalid DH parameter type"
       end
       context.setdhparam(ctx, cfg.dhparam)
@@ -162,20 +162,20 @@ local function newcontext(cfg)
    -- ALPN
    if cfg.mode == "server" and cfg.alpn then
       if type(cfg.alpn) == "function" then
-         local alpncb = cfg.alpn
+        alpncb = cfg.alpn
          -- This callback function has to return one value only
          succ, msg = context.setalpncb(ctx, function(str)
-            local protocols = alpncb(wireformat2array(str))
+           protocols = alpncb(wireformat2array(str))
             if type(protocols) == "string" then
                protocols = { protocols }
-            elseif type(protocols) ~= "table" then
+            elseif type(protocols) != "table" then
                return nil
             end
             return (array2wireformat(protocols))    -- use "()" to drop error message
          end)
          if not succ then return nil, msg end
       elseif type(cfg.alpn) == "table" then
-         local protocols = cfg.alpn
+        protocols = cfg.alpn
          -- check if array is valid before use it
          succ, msg = array2wireformat(protocols)
          if not succ then return nil, msg end
@@ -188,7 +188,7 @@ local function newcontext(cfg)
          return nil, "invalid ALPN parameter"
       end
    elseif cfg.mode == "client" and cfg.alpn then
-      local alpn
+     alpn = nil
       if type(cfg.alpn) == "string" then
          alpn, msg = array2wireformat({ cfg.alpn })
       elseif type(cfg.alpn) == "table" then
@@ -204,7 +204,7 @@ local function newcontext(cfg)
    -- PSK
    if config.capabilities.psk and cfg.psk then
       if cfg.mode == "client" then
-         if type(cfg.psk) ~= "function" then
+         if type(cfg.psk) != "function" then
             return nil, "invalid PSK configuration"
          end
          succ = context.setclientpskcb(ctx, cfg.psk)
@@ -242,18 +242,18 @@ end
 --
 --
 --
-local function wrap(sock, cfg)
-   local ctx, msg
+function wrap(sock, cfg)
+  ctx, msg = nil
    if type(cfg) == "table" then
       ctx, msg = newcontext(cfg)
       if not ctx then return nil, msg end
    else
       ctx = cfg
    end
-   local s, msg = core.create(ctx)
+  s, msg = core.create(ctx)
    if s then
-      core.setfd(s, sock:getfd())
-      sock:setfd(core.SOCKET_INVALID)
+      core.setfd(s, sock.getfd(sock))
+      sock.setfd(sock, core.SOCKET_INVALID)
       registry[s] = ctx
       return s
    end
@@ -263,8 +263,8 @@ end
 --
 -- Extract connection information.
 --
-local function info(ssl, field)
-  local str, comp, err, protocol
+function info(ssl, field)
+ str, comp, err, protocol = nil
   comp, err = core.compression(ssl)
   if err then
     return comp, err
@@ -273,14 +273,14 @@ local function info(ssl, field)
   if field == "compression" then
     return comp
   end
-  local info = {compression = comp}
+ info = {compression = comp}
   str, info.bits, info.algbits, protocol = core.info(ssl)
   if str then
     info.cipher, info.protocol, info.key,
     info.authentication, info.encryption, info.mac =
         string.match(str, 
           "^(%S+)%s+(%S+)%s+Kx=(%S+)%s+Au=(%S+)%s+Enc=(%S+)%s+Mac=(%S+)")
-    info.export = (string.match(str, "%sexport%s*$") ~= nil)
+    info.export = (string.match(str, "%sexport%s*$") != nil)
   end
   if protocol then
     info.protocol = protocol
@@ -301,7 +301,7 @@ core.setmethod("info", info)
 -- Export module
 --
 
-local _M = {
+_M = {
   _VERSION        = "1.3.2",
   _COPYRIGHT      = core.copyright(),
   config          = config,

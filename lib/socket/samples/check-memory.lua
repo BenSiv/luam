@@ -1,9 +1,9 @@
 function load(s)
     collectgarbage()
-    local a = gcinfo()
+   a = gcinfo()
     _G[s] = require(s)
     collectgarbage()
-    local b = gcinfo()
+   b = gcinfo()
     print(s .. ":\t " .. (b-a) .. "k")
 end
 

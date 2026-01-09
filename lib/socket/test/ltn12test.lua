@@ -1,25 +1,25 @@
-local ltn12 = require("ltn12")
+ltn12 = require("ltn12")
 
 dofile("testsupport.lua")
 
-local function format(chunk)
+function format(chunk)
     if chunk then
         if chunk == "" then return "''"
         else return string.len(chunk) end
     else return "nil" end
 end
 
-local function show(name, input, output)
-    local sin = format(input)
-    local sout = format(output)
+function show(name, input, output)
+   sin = format(input)
+   sout = format(output)
     io.write(name, ": ", sin, " -> ", sout, "\n")
 end
 
-local function chunked(length)
-    local tmp
+function chunked(length)
+   tmp = nil
     return function(chunk)
-        local ret
-        if chunk and chunk ~= "" then
+       ret = nil
+        if chunk and chunk != "" then
             tmp = chunk
         end
         ret = string.sub(tmp, 1, length)
@@ -29,23 +29,23 @@ local function chunked(length)
     end
 end
 
-local function named(f, name)
+function named(f, name)
     return function(chunk)
-        local ret = f(chunk)
+       ret = f(chunk)
         show(name, chunk, ret)
         return ret
     end
 end
 
 --------------------------------
-local function split(size)
-    local buffer = ""
-    local last_out = ""
-    local last_in = ""
-    local function output(chunk)
-        local part = string.sub(buffer, 1, size)
+function split(size)
+   buffer = ""
+   last_out = ""
+   last_in = ""
+   function output(chunk)
+       part = string.sub(buffer, 1, size)
         buffer = string.sub(buffer, size+1)
-        last_out = (part ~= "" or chunk) and part
+        last_out = (part != "" or chunk) and part
         last_in = chunk
         return last_out
     end
@@ -55,7 +55,7 @@ local function split(size)
         end
         -- check if argument is consistent with state
         if not chunk then
-            if last_in and last_in ~= "" and last_out ~= "" then
+            if last_in and last_in != "" and last_out != "" then
                 error("nil chunk following data chunk", 2)
             end
             if not last_out then error("extra nil chunk", 2) end
@@ -67,7 +67,7 @@ local function split(size)
             return output(chunk)
         else
             if not last_in  then error("data chunk following nil chunk", 2) end
-            if last_in ~= "" and last_out ~= "" then
+            if last_in != "" and last_out != "" then
                 error("data chunk following data chunk", 2)
             end
             buffer = chunk
@@ -77,7 +77,7 @@ local function split(size)
 end
 
 --------------------------------
-local function format(chunk)
+function format(chunk)
     if chunk then
         if chunk == "" then return "''"
         else return string.len(chunk) end
@@ -85,19 +85,19 @@ local function format(chunk)
 end
 
 --------------------------------
-local function merge(size)
-    local buffer = ""
-    local last_out = ""
-    local last_in = ""
-    local function output(chunk)
-        local part
+function merge(size)
+   buffer = ""
+   last_out = ""
+   last_in = ""
+   function output(chunk)
+       part = nil
         if string.len(buffer) >= size or not chunk then
             part = buffer
             buffer = ""
         else
             part = ""
         end
-        last_out = (part ~= "" or chunk) and part
+        last_out = (part != "" or chunk) and part
         last_in = chunk
         return last_out
     end
@@ -107,7 +107,7 @@ local function merge(size)
         end
         -- check if argument is consistent with state
         if not chunk then
-            if last_in and last_in ~= "" and last_out ~= "" then
+            if last_in and last_in != "" and last_out != "" then
                 error("nil chunk following data chunk", 2)
             end
             if not last_out then error("extra nil chunk", 2) end
@@ -119,7 +119,7 @@ local function merge(size)
             return output(chunk)
         else
             if not last_in  then error("data chunk following nil chunk", 2) end
-            if last_in ~= "" and last_out ~= "" then
+            if last_in != "" and last_out != "" then
                 error("data chunk following data chunk", 2)
             end
             buffer = buffer .. chunk
@@ -130,8 +130,8 @@ end
 
 --------------------------------
 io.write("testing sink.table: ")
-local sink, t = ltn12.sink.table()
-local s, c = "", ""
+sink, t = ltn12.sink.table()
+s, c = "", ""
 for i = 0, 10 do
     c = string.rep(string.char(i), i)
     s = s .. c
@@ -144,7 +144,7 @@ print("ok")
 --------------------------------
 io.write("testing sink.chain (with split): ")
 sink, t = ltn12.sink.table()
-local filter = split(3)
+filter = split(3)
 sink = ltn12.sink.chain(filter, sink)
 s = "123456789012345678901234567890"
 assert(sink(s), "returned error")
@@ -174,7 +174,7 @@ print("ok")
 
 --------------------------------
 io.write("testing source.string and pump.all: ")
-local source = ltn12.source.string(s)
+source = ltn12.source.string(s)
 sink, t = ltn12.sink.table()
 assert(ltn12.pump.all(source, sink), "returned error")
 assert(table.concat(t) == s, "mismatch")
@@ -182,8 +182,8 @@ print("ok")
 
 --------------------------------
 io.write("testing source.table: ")
-local inp = {'a','b','c','d','e'}
-local source = ltn12.source.table(inp)
+inp = {'a','b','c','d','e'}
+source = ltn12.source.table(inp)
 sink, t = ltn12.sink.table()
 assert(ltn12.pump.all(source, sink), "returned error")
 for i = 1, #inp do assert(t[i] == inp[i], "mismatch") end
@@ -202,9 +202,9 @@ print("ok")
 
 --------------------------------
 io.write("testing source.chain (with several filters): ")
-local function double(x) -- filter turning "ABC" into "AABBCC"
+function double(x) -- filter turning "ABC" into "AABBCC"
     if not x then return end
-    local b={}
+   b={}
     for k in x:gmatch'.' do table.insert(b, k..k) end
     return table.concat(b)
 end
@@ -220,7 +220,7 @@ io.write("testing source.chain (with split) and sink.chain (with merge): ")
 source = ltn12.source.string(s)
 filter = split(5)
 source = ltn12.source.chain(source, filter)
-local filter2 = merge(13)
+filter2 = merge(13)
 sink, t = ltn12.sink.table()
 sink = ltn12.sink.chain(filter2, sink)
 assert(ltn12.pump.all(source, sink), "returned error")
@@ -243,7 +243,7 @@ io.write("testing filter.chain (and sink.chain, with split, merge): ")
 source = ltn12.source.string(s)
 filter = split(5)
 filter2 = merge(13)
-local chain = ltn12.filter.chain(filter, filter2)
+chain = ltn12.filter.chain(filter, filter2)
 sink, t = ltn12.sink.table()
 sink = ltn12.sink.chain(chain, sink)
 assert(ltn12.pump.all(source, sink), "returned error")
@@ -257,9 +257,9 @@ io.write("testing filter.chain (and sink.chain, a bunch): ")
 source = ltn12.source.string(s)
 filter = split(5)
 filter2 = merge(13)
-local filter3 = split(7)
-local filter4 = merge(11)
-local filter5 = split(10)
+filter3 = split(7)
+filter4 = merge(11)
+filter5 = split(10)
 chain = ltn12.filter.chain(filter, filter2, filter3, filter4, filter5)
 sink, t = ltn12.sink.table()
 sink = ltn12.sink.chain(chain, sink)
@@ -277,7 +277,7 @@ io.write("testing filter.chain (and source.chain, with split, merge): ")
 source = ltn12.source.string(s)
 filter = split(5)
 filter2 = merge(13)
-local chain = ltn12.filter.chain(filter, filter2)
+chain = ltn12.filter.chain(filter, filter2)
 sink, t = ltn12.sink.table()
 source = ltn12.source.chain(source, chain)
 assert(ltn12.pump.all(source, sink), "returned error")
@@ -291,9 +291,9 @@ io.write("testing filter.chain (and source.chain, a bunch): ")
 source = ltn12.source.string(s)
 filter = split(5)
 filter2 = merge(13)
-local filter3 = split(7)
-local filter4 = merge(11)
-local filter5 = split(10)
+filter3 = split(7)
+filter4 = merge(11)
+filter5 = split(10)
 chain = ltn12.filter.chain(filter, filter2, filter3, filter4, filter5)
 sink, t = ltn12.sink.table()
 source = ltn12.source.chain(source, chain)

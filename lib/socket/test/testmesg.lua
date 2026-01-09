@@ -1,7 +1,7 @@
 -- load the smtp support and its friends
-local smtp = require("socket.smtp")
-local mime = require("mime")
-local ltn12 = require("ltn12")
+smtp = require("socket.smtp")
+mime = require("mime")
+ltn12 = require("ltn12")
 
 function filter(s)
     if s then io.write(s) end

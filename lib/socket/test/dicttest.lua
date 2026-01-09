@@ -1,4 +1,4 @@
-local dict = require"socket.dict"
+dict = require"socket.dict"
 
 print(dict.get("dict://localhost/d:teste"))
 

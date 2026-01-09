@@ -1,22 +1,22 @@
-local socket = require"socket"
-local http = require"socket.http"
-local url = require"socket.url"
-local ltn12 = require"ltn12"
+socket = require"socket"
+http = require"socket.http"
+url = require"socket.url"
+ltn12 = require"ltn12"
 
-local token_class =  '[^%c%s%(%)%<%>%@%,%;%:%\\%"%/%[%]%?%=%{%}]'
+token_class =  '[^%c%s%(%)%<%>%@%,%;%:%\\%"%/%[%]%?%=%{%}]'
 
-local function unquote(t, quoted)
-    local n = string.match(t, "%$(%d+)$")
+function unquote(t, quoted)
+   n = string.match(t, "%$(%d+)$")
     if n then n = tonumber(n) end
     if quoted[n] then return quoted[n]
     else return t end
 end
 
-local function parse_set_cookie(c, quoted, cookie_table)
+function parse_set_cookie(c, quoted, cookie_table)
     c = c .. ";$last=last;"
-    local _, _, n, v, i = string.find(c, "(" .. token_class ..
+   _, _, n, v, i = string.find(c, "(" .. token_class ..
         "+)%s*=%s*(.-)%s*;%s*()")
-    local cookie = {
+   cookie = {
         name = n,
         value = unquote(v, quoted),
         attributes = {}
@@ -33,10 +33,10 @@ local function parse_set_cookie(c, quoted, cookie_table)
     cookie_table[#cookie_table+1] = cookie
 end
 
-local function split_set_cookie(s, cookie_table)
+function split_set_cookie(s, cookie_table)
     cookie_table = cookie_table or {}
     -- remove quoted strings from cookie list
-    local quoted = {}
+   quoted = {}
     s = string.gsub(s, '"(.-)"', function(q)
         quoted[#quoted+1] = q
         return "$" .. #quoted
@@ -46,7 +46,7 @@ local function split_set_cookie(s, cookie_table)
     -- split into individual cookies
     i = 1
     while 1 do
-        local _, _, cookie, next_token
+       _, _, cookie, next_token = nil
         _, _, cookie, i, next_token = string.find(s, "(.-)%s*%,%s*()(" ..
             token_class .. "+)%s*=", i)
         if not next_token then break end
@@ -56,18 +56,18 @@ local function split_set_cookie(s, cookie_table)
     return cookie_table
 end
 
-local function quote(s)
+function quote(s)
     if string.find(s, "[ %,%;]") then return '"' .. s .. '"'
     else return s end
 end
 
-local _empty = {}
-local function build_cookies(cookies)
+_empty = {}
+function build_cookies(cookies)
     s = ""
     for i,v in ipairs(cookies or _empty) do
         if v.name then
             s = s .. v.name
-            if v.value and v.value ~= "" then
+            if v.value and v.value != "" then
                 s = s .. '=' .. quote(v.value)
             end
         end
@@ -75,7 +75,7 @@ local function build_cookies(cookies)
         for j,u in ipairs(v.attributes or _empty) do
             if u.name then
                 s = s .. u.name
-                if u.value and u.value ~= "" then
+                if u.value and u.value != "" then
                     s = s .. '=' .. quote(u.value)
                 end
             end

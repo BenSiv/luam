@@ -1,7 +1,7 @@
-local socket = require("socket")
-local ssl    = require("ssl")
+socket = require("socket")
+ssl    = require("ssl")
 
-local params01 = {
+params01 = {
   mode = "server",
   protocol = "any",
   key = "../certs/serverAkey.pem",
@@ -12,7 +12,7 @@ local params01 = {
   ciphers = "ALL:!ADH:@STRENGTH",
 }
 
-local params02 = {
+params02 = {
   mode = "server",
   protocol = "any",
   key = "../certs/serverAAkey.pem",
@@ -24,29 +24,29 @@ local params02 = {
 }
 
 --
-local ctx01 = ssl.newcontext(params01)
-local ctx02 = ssl.newcontext(params02)
+ctx01 = ssl.newcontext(params01)
+ctx02 = ssl.newcontext(params02)
 
 --
-local server = socket.tcp()
-server:setoption('reuseaddr', true)
-server:bind("127.0.0.1", 8888)
-server:listen()
-local conn = server:accept()
+server = socket.tcp()
+server.setoption(server, 'reuseaddr', true)
+server.bind(server, "127.0.0.1", 8888)
+server.listen(server)
+conn = server.accept(server)
 --
 
 -- Default context (when client does not send a name) is ctx01
 conn = ssl.wrap(conn, ctx01)
 
 -- Configure the name map
-local sni_map = {
+sni_map = {
   ["servera.br"]  = ctx01,
   ["serveraa.br"] = ctx02,
 }
 
-conn:sni(sni_map, true)
+conn.sni(conn, sni_map, true)
 
-assert(conn:dohandshake())
+assert(conn.dohandshake(conn))
 --
-conn:send("one line\n")
-conn:close()
+conn.send(conn, "one line\n")
+conn.close(conn)

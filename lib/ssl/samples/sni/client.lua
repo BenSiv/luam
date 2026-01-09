@@ -1,7 +1,7 @@
-local socket = require("socket")
-local ssl    = require("ssl")
+socket = require("socket")
+ssl    = require("ssl")
 
-local params = {
+params = {
   mode = "client",
   protocol = "tlsv1_2",
   key = "../certs/clientAkey.pem",
@@ -11,25 +11,25 @@ local params = {
   options = "all",
 }
 
-local conn = socket.tcp()
-conn:connect("127.0.0.1", 8888)
+conn = socket.tcp()
+conn.connect(conn, "127.0.0.1", 8888)
 
 -- TLS/SSL initialization
 conn = ssl.wrap(conn, params)
 
 -- Comment the lines to not send a name
---conn:sni("servera.br")
---conn:sni("serveraa.br")
-conn:sni("serverb.br")
+--conn.sni(conn, "servera.br")
+--conn.sni(conn, "serveraa.br")
+conn.sni(conn, "serverb.br")
 
-assert(conn:dohandshake())
+assert(conn.dohandshake(conn))
 --
-local cert = conn:getpeercertificate()
-for k, v in pairs(cert:subject()) do
+cert = conn.getpeercertificate(conn)
+for k, v in pairs(cert.subject(cert)) do
   for i, j in pairs(v) do
     print(i, j)
   end
 end
 --
-print(conn:receive("*l"))
-conn:close()
+print(conn.receive(conn, "*l"))
+conn.close(conn)

@@ -1,6 +1,6 @@
-local encode, decode
+encode, decode = nil
 
-local test_module = ... -- command line argument
+test_module = ... -- command line argument
 --local test_module = 'cmj-json'
 --local test_module = 'dkjson'
 --local test_module = 'dkjson-nopeg'
@@ -15,53 +15,53 @@ local test_module = ... -- command line argument
 
 if test_module == 'cmj-json' then
   -- http://json.luaforge.net/
-  local json = require "cmjjson" -- renamed, the original file was just 'json'
+ json = require "cmjjson" -- renamed, the original file was just 'json'
   encode = json.encode
   decode = json.decode
 elseif test_module == 'dkjson' then
   -- http://chiselapp.com/user/dhkolf/repository/dkjson/
-  local dkjson = require "dkjson"
+ dkjson = require "dkjson"
   encode = dkjson.encode
   decode = dkjson.decode
 elseif test_module == 'dkjson-nopeg' then
   package.preload["lpeg"] = function () error "lpeg disabled" end
   package.loaded["lpeg"] = nil
   lpeg = nil
-  local dkjson = require "dkjson"
+ dkjson = require "dkjson"
   encode = dkjson.encode
   decode = dkjson.decode
 elseif test_module == 'fleece' then
   -- http://www.eonblast.com/fleece/
-  local fleece = require "fleece"
+ fleece = require "fleece"
   encode = function(x) return fleece.json(x, "E4") end
 elseif test_module == 'jf-json' then
   -- http://regex.info/blog/lua/json
-  local json = require "jfjson" -- renamed, the original file was just 'JSON'
-  encode = function(x) return json:encode(x) end
-  decode = function(x) return json:decode(x) end
+ json = require "jfjson" -- renamed, the original file was just 'JSON'
+  encode = function(x) return json.encode(json, x) end
+  decode = function(x) return json.decode(json, x) end
 elseif test_module == 'lua-yajl' then
   -- http://github.com/brimworks/lua-yajl
-  local yajl = require ("yajl")
+ yajl = require ("yajl")
   encode = yajl.to_string
   decode = yajl.to_value
 elseif test_module == 'mp-cjson' then
   -- http://www.kyne.com.au/~mark/software/lua-cjson.php
-  local json = require "cjson"
+ json = require "cjson"
   encode = json.encode
   decode = json.decode
 elseif test_module == 'nm-json' then
   -- http://luaforge.net/projects/luajsonlib/
-  local json = require "LuaJSON"
+ json = require "LuaJSON"
   encode = json.encode or json.stringify
   decode = json.decode or json.parse
 elseif test_module == 'sb-json' then
   -- http://www.chipmunkav.com/downloads/Json.lua
-  local json = require "sbjson" -- renamed, the original file was just 'Json'
+ json = require "sbjson" -- renamed, the original file was just 'Json'
   encode = json.Encode
   decode = json.Decode
 elseif test_module == 'th-json' then
   -- http://luaforge.net/projects/luajson/
-  local json = require "json"
+ json = require "json"
   encode = json.encode
   decode = json.decode
 else
@@ -72,7 +72,7 @@ end
 -- example data taken from
 -- http://de.wikipedia.org/wiki/JavaScript_Object_Notation
 
-local str = [[
+str = [[
 {
   "Herausgeber": "Xema",
   "Nummer": "1234-5678-9012-3456",
@@ -91,7 +91,7 @@ local str = [[
 }
 ]]
 
-local tbl = {
+tbl = {
   Herausgeber= "Xema",
   Nummer= "1234-5678-9012-3456",
   Deckung= 2e+6,
@@ -109,7 +109,7 @@ local tbl = {
   }
 }
 
-local t1, t2
+t1, t2 = nil
 
 if decode then
   t1 = os.clock ()

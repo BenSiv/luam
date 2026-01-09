@@ -1,10 +1,10 @@
-local socket = require("socket")
+socket = require("socket")
 socket.url = require("socket.url")
 dofile("testsupport.lua")
 
-local check_build_url = function(parsed)
-    local built = socket.url.build(parsed)
-    if built ~= parsed.url then
+check_build_url = function(parsed)
+   built = socket.url.build(parsed)
+    if built != parsed.url then
         print("built is different from expected")
         print(built)
         print(expected)
@@ -12,67 +12,67 @@ local check_build_url = function(parsed)
     end
 end
 
-local check_protect = function(parsed, path, unsafe)
-    local built = socket.url.build_path(parsed, unsafe)
-    if built ~= path then
+check_protect = function(parsed, path, unsafe)
+   built = socket.url.build_path(parsed, unsafe)
+    if built != path then
         print(built, path)
         print("path composition failed.")
         os.exit()
     end
 end
 
-local check_invert = function(url)
-    local parsed = socket.url.parse(url)
+check_invert = function(url)
+   parsed = socket.url.parse(url)
     parsed.path = socket.url.build_path(socket.url.parse_path(parsed.path))
-    local rebuilt = socket.url.build(parsed)
-    if rebuilt ~= url then
+   rebuilt = socket.url.build(parsed)
+    if rebuilt != url then
         print(url, rebuilt)
         print("original and rebuilt are different")
         os.exit()
     end
 end
 
-local check_parse_path = function(path, expect)
-    local parsed = socket.url.parse_path(path)
+check_parse_path = function(path, expect)
+   parsed = socket.url.parse_path(path)
     for i = 1, math.max(#parsed, #expect) do
-        if parsed[i] ~= expect[i] then
+        if parsed[i] != expect[i] then
             print(path)
             os.exit()
         end
     end
-    if expect.is_directory ~= parsed.is_directory then
+    if expect.is_directory != parsed.is_directory then
         print(path)
         print("is_directory mismatch")
         os.exit()
     end
-    if expect.is_absolute ~= parsed.is_absolute then
+    if expect.is_absolute != parsed.is_absolute then
         print(path)
         print("is_absolute mismatch")
         os.exit()
     end
-    local built = socket.url.build_path(expect)
-    if built ~= path then
+   built = socket.url.build_path(expect)
+    if built != path then
         print(built, path)
         print("path composition failed.")
         os.exit()
     end
 end
 
-local check_absolute_url = function(base, relative, absolute)
-    local res = socket.url.absolute(base, relative)
-    if res ~= absolute then
+check_absolute_url = function(base, relative, absolute)
+   res = socket.url.absolute(base, relative)
+    if res != absolute then
         io.write("absolute: In test for base='", base, "', rel='", relative, "' expected '",
             absolute, "' but got '", res, "'\n")
         os.exit()
     end
 end
 
-local check_parse_url = function(gaba)
-    local url = gaba.url
+check_parse_url = function(gaba)
+   url = gaba.url
     gaba.url = nil
-    local parsed = socket.url.parse(url)
+   parsed = socket.url.parse(url)
     for i, v in pairs(gaba) do
-        if v ~= parsed[i] then
+        if v != parsed[i] then
             io.write("parse: In test for '", url, "' expected ", i, " = '",
                    v, "' but got '", tostring(parsed[i]), "'\n")
             for i,v in pairs(parsed) do print(i,v) end
@@ -80,7 +80,7 @@ local check_parse_url = function(gaba)
         end
     end
     for i, v in pairs(parsed) do
-        if v ~= gaba[i] then
+        if v != gaba[i] then
             io.write("parse: In test for '", url, "' expected ", i, " = '",
                    tostring(gaba[i]), "' but got '", v, "'\n")
             for i,v in pairs(parsed) do print(i,v) end

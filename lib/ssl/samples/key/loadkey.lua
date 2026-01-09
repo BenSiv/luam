@@ -1,10 +1,10 @@
 --
 -- Public domain
 --
-local ssl = require("ssl")
+ssl = require("ssl")
 
-local pass = "foobar"
-local cfg = {
+pass = "foobar"
+cfg = {
   protocol = "tlsv1",
   mode = "client",
   key = "key.pem",

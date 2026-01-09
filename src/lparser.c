@@ -391,6 +391,7 @@ static void close_func(LexState *ls) {
 Proto *luaY_parser(lua_State *L, ZIO *z, Mbuffer *buff, const char *name) {
   struct LexState lexstate;
   struct FuncState funcstate;
+  printf("DEBUG: luaY_parser start\n");
   lexstate.buff = buff;
   luaX_setinput(L, &lexstate, z, luaS_new(L, name));
   open_func(&lexstate, &funcstate);
@@ -402,6 +403,7 @@ Proto *luaY_parser(lua_State *L, ZIO *z, Mbuffer *buff, const char *name) {
   lua_assert(funcstate.prev == NULL);
   lua_assert(funcstate.f->nups == 0);
   lua_assert(lexstate.fs == NULL);
+  printf("DEBUG: luaY_parser end, returning proto %p\n", funcstate.f);
   return funcstate.f;
 }
 
@@ -935,6 +937,7 @@ static void check_conflict(LexState *ls, struct LHS_assign *lh, expdesc *v) {
 
 static void assignment(LexState *ls, struct LHS_assign *lh, int nvars) {
   expdesc e;
+  int n_new = 0;
   check_condition(ls, VLOCAL <= lh->v.k && lh->v.k <= VINDEXED, "syntax error");
   check_readonly(ls, &lh->v);
   if (testnext(ls, ',')) { /* assignment -> `,' primaryexp assignment */
@@ -948,7 +951,6 @@ static void assignment(LexState *ls, struct LHS_assign *lh, int nvars) {
     assignment(ls, &nv, nvars + 1);
   } else { /* assignment -> `=' explist1 */
     int nexps;
-    int n_new = 0;
     struct LHS_assign *p;
 
     /* [ANTIGRAVITY] Count new locals (implicit declaration) */
@@ -1010,12 +1012,12 @@ static void assignment(LexState *ls, struct LHS_assign *lh, int nvars) {
         adjustlocalvars(ls, n_new);
       return; /* avoid default */
     }
-    if (n_new > 0)
-      adjustlocalvars(ls, n_new);
   }
   /* assignment -> `=' explist1 */
   init_exp(&e, VNONRELOC, ls->fs->freereg - 1); /* default assignment */
   luaK_storevar(ls->fs, &lh->v, &e);
+  if (n_new > 0)
+    adjustlocalvars(ls, n_new);
 }
 
 static void conststat(LexState *ls) {

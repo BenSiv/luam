@@ -1,14 +1,14 @@
 -- load tftpclnt.lua
-local tftp = require("socket.tftp")
+tftp = require("socket.tftp")
 
 -- needs tftp server running on localhost, with root pointing to
 -- a directory with index.html in it
 
 function readfile(file)
-    local f = io.open(file, "r")
+   f = io.open(file, "r")
     if not f then return nil end
-    local a = f:read("*a")
-    f:close()
+   a = f.read(f, "*a")
+    f.close(f)
     return a
 end
 

@@ -1,10 +1,10 @@
 --
 -- Public domain
 --
-local socket = require("socket")
-local ssl    = require("ssl")
+socket = require("socket")
+ssl    = require("ssl")
 
-local params = {
+params = {
    mode = "client",
    protocol = "tlsv1_2",
    key = "../certs/serverBkey.pem",
@@ -15,15 +15,15 @@ local params = {
    options = "all",
 }
 
-local ctx = assert(ssl.newcontext(params))
+ctx = assert(ssl.newcontext(params))
 
-local peer = socket.tcp()
-peer:connect("127.0.0.1", 8888)
+peer = socket.tcp()
+peer.connect(peer, "127.0.0.1", 8888)
 
 peer = assert( ssl.wrap(peer, ctx) )
-assert(peer:dohandshake())
+assert(peer.dohandshake(peer))
 
-local succ, errs = peer:getpeerverification()
+succ, errs = peer.getpeerverification(peer)
 print(succ, errs)
 for i, err in pairs(errs) do
   for j, msg in ipairs(err) do
@@ -31,5 +31,5 @@ for i, err in pairs(errs) do
   end
 end
 
-print(peer:receive("*l"))
-peer:close()
+print(peer.receive(peer, "*l"))
+peer.close(peer)

@@ -1,22 +1,22 @@
-local socket = require("socket")
-local ltn12 = require("ltn12")
-local mime = require("mime")
+socket = require("socket")
+ltn12 = require("ltn12")
+mime = require("mime")
 
-local unpack = unpack or table.unpack
+unpack = unpack or table.unpack
 
 dofile("testsupport.lua")
 
-local qptest = "qptest.bin"
-local eqptest = "qptest.bin2"
-local dqptest = "qptest.bin3"
+qptest = "qptest.bin"
+eqptest = "qptest.bin2"
+dqptest = "qptest.bin3"
 
-local b64test = "b64test.bin"
-local eb64test = "b64test.bin2"
-local db64test = "b64test.bin3"
+b64test = "b64test.bin"
+eb64test = "b64test.bin2"
+db64test = "b64test.bin3"
 
 
 -- from Machado de Assis, "A M�o e a Rosa"
-local mao = [[
+mao = [[
     Cursavam estes dois mo�os a academia de S. Paulo, estando
     Lu�s Alves no quarto ano e Est�v�o no terceiro.
     Conheceram-se na academia, e ficaram amigos �ntimos, tanto
@@ -38,14 +38,14 @@ local mao = [[
     assim, nem tudo o que dava exprimia grande confian�a.
 ]]
 
-local function random(handle, io_err)
+function random(handle, io_err)
     if handle then
         return function()
             if not handle then error("source is empty!", 2) end
-            local len = math.random(0, 1024)
-            local chunk = handle:read(len)
+           len = math.random(0, 1024)
+           chunk = handle.read(handle, len)
             if not chunk then
-                handle:close()
+                handle.close(handle)
                 handle = nil
             end
             return chunk
@@ -54,14 +54,14 @@ local function random(handle, io_err)
 end
 
 
-local function named(f)
+function named(f)
     return f
 end
 
-local what = nil
-local function transform(input, output, filter)
-    local source = random(io.open(input, "rb"))
-    local sink = ltn12.sink.file(io.open(output, "wb"))
+what = nil
+function transform(input, output, filter)
+   source = random(io.open(input, "rb"))
+   sink = ltn12.sink.file(io.open(output, "wb"))
     if what then
         sink = ltn12.sink.chain(filter, sink)
     else
@@ -71,42 +71,42 @@ local function transform(input, output, filter)
     ltn12.pump.all(source, sink)
 end
 
-local function encode_qptest(mode)
-    local encode = mime.encode("quoted-printable", mode)
-    local split = mime.wrap("quoted-printable")
-    local chain = ltn12.filter.chain(encode, split)
+function encode_qptest(mode)
+   encode = mime.encode("quoted-printable", mode)
+   split = mime.wrap("quoted-printable")
+   chain = ltn12.filter.chain(encode, split)
     transform(qptest, eqptest, chain)
 end
 
-local function compare_qptest()
+function compare_qptest()
 io.write("testing qp encoding and wrap: ")
     compare(qptest, dqptest)
 end
 
-local function decode_qptest()
-    local decode = mime.decode("quoted-printable")
+function decode_qptest()
+   decode = mime.decode("quoted-printable")
     transform(eqptest, dqptest, decode)
 end
 
-local function create_qptest()
-    local f, err = io.open(qptest, "wb")
+function create_qptest()
+   f, err = io.open(qptest, "wb")
     if not f then fail(err) end
     -- try all characters
     for i = 0, 255 do
-        f:write(string.char(i))
+        f.write(f, string.char(i))
     end
     -- try all characters and different line sizes
     for i = 0, 255 do
         for j = 0, i do
-            f:write(string.char(i))
+            f.write(f, string.char(i))
         end
-        f:write("\r\n")
+        f.write(f, "\r\n")
     end
     -- test latin text
-    f:write(mao)
+    f.write(f, mao)
     -- force soft line breaks and treatment of space/tab in end of line
-    local tab
-    f:write(string.gsub(mao, "(%s)", function(c)
+   tab = nil
+    f.write(f, string.gsub(mao, "(%s)", function(c)
         if tab then
             tab = nil
             return "\t"
@@ -116,96 +116,96 @@ local function create_qptest()
         end
     end))
     -- test crazy end of line conventions
-    local eol = { "\r\n", "\r", "\n", "\n\r" }
-    local which = 0
-    f:write(string.gsub(mao, "(\n)", function(c)
+   eol = { "\r\n", "\r", "\n", "\n\r" }
+   which = 0
+    f.write(f, string.gsub(mao, "(\n)", function(c)
         which = which + 1
         if which > 4 then which = 1 end
         return eol[which]
     end))
     for i = 1, 4 do
         for j = 1, 4 do
-            f:write(eol[i])
-            f:write(eol[j])
+            f.write(f, eol[i])
+            f.write(f, eol[j])
         end
     end
     -- try long spaced and tabbed lines
-    f:write("\r\n")
+    f.write(f, "\r\n")
     for i = 0, 255 do
-        f:write(string.char(9))
+        f.write(f, string.char(9))
     end
-    f:write("\r\n")
+    f.write(f, "\r\n")
     for i = 0, 255 do
-        f:write(' ')
+        f.write(f, ' ')
     end
-    f:write("\r\n")
+    f.write(f, "\r\n")
     for i = 0, 255 do
-        f:write(string.char(9),' ')
+        f.write(f, string.char(9),' ')
     end
-    f:write("\r\n")
+    f.write(f, "\r\n")
     for i = 0, 255 do
-        f:write(' ',string.char(32))
+        f.write(f, ' ',string.char(32))
     end
-    f:write("\r\n")
+    f.write(f, "\r\n")
 
-    f:close()
+    f.close(f)
 end
 
-local function cleanup_qptest()
+function cleanup_qptest()
     os.remove(qptest)
     os.remove(eqptest)
     os.remove(dqptest)
 end
 
 -- create test file
-local function create_b64test()
-    local f = assert(io.open(b64test, "wb"))
-    local t = {}
+function create_b64test()
+   f = assert(io.open(b64test, "wb"))
+   t = {}
     for j = 1, 100 do
         for i = 1, 100 do
             t[i] = math.random(0, 255)
         end
-        f:write(string.char(unpack(t)))
+        f.write(f, string.char(unpack(t)))
     end
-    f:close()
+    f.close(f)
 end
 
-local function encode_b64test()
-    local e1 = mime.encode("base64")
-    local e2 = mime.encode("base64")
-    local e3 = mime.encode("base64")
-    local e4 = mime.encode("base64")
-    local sp4 = mime.wrap()
-    local sp3 = mime.wrap(59)
-    local sp2 = mime.wrap("base64", 30)
-    local sp1 = mime.wrap(27)
-    local chain = ltn12.filter.chain(e1, sp1, e2, sp2, e3, sp3, e4, sp4)
+function encode_b64test()
+   e1 = mime.encode("base64")
+   e2 = mime.encode("base64")
+   e3 = mime.encode("base64")
+   e4 = mime.encode("base64")
+   sp4 = mime.wrap()
+   sp3 = mime.wrap(59)
+   sp2 = mime.wrap("base64", 30)
+   sp1 = mime.wrap(27)
+   chain = ltn12.filter.chain(e1, sp1, e2, sp2, e3, sp3, e4, sp4)
     transform(b64test, eb64test, chain)
 end
 
-local function decode_b64test()
-    local d1 = named(mime.decode("base64"), "d1")
-    local d2 = named(mime.decode("base64"), "d2")
-    local d3 = named(mime.decode("base64"), "d3")
-    local d4 = named(mime.decode("base64"), "d4")
-    local chain = named(ltn12.filter.chain(d1, d2, d3, d4), "chain")
+function decode_b64test()
+   d1 = named(mime.decode("base64"), "d1")
+   d2 = named(mime.decode("base64"), "d2")
+   d3 = named(mime.decode("base64"), "d3")
+   d4 = named(mime.decode("base64"), "d4")
+   chain = named(ltn12.filter.chain(d1, d2, d3, d4), "chain")
     transform(eb64test, db64test, chain)
 end
 
-local function cleanup_b64test()
+function cleanup_b64test()
     os.remove(b64test)
     os.remove(eb64test)
     os.remove(db64test)
 end
 
-local function compare_b64test()
+function compare_b64test()
 io.write("testing b64 chained encode: ")
     compare(b64test, db64test)
 end
 
-local function identity_test()
+function identity_test()
 io.write("testing identity: ")
-    local chain = named(ltn12.filter.chain(
+   chain = named(ltn12.filter.chain(
         named(mime.encode("quoted-printable"), "1 eq"),
         named(mime.encode("base64"), "2 eb"),
         named(mime.decode("base64"), "3 db"),
@@ -217,25 +217,25 @@ io.write("testing identity: ")
 end
 
 
-local function padcheck(original, encoded)
-    local e = (mime.b64(original))
-    local d = (mime.unb64(encoded))
-    if e ~= encoded then fail("encoding failed") end
-    if d ~= original then fail("decoding failed") end
+function padcheck(original, encoded)
+   e = (mime.b64(original))
+   d = (mime.unb64(encoded))
+    if e != encoded then fail("encoding failed") end
+    if d != original then fail("decoding failed") end
 end
 
-local function chunkcheck(original, encoded)
-    local len = string.len(original)
+function chunkcheck(original, encoded)
+   len = string.len(original)
     for i = 0, len do
-        local a = string.sub(original, 1, i)
-        local b = string.sub(original, i+1)
-        local e, r = mime.b64(a, b)
-        local f = (mime.b64(r))
-        if (e .. (f or "") ~= encoded) then fail(e .. (f or "")) end
+       a = string.sub(original, 1, i)
+       b = string.sub(original, i+1)
+       e, r = mime.b64(a, b)
+       f = (mime.b64(r))
+        if (e .. (f or "") != encoded) then fail(e .. (f or "")) end
     end
 end
 
-local function padding_b64test()
+function padding_b64test()
 io.write("testing b64 padding: ")
     padcheck("a", "YQ==")
     padcheck("ab", "YWI=")
@@ -253,9 +253,9 @@ io.write("testing b64 padding: ")
     print("ok")
 end
 
-local function test_b64lowlevel()
+function test_b64lowlevel()
 io.write("testing b64 low-level: ")
-    local a, b
+   a, b = nil
     a, b = mime.b64("", "")
     assert(a == "" and b == "")
     a, b = mime.b64(nil, "blablabla")
@@ -268,14 +268,14 @@ io.write("testing b64 low-level: ")
     assert(a == nil and b == nil)
     a, b = mime.unb64("", nil)
     assert(a == nil and b == nil)
-    local binary=string.char(0x00,0x44,0x1D,0x14,0x0F,0xF4,0xDA,0x11,0xA9,0x78,0x00,0x14,0x38,0x50,0x60,0xCE)
-    local encoded = mime.b64(binary)
-    local decoded=mime.unb64(encoded)
+   binary=string.char(0x00,0x44,0x1D,0x14,0x0F,0xF4,0xDA,0x11,0xA9,0x78,0x00,0x14,0x38,0x50,0x60,0xCE)
+   encoded = mime.b64(binary)
+   decoded=mime.unb64(encoded)
     assert(binary == decoded)
     print("ok")
 end
 
-local t = socket.gettime()
+t = socket.gettime()
 
 create_b64test()
 identity_test()

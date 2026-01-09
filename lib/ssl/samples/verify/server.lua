@@ -1,10 +1,10 @@
 --
 -- Public domain
 --
-local socket = require("socket")
-local ssl    = require("ssl")
+socket = require("socket")
+ssl    = require("ssl")
 
-local params = {
+params = {
    mode = "server",
    protocol = "any",
    key = "../certs/serverAkey.pem",
@@ -16,19 +16,19 @@ local params = {
 }
 
 
-local ctx = assert(ssl.newcontext(params))
+ctx = assert(ssl.newcontext(params))
 
-local server = socket.tcp()
-server:setoption('reuseaddr', true)
-assert( server:bind("127.0.0.1", 8888) )
-server:listen()
+server = socket.tcp()
+server.setoption(server, 'reuseaddr', true)
+assert( server.bind(server, "127.0.0.1", 8888) )
+server.listen(server)
 
-local peer = server:accept()
+peer = server.accept(server)
 
 peer = assert( ssl.wrap(peer, ctx) )
-assert( peer:dohandshake() )
+assert( peer.dohandshake(peer) )
 
-local succ, errs = peer:getpeerverification()
+succ, errs = peer.getpeerverification(peer)
 print(succ, errs)
 for i, err in pairs(errs) do
   for j, msg in ipairs(err) do
@@ -36,5 +36,5 @@ for i, err in pairs(errs) do
   end
 end
 
-peer:send("oneshot test\n")
-peer:close()
+peer.send(peer, "oneshot test\n")
+peer.close(peer)

@@ -9,8 +9,8 @@ temp_files = {}
 function write_temp_file(content)
     fname = os.tmpname()
     f = io.open(fname, "w")
-    f:write(content)
-    f:close()
+    f.write(f, content)
+    f.close(f)
     table.insert(temp_files, fname)
     return fname
 end
@@ -27,7 +27,7 @@ function array_to_file(arr)
         for j = 1, #arr do
             v = arr[j][i]
             if type(v) == "string" then
-                v = v:gsub('"', '')  -- remove quotes if present
+                v = v.gsub(v, '"', '')  -- remove quotes if present
             end
             line[j] = v != nil and tostring(v) or "NaN"
         end
@@ -37,8 +37,8 @@ function array_to_file(arr)
     -- write to temporary file
     tmpname = os.tmpname()
     f = assert(io.open(tmpname, "w"))
-    f:write(table.concat(lines, "\n"))
-    f:close()
+    f.write(f, table.concat(lines, "\n"))
+    f.close(f)
     return tmpname
 end
 

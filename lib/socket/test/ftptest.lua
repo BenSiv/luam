@@ -1,7 +1,7 @@
-local socket = require("socket")
-local ftp = require("socket.ftp")
-local url = require("socket.url")
-local ltn12 = require("ltn12")
+socket = require("socket")
+ftp = require("socket.ftp")
+url = require("socket.url")
+ltn12 = require("ltn12")
 
 -- use dscl to create user "luasocket" with password "password"
 -- with home in /Users/diego/luasocket/test/ftp
@@ -21,26 +21,26 @@ local ltn12 = require("ltn12")
 
 dofile("testsupport.lua")
 
-local host = host or "localhost"
-local port, index_file, index, back, err, ret
+host = host or "localhost"
+port, index_file, index, back, err, ret = nil
 
-local t = socket.gettime()
+t = socket.gettime()
 
 index_file = "index.html"
 
 -- a function that returns a directory listing
-local function nlst(u)
-    local t = {}
-    local p = url.parse(u)
+function nlst(u)
+   t = {}
+   p = url.parse(u)
     p.command = "nlst"
     p.sink = ltn12.sink.table(t)
-    local r, e = ftp.get(p)
+   r, e = ftp.get(p)
     return r and table.concat(t), e
 end
 
 -- function that removes a remote file
-local function dele(u)
-    local p = url.parse(u)
+function dele(u)
+   p = url.parse(u)
     p.command = "dele"
     p.argument = string.gsub(p.path, "^/", "")
     if p.argumet == "" then p.argument = nil end
@@ -92,7 +92,7 @@ assert(not err and back == index, err)
 print("ok")
 
 io.write("testing parameter overriding: ")
-local back = {}
+back = {}
 ret, err = ftp.get{
     url = "//stupid:mistake@" .. host .. "/index.html",
     user = "luasocket",

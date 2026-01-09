@@ -3,7 +3,7 @@
 -- LuaSocket sample files
 -- Author: Diego Nehab
 -----------------------------------------------------------------------------
-local socket = require("socket")
+socket = require("socket")
 host = host or "localhost"
 port = port or 7
 if arg then
@@ -12,12 +12,12 @@ if arg then
 end
 host = socket.dns.toip(host)
 udp = assert(socket.udp())
-assert(udp:setpeername(host, port))
+assert(udp.setpeername(udp, host, port))
 print("Using remote host '" ..host.. "' and port " .. port .. "...")
 while 1 do
 	line = io.read()
 	if not line or line == "" then os.exit() end
-	assert(udp:send(line))
-	dgram = assert(udp:receive())
+	assert(udp.send(udp, line))
+	dgram = assert(udp.receive(udp))
 	print(dgram)
 end

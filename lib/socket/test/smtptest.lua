@@ -1,73 +1,73 @@
-local sent = {}
+sent = {}
 
-local from = "diego@localhost"
-local server = "localhost"
-local rcpt = "luasocket@localhost"
+from = "diego@localhost"
+server = "localhost"
+rcpt = "luasocket@localhost"
 
-local files = {
+files = {
     "/var/spool/mail/luasocket",
     "/var/spool/mail/luasock1",
     "/var/spool/mail/luasock2",
     "/var/spool/mail/luasock3",
 }
 
-local t = socket.time()
-local err
+t = socket.time()
+err = nil
 
 dofile("mbox.lua")
-local parse = mbox.parse
+parse = mbox.parse
 dofile("testsupport.lua")
 
-local total = function()
-    local t = 0
+total = function()
+   t = 0
     for i = 1, #sent do
         t = t + sent[i].count
     end
     return t
 end
 
-local similar = function(s1, s2)
+similar = function(s1, s2)
     return
     string.lower(string.gsub(s1, "%s", "")) ==
     string.lower(string.gsub(s2, "%s", ""))
 end
 
-local fail = function(s)
+fail = function(s)
     s = s or "failed!"
     print(s)
     os.exit()
 end
 
-local readfile = function(name)
-    local f = io.open(name, "r")
+readfile = function(name)
+   f = io.open(name, "r")
     if not f then
         fail("unable to open file!")
         return nil
     end
-    local s = f:read("*a")
-    f:close()
+   s = f.read(f, "*a")
+    f.close(f)
     return s
 end
 
-local empty = function()
+empty = function()
     for i,v in ipairs(files) do
-        local f = io.open(v, "w")
+       f = io.open(v, "w")
         if not f then
             fail("unable to open file!")
         end
-        f:close()
+        f.close(f)
     end
 end
 
-local get = function()
-    local s = ""
+get = function()
+   s = ""
     for i,v in ipairs(files) do
         s = s .. "\n" .. readfile(v)
     end
     return s
 end
 
-local check_headers = function(sent, got)
+check_headers = function(sent, got)
     sent = sent or {}
     got = got or {}
     for i,v in pairs(sent) do
@@ -75,16 +75,16 @@ local check_headers = function(sent, got)
     end
 end
 
-local check_body = function(sent, got)
+check_body = function(sent, got)
     sent = sent or ""
     got = got or ""
     if not similar(sent, got) then fail("bodies differ!") end
 end
 
-local check = function(sent, m)
+check = function(sent, m)
     io.write("checking ", m.headers.title, ": ")
     for i = 1, #sent do
-        local s = sent[i]
+       s = sent[i]
         if s.title == m.headers.title and s.count > 0 then
             check_headers(s.headers, m.headers)
             check_body(s.body, m.body)
@@ -96,7 +96,7 @@ local check = function(sent, m)
     fail("not found")
 end
 
-local insert = function(sent, message)
+insert = function(sent, message)
     if type(message.rcpt) == "table" then
         message.count = #message.rcpt
     else message.count = 1 end
@@ -105,16 +105,16 @@ local insert = function(sent, message)
     table.insert(sent, message)
 end
 
-local mark = function()
-    local time = socket.time()
+mark = function()
+   time = socket.time()
     return { time = time }
 end
 
-local wait = function(sentinel, n)
-    local to
+wait = function(sentinel, n)
+   to = nil
     io.write("waiting for ", n, " messages: ")
     while 1 do
-        local mbox = parse(get())
+       mbox = parse(get())
         if n == #mbox then break end
         if socket.time() - sentinel.time > 50 then
             to = 1
@@ -122,13 +122,13 @@ local wait = function(sentinel, n)
         end
         socket.sleep(1)
         io.write(".")
-        io.stdout:flush()
+        io.stdout.flush(stdout)
     end
     if to then fail("timeout")
     else print("ok") end
 end
 
-local stuffed_body = [[
+stuffed_body = [[
 This message body needs to be
 stuffed because it has a dot
 .
@@ -208,17 +208,17 @@ insert(sent, {
 })
 
 io.write("testing host not found: ")
-local c, e = socket.connect("wrong.host", 25)
-local ret, err = socket.smtp.mail{
+c, e = socket.connect("wrong.host", 25)
+ret, err = socket.smtp.mail{
     from = from,
     rcpt = rcpt,
     server = "wrong.host"
 }
-if ret or e ~= err then fail("wrong error message")
+if ret or e != err then fail("wrong error message")
 else print("ok") end
 
 io.write("testing invalid from: ")
-local ret, err = socket.smtp.mail{
+ret, err = socket.smtp.mail{
     from = ' " " (( _ * ',
     rcpt = rcpt,
 }
@@ -226,7 +226,7 @@ if ret or not err then fail("wrong error message")
 else print(err) end
 
 io.write("testing no rcpt: ")
-local ret, err = socket.smtp.mail{
+ret, err = socket.smtp.mail{
     from = from,
 }
 if ret or not err then fail("wrong error message")
@@ -241,14 +241,14 @@ for i = 1, #sent do
     ret, err = socket.smtp.mail(sent[i])
     if not ret then fail(err) end
     io.write("+")
-    io.stdout:flush()
+    io.stdout.flush(stdout)
 end
 print("ok")
 
 wait(mark(), total())
 
 io.write("parsing mailbox: ")
-local mbox = parse(get())
+mbox = parse(get())
 print(#mbox .. " messages found!")
 
 for i = 1, #mbox do

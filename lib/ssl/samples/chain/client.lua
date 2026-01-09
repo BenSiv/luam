@@ -1,11 +1,11 @@
 --
 -- Public domain
 --
-local socket = require("socket")
-local ssl    = require("ssl")
-local util   = require("util") 
+socket = require("socket")
+ssl    = require("ssl")
+util   = require("util") 
 
-local params = {
+params = {
    mode = "client",
    protocol = "tlsv1_2",
    key = "../certs/clientAkey.pem",
@@ -15,22 +15,22 @@ local params = {
    options = "all",
 }
 
-local conn = socket.tcp()
-conn:connect("127.0.0.1", 8888)
+conn = socket.tcp()
+conn.connect(conn, "127.0.0.1", 8888)
 
 conn = assert( ssl.wrap(conn, params) )
-assert(conn:dohandshake())
+assert(conn.dohandshake(conn))
 
-util.show( conn:getpeercertificate() )
+util.show( conn.getpeercertificate(conn) )
 
 print("----------------------------------------------------------------------")
 
-for k, cert in ipairs( conn:getpeerchain() ) do
+for k, cert in ipairs( conn.getpeerchain(conn) ) do
   util.show(cert)
 end
 
-local cert = conn:getpeercertificate()
+cert = conn.getpeercertificate(conn)
 print( cert )
-print( cert:pem() )
+print( cert.pem(cert) )
 
-conn:close()
+conn.close(conn)

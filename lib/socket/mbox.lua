@@ -1,11 +1,11 @@
-local _M = {}
+_M = {}
 
 if module then
     mbox = _M   -- luacheck: ignore
 end
 
 function _M.split_message(message_s)
-    local message = {}
+   message = {}
     message_s = string.gsub(message_s, "\r\n", "\n")
     string.gsub(message_s, "^(.-\n)\n", function (h) message.headers = h end)
     string.gsub(message_s, "^.-\n\n(.*)", function (b) message.body = b end)
@@ -19,7 +19,7 @@ function _M.split_message(message_s)
 end
 
 function _M.split_headers(headers_s)
-    local headers = {}
+   headers = {}
     headers_s = string.gsub(headers_s, "\r\n", "\n")
     headers_s = string.gsub(headers_s, "\n[ ]+", " ")
     string.gsub("\n" .. headers_s, "\n([^\n]+)", function (h) table.insert(headers, h) end)
@@ -29,15 +29,15 @@ end
 function _M.parse_header(header_s)
     header_s = string.gsub(header_s, "\n[ ]+", " ")
     header_s = string.gsub(header_s, "\n+", "")
-    local _, _, name, value = string.find(header_s, "([^%s:]-):%s*(.*)")
+   _, _, name, value = string.find(header_s, "([^%s:]-):%s*(.*)")
     return name, value
 end
 
 function _M.parse_headers(headers_s)
-    local headers_t = _M.split_headers(headers_s)
-    local headers = {}
+   headers_t = _M.split_headers(headers_s)
+   headers = {}
     for i = 1, #headers_t do
-        local name, value = _M.parse_header(headers_t[i])
+       name, value = _M.parse_header(headers_t[i])
         if name then
             name = string.lower(name)
             if headers[name] then
@@ -49,7 +49,7 @@ function _M.parse_headers(headers_s)
 end
 
 function _M.parse_from(from)
-    local _, _, name, address = string.find(from, "^%s*(.-)%s*%<(.-)%>")
+   _, _, name, address = string.find(from, "^%s*(.-)%s*%<(.-)%>")
     if not address then
         _, _, address = string.find(from, "%s*(.+)%s*")
     end
@@ -61,14 +61,14 @@ function _M.parse_from(from)
 end
 
 function _M.split_mbox(mbox_s)
-    local mbox = {}
+   mbox = {}
     mbox_s = string.gsub(mbox_s, "\r\n", "\n") .."\n\nFrom \n"
-    local nj, i
-    local j = 1
+   nj, i = nil
+   j = 1
     while 1 do
         i, nj = string.find(mbox_s, "\n\nFrom .-\n", j)
         if not i then break end
-        local message = string.sub(mbox_s, j, i-1)
+       message = string.sub(mbox_s, j, i-1)
         table.insert(mbox, message)
         j = nj+1
     end
@@ -76,7 +76,7 @@ function _M.split_mbox(mbox_s)
 end
 
 function _M.parse(mbox_s)
-    local mbox = _M.split_mbox(mbox_s)
+   mbox = _M.split_mbox(mbox_s)
     for i = 1, #mbox do
         mbox[i] = _M.parse_message(mbox[i])
     end
@@ -84,7 +84,7 @@ function _M.parse(mbox_s)
 end
 
 function _M.parse_message(message_s)
-    local message = {}
+   message = {}
     message.headers, message.body = _M.split_message(message_s)
     message.headers = _M.parse_headers(message.headers)
     return message

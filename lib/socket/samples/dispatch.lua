@@ -3,11 +3,11 @@
 -- LuaSocket sample files
 -- Author: Diego Nehab
 -----------------------------------------------------------------------------
-local base = _G
-local table = require("table")
-local string = require("string")
-local socket = require("socket")
-local coroutine = require("coroutine")
+base = _G
+table = require("table")
+string = require("string")
+socket = require("socket")
+coroutine = require("coroutine")
 module("dispatch")
 
 -- if too much time goes by without any activity in one of our sockets, we
@@ -21,7 +21,7 @@ TIMEOUT = 60
 --     threaded
 -- The user can choose whatever one is needed
 -----------------------------------------------------------------------------
-local handlert = {}
+handlert = {}
 
 -- default handler is coroutine
 function newhandler(mode)
@@ -29,7 +29,7 @@ function newhandler(mode)
     return handlert[mode]()
 end
 
-local function seqstart(self, func)
+function seqstart(self, func)
     return func()
 end
 
@@ -49,9 +49,9 @@ end
 -- make sure you don't require any module that uses socket.protect before
 -- loading our hack
 if string.sub(base._VERSION, -3) == "5.1" then
-  local function _protect(co, status, ...)
+ function _protect(co, status, ...)
     if not status then
-      local msg = ...
+     msg = ...
       if base.type(msg) == 'table' then
         return nil, msg[1]
       else
@@ -67,7 +67,7 @@ if string.sub(base._VERSION, -3) == "5.1" then
 
   function socket.protect(f)
     return function(...)
-      local co = coroutine.create(f)
+     co = coroutine.create(f)
       return _protect(co, coroutine.resume(co, ...))
     end
   end
@@ -76,9 +76,9 @@ end
 -----------------------------------------------------------------------------
 -- Simple set data structure. O(1) everything.
 -----------------------------------------------------------------------------
-local function newset()
-    local reverse = {}
-    local set = {}
+function newset()
+   reverse = {}
+   set = {}
     return base.setmetatable(set, {__index = {
         insert = function(set, value)
             if not reverse[value] then
@@ -87,11 +87,11 @@ local function newset()
             end
         end,
         remove = function(set, value)
-            local index = reverse[value]
+           index = reverse[value]
             if index then
                 reverse[value] = nil
-                local top = table.remove(set)
-                if top ~= value then
+               top = table.remove(set)
+                if top != value then
                     reverse[top] = index
                     set[index] = top
                 end
@@ -103,33 +103,33 @@ end
 -----------------------------------------------------------------------------
 -- socket.tcp() wrapper for the coroutine dispatcher
 -----------------------------------------------------------------------------
-local function cowrap(dispatcher, tcp, error)
+function cowrap(dispatcher, tcp, error)
     if not tcp then return nil, error end
     -- put it in non-blocking mode right away
-    tcp:settimeout(0)
+    tcp.settimeout(tcp, 0)
     -- metatable for wrap produces new methods on demand for those that we
     -- don't override explicitly.
-    local metat = { __index = function(table, key)
+   metat = { __index = function(table, key)
         table[key] = function(...)
             return tcp[key](tcp,select(2,...))
         end
         return table[key]
     end}
     -- does our user want to do his own non-blocking I/O?
-    local zero = false
+   zero = false
     -- create a wrap object that will behave just like a real socket object
-    local wrap = {  }
+   wrap = {  }
     -- we ignore settimeout to preserve our 0 timeout, but record whether
     -- the user wants to do his own non-blocking I/O
-    function wrap:settimeout(value, mode)
+    function wrap.settimeout(wrap, value, mode)
         if value == 0 then zero = true
         else zero = false end
         return 1
     end
     -- send in non-blocking mode and yield on timeout
-    function wrap:send(data, first, last)
+    function wrap.send(wrap, data, first, last)
         first = (first or 1) - 1
-        local result, error
+       result, error = nil
         while true do
             -- return control to dispatcher and tell it we want to send
             -- if upon return the dispatcher tells us we timed out,
@@ -138,17 +138,17 @@ local function cowrap(dispatcher, tcp, error)
                 return nil, "timeout"
             end
             -- try sending
-            result, error, first = tcp:send(data, first+1, last)
+            result, error, first = tcp.send(tcp, data, first+1, last)
             -- if we are done, or there was an unexpected error,
             -- break away from loop
-            if error ~= "timeout" then return result, error, first end
+            if error != "timeout" then return result, error, first end
         end
     end
     -- receive in non-blocking mode and yield on timeout
     -- or simply return partial read, if user requested timeout = 0
-    function wrap:receive(pattern, partial)
-        local error = "timeout"
-        local value
+    function wrap.receive(wrap, pattern, partial)
+       error = "timeout"
+       value = nil
         while true do
             -- return control to dispatcher and tell it we want to receive
             -- if upon return the dispatcher tells us we timed out,
@@ -157,18 +157,18 @@ local function cowrap(dispatcher, tcp, error)
                 return nil, "timeout"
             end
             -- try receiving
-            value, error, partial = tcp:receive(pattern, partial)
+            value, error, partial = tcp.receive(tcp, pattern, partial)
             -- if we are done, or there was an unexpected error,
             -- break away from loop. also, if the user requested
             -- zero timeout, return all we got
-            if (error ~= "timeout") or zero then
+            if (error != "timeout") or zero then
                 return value, error, partial
             end
         end
     end
     -- connect in non-blocking mode and yield on timeout
-    function wrap:connect(host, port)
-        local result, error = tcp:connect(host, port)
+    function wrap.connect(wrap, host, port)
+       result, error = tcp.connect(tcp, host, port)
         if error == "timeout" then
             -- return control to dispatcher. we will be writable when
             -- connection succeeds.
@@ -178,13 +178,13 @@ local function cowrap(dispatcher, tcp, error)
                 return nil, "timeout"
             end
             -- when we come back, check if connection was successful
-            result, error = tcp:connect(host, port)
+            result, error = tcp.connect(tcp, host, port)
             if result or error == "already connected" then return 1
             else return nil, "non-blocking connect failed" end
         else return result, error end
     end
     -- accept in non-blocking mode and yield on timeout
-    function wrap:accept()
+    function wrap.accept(wrap)
         while 1 do
             -- return control to dispatcher. we will be readable when a
             -- connection arrives.
@@ -193,20 +193,20 @@ local function cowrap(dispatcher, tcp, error)
             if coroutine.yield(dispatcher.receiving, tcp) == "timeout" then
                 return nil, "timeout"
             end
-            local client, error = tcp:accept()
-            if error ~= "timeout" then
+           client, error = tcp.accept(tcp)
+            if error != "timeout" then
                 return cowrap(dispatcher, client, error)
             end
         end
     end
     -- remove cortn from context
-    function wrap:close()
+    function wrap.close(wrap)
         dispatcher.stamp[tcp] = nil
-        dispatcher.sending.set:remove(tcp)
+        dispatcher.sending.set.remove(set, tcp)
         dispatcher.sending.cortn[tcp] = nil
-        dispatcher.receiving.set:remove(tcp)
+        dispatcher.receiving.set.remove(set, tcp)
         dispatcher.receiving.cortn[tcp] = nil
-        return tcp:close()
+        return tcp.close(tcp)
     end
     return base.setmetatable(wrap, metat)
 end
@@ -215,12 +215,12 @@ end
 -----------------------------------------------------------------------------
 -- Our coroutine dispatcher
 -----------------------------------------------------------------------------
-local cometat = { __index = {} }
+cometat = { __index = {} }
 
 function schedule(cortn, status, operation, tcp)
     if status then
         if cortn and operation then
-            operation.set:insert(tcp)
+            operation.set.insert(set, tcp)
             operation.cortn[tcp] = cortn
             operation.stamp[tcp] = socket.gettime()
         end
@@ -229,11 +229,11 @@ end
 
 function kick(operation, tcp)
     operation.cortn[tcp] = nil
-    operation.set:remove(tcp)
+    operation.set.remove(set, tcp)
 end
 
 function wakeup(operation, tcp)
-    local cortn = operation.cortn[tcp]
+   cortn = operation.cortn[tcp]
     -- if cortn is still valid, wake it up
     if cortn then
         kick(operation, tcp)
@@ -245,7 +245,7 @@ function wakeup(operation, tcp)
 end
 
 function abort(operation, tcp)
-    local cortn = operation.cortn[tcp]
+   cortn = operation.cortn[tcp]
     if cortn then
         kick(operation, tcp)
         coroutine.resume(cortn, "timeout")
@@ -253,9 +253,9 @@ function abort(operation, tcp)
 end
 
 -- step through all active cortns
-function cometat.__index:step()
+function cometat.__index.step(__index)
     -- check which sockets are interesting and act on them
-    local readable, writable = socket.select(self.receiving.set,
+   readable, writable = socket.select(self.receiving.set,
         self.sending.set, 1)
     -- for all readable connections, resume their cortns and reschedule
     -- when they yield back to us
@@ -268,7 +268,7 @@ function cometat.__index:step()
     end
     -- politely ask replacement I/O functions in idle cortns to
     -- return reporting a timeout
-    local now = socket.gettime()
+   now = socket.gettime()
     for tcp, stamp in base.pairs(self.stamp) do
         if tcp.class == "tcp{client}" and now - stamp > TIMEOUT then
             abort(self.sending, tcp)
@@ -277,14 +277,14 @@ function cometat.__index:step()
     end
 end
 
-function cometat.__index:start(func)
-    local cortn = coroutine.create(func)
+function cometat.__index.start(__index, func)
+   cortn = coroutine.create(func)
     schedule(cortn, coroutine.resume(cortn))
 end
 
 function handlert.coroutine()
-    local stamp = {}
-    local dispatcher = {
+   stamp = {}
+   dispatcher = {
         stamp = stamp,
         sending  = {
             name = "sending",

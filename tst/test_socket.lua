@@ -52,7 +52,11 @@ if ok_ltn12 then
     sink = ltn12.sink.table(t)
     source = ltn12.source.string("Hello World")
     ltn12.pump.all(source, sink)
-    assert(table.concat(t) == "Hello World")
+    content = table.concat(t)
+    if content != "Hello World" then
+        print("DEBUG: ltn12 content mismatch: '" .. tostring(content) .. "'")
+    end
+    assert(content == "Hello World")
     print("LTN12 test passed")
 else
     print("Failed to load ltn12: " .. tostring(ltn12))

@@ -3,24 +3,24 @@
 -- needs ScriptAlias from /home/c/diego/tec/luasocket/test/cgi
 -- to "/luasocket-test-cgi" and "/luasocket-test-cgi/"
 -- needs "AllowOverride AuthConfig" on /home/c/diego/tec/luasocket/test/auth
-local socket = require("socket")
-local http = require("socket.http")
-local url = require("socket.url")
+socket = require("socket")
+http = require("socket.http")
+url = require("socket.url")
 
-local mime = require("mime")
-local ltn12 = require("ltn12")
+mime = require("mime")
+ltn12 = require("ltn12")
 
 -- override protection to make sure we see all errors
 -- socket.protect = function(s) return s end
 
 dofile("testsupport.lua")
 
-local host, proxy, request, response, index_file
-local ignore, expect, index, prefix, cgiprefix, index_crlf
+host, proxy, request, response, index_file = nil
+ignore, expect, index, prefix, cgiprefix, index_crlf = nil
 
 http.TIMEOUT = 10
 
-local t = socket.gettime()
+t = socket.gettime()
 
 --host = host or "diego.student.princeton.edu"
 --host = host or "diego.student.princeton.edu"
@@ -33,24 +33,24 @@ index_file = "index.html"
 -- read index with CRLF convention
 index = readfile(index_file)
 
-local check_result = function(response, expect, ignore)
+check_result = function(response, expect, ignore)
     for i,v in pairs(response) do
         if not ignore[i] then
-            if v ~= expect[i] then
-                local f = io.open("err", "w")
-                f:write(tostring(v), "\n\n versus\n\n", tostring(expect[i]))
-                f:close()
+            if v != expect[i] then
+               f = io.open("err", "w")
+                f.write(f, tostring(v), "\n\n versus\n\n", tostring(expect[i]))
+                f.close(f)
                 fail(i .. " differs!")
             end
         end
     end
     for i,v in pairs(expect) do
         if not ignore[i] then
-            if v ~= response[i] then
-                local f = io.open("err", "w")
-                f:write(tostring(response[i]), "\n\n versus\n\n", tostring(v))
+            if v != response[i] then
+               f = io.open("err", "w")
+                f.write(f, tostring(response[i]), "\n\n versus\n\n", tostring(v))
                 v = string.sub(type(v) == "string" and v or "", 1, 70)
-                f:close()
+                f.close(f)
                 fail(i .. " differs!")
             end
         end
@@ -58,12 +58,12 @@ local check_result = function(response, expect, ignore)
     print("ok")
 end
 
-local check_request = function(request, expect, ignore)
-    local t
+check_request = function(request, expect, ignore)
+   t = nil
     if not request.sink then request.sink, t = ltn12.sink.table() end
     request.source = request.source or
         (request.body and ltn12.source.string(request.body))
-    local response = {}
+   response = {}
     response.code, response.headers, response.status =
         socket.skip(1, http.request(request))
     if t and #t > 0 then response.body = table.concat(t) end
@@ -72,8 +72,8 @@ end
 
 ------------------------------------------------------------------------
 io.write("testing request uri correctness: ")
-local forth = cgiprefix .. "/request-uri?" .. "this+is+the+query+string"
-local back, c, h = http.request("http://" .. host .. forth)
+forth = cgiprefix .. "/request-uri?" .. "this+is+the+query+string"
+back, c, h = http.request("http://" .. host .. forth)
 if not back then fail(c) end
 back = url.parse(back)
 if similar(back.query, "this+is+the+query+string") then print("ok")
@@ -119,7 +119,7 @@ check_request(request, expect, ignore)
 
 ------------------------------------------------------------------------
 io.write("testing invalid url: ")
-local r, e = http.request{url = host .. prefix}
+r, e = http.request{url = host .. prefix}
 assert(r == nil and e == "invalid host ''")
 r, re = http.request(host .. prefix)
 assert(r == nil and e == re, tostring(r) ..", " .. tostring(re) ..
@@ -211,13 +211,13 @@ os.remove(index_file .. "-back")
 ------------------------------------------------------------------------
 io.write("testing ltn12.(sink|source).chain and mime.(encode|decode): ")
 
-local function b64length(len)
-    local a = math.ceil(len/3)*4
-    local l = math.ceil(a/76)
+function b64length(len)
+   a = math.ceil(len/3)*4
+   l = math.ceil(a/76)
     return a + l*2
 end
 
-local source = ltn12.source.chain(
+source = ltn12.source.chain(
     ltn12.source.file(io.open(index_file, "rb")),
     ltn12.filter.chain(
         mime.encode("base64"),
@@ -225,7 +225,7 @@ local source = ltn12.source.chain(
     )
 )
 
-local sink = ltn12.sink.chain(
+sink = ltn12.sink.chain(
     mime.decode("base64"),
     ltn12.sink.file(io.open(index_file .. "-back", "wb"))
 )
@@ -441,7 +441,7 @@ ignore = {
 check_request(request, expect, ignore)
 
 ------------------------------------------------------------------------
-local body
+body = nil
 io.write("testing simple request function: ")
 body = http.request("http://" .. host .. prefix .. "/index.html")
 assert(body == index)
@@ -449,7 +449,7 @@ print("ok")
 
 ------------------------------------------------------------------------
 io.write("testing HEAD method: ")
-local r, c, h = http.request {
+r, c, h = http.request {
   method = "HEAD",
   url = "http://www.tecgraf.puc-rio.br/~diego/"
 }
@@ -458,8 +458,8 @@ print("ok")
 
 ------------------------------------------------------------------------
 io.write("testing host not found: ")
-local c, e = socket.connect("example.invalid", 80)
-local r, re = http.request{url = "http://example.invalid/does/not/exist"}
+c, e = socket.connect("example.invalid", 80)
+r, re = http.request{url = "http://example.invalid/does/not/exist"}
 assert(r == nil and e == re, tostring(r) .. " " .. tostring(re))
 r, re = http.request("http://example.invalid/does/not/exist")
 assert(r == nil and e == re)

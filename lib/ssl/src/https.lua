@@ -7,18 +7,18 @@
 -- Author: Tomas Guisasola
 ---------------------------------------------------------------------------
 
-local socket = require("socket")
-local ssl    = require("ssl")
-local ltn12  = require("ltn12")
-local http   = require("socket.http")
-local url    = require("socket.url")
+socket = require("socket")
+ssl    = require("ssl")
+ltn12  = require("ltn12")
+http   = require("socket.http")
+url    = require("socket.url")
 
-local try    = socket.try
+try    = socket.try
 
 --
 -- Module
 --
-local _M = {
+_M = {
   _VERSION   = "1.3.2",
   _COPYRIGHT = "LuaSec 1.3.2 - Copyright (C) 2009-2023 PUC-Rio",
   PORT       = 443,
@@ -26,7 +26,7 @@ local _M = {
 }
 
 -- TLS configuration
-local cfg = {
+cfg = {
   protocol = "any",
   options  = {"all", "no_sslv2", "no_sslv3", "no_tlsv1"},
   verify   = "none",
@@ -37,12 +37,12 @@ local cfg = {
 --------------------------------------------------------------------
 
 -- Insert default HTTPS port.
-local function default_https_port(u)
+function default_https_port(u)
    return url.build(url.parse(u, {port = _M.PORT}))
 end
 
 -- Convert an URL to a table according to Luasocket needs.
-local function urlstring_totable(url, body, result_table)
+function urlstring_totable(url, body, result_table)
    url = {
       url = default_https_port(url),
       method = body and "POST" or "GET",
@@ -59,8 +59,8 @@ local function urlstring_totable(url, body, result_table)
 end
 
 -- Forward calls to the real connection object.
-local function reg(conn)
-   local mt = getmetatable(conn.sock).__index
+function reg(conn)
+  mt = getmetatable(conn.sock).__index
    for name, method in pairs(mt) do
       if type(method) == "function" then
          conn[name] = function (self, ...)
@@ -71,7 +71,7 @@ local function reg(conn)
 end
 
 -- Return a function which performs the SSL/TLS connection.
-local function tcp(params)
+function tcp(params)
    params = params or {}
    -- Default settings
    for k, v in pairs(cfg) do 
@@ -81,19 +81,19 @@ local function tcp(params)
    params.mode = "client"
    -- 'create' function for LuaSocket
    return function ()
-      local conn = {}
+     conn = {}
       conn.sock = try(socket.tcp())
-      local st = getmetatable(conn.sock).__index.settimeout
-      function conn:settimeout(...)
+     st = getmetatable(conn.sock).__index.settimeout
+      function conn.settimeout(conn, ...)
          return st(self.sock, _M.TIMEOUT)
       end
       -- Replace TCP's connection function
-      function conn:connect(host, port)
-         try(self.sock:connect(host, port))
+      function conn.connect(conn, host, port)
+         try(self.sock.connect(sock, host, port))
          self.sock = try(ssl.wrap(self.sock, params))
-         self.sock:sni(host)
-         self.sock:settimeout(_M.TIMEOUT)
-         try(self.sock:dohandshake())
+         self.sock.sni(sock, host)
+         self.sock.settimeout(sock, _M.TIMEOUT)
+         try(self.sock.dohandshake(sock))
          reg(self)
          return 1
       end
@@ -113,9 +113,9 @@ end
 -- @param body optional (string)
 -- @return (string if url == string or 1), code, headers, status
 --
-local function request(url, body)
-  local result_table = {}
-  local stringrequest = type(url) == "string"
+function request(url, body)
+ result_table = {}
+ stringrequest = type(url) == "string"
   if stringrequest then
     url = urlstring_totable(url, body, result_table)
   else
@@ -130,7 +130,7 @@ local function request(url, body)
   end
   -- New 'create' function to establish a secure connection
   url.create = tcp(url)
-  local res, code, headers, status = http.request(url)
+ res, code, headers, status = http.request(url)
   if res and stringrequest then
     return table.concat(result_table), code, headers, status
   end

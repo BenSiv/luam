@@ -1,7 +1,7 @@
 
 require("lsqlite3")
 
-local db = sqlite3.open_memory()
+db = sqlite3.open_memory()
 
 db:exec[[
   CREATE TABLE test (
@@ -10,18 +10,18 @@ db:exec[[
   );
 ]]
 
-local insert_stmt = assert( db:prepare("INSERT INTO test VALUES (NULL, ?)") )
+insert_stmt = assert( db.prepare(db, "INSERT INTO test VALUES (NULL, ?)") )
 
-local function insert(data)
-  insert_stmt:bind_values(data)
-  insert_stmt:step()
-  insert_stmt:reset()
+function insert(data)
+  insert_stmt.bind_values(insert_stmt, data)
+  insert_stmt.step(insert_stmt)
+  insert_stmt.reset(insert_stmt)
 end
 
-local select_stmt = assert( db:prepare("SELECT * FROM test") )
+select_stmt = assert( db.prepare(db, "SELECT * FROM test") )
 
-local function select()
-  for row in select_stmt:nrows() do
+function select()
+  for row in select_stmt.nrows(select_stmt) do
     print(row.id, row.content)
   end
 end

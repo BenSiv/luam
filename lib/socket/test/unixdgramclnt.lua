@@ -1,9 +1,9 @@
 socket = require"socket"
 socket.unix = require"socket.unix"
 c = assert(socket.unix.dgram())
-print(c:bind("/tmp/bar"))
+print(c.bind(c, "/tmp/bar"))
 while 1 do
-    local l = io.read("*l")
-    assert(c:sendto(l, "/tmp/foo"))
-	print(assert(c:receivefrom()))
+   l = io.read("*l")
+    assert(c.sendto(c, l, "/tmp/foo"))
+	print(assert(c.receivefrom(c)))
 end

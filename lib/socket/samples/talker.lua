@@ -3,7 +3,7 @@
 -- LuaSocket sample files
 -- Author: Diego Nehab
 -----------------------------------------------------------------------------
-local socket = require("socket")
+socket = require("socket")
 host = host or "localhost"
 port = port or 8080
 if arg then
@@ -14,7 +14,7 @@ print("Attempting connection to host '" ..host.. "' and port " ..port.. "...")
 c = assert(socket.connect(host, port))
 print("Connected! Please type stuff (empty line to stop):")
 l = io.read()
-while l and l ~= "" and not e do
-	assert(c:send(l .. "\n"))
+while l and l != "" and not e do
+	assert(c.send(c, l .. "\n"))
 	l = io.read()
 end
