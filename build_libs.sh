@@ -7,9 +7,9 @@ echo "Building modules..."
 mkdir -p lib
 
 # 1. LuaFileSystem (lfs)
-if [ -d "lib/luafilesystem/src" ]; then
+if [ -d "lib/filesystem/src" ]; then
     echo "Compiling lfs.so..."
-    gcc -O2 -shared -fPIC -I src/ -o lib/lfs.so lib/luafilesystem/src/lfs.c
+    gcc -O2 -shared -fPIC -I src/ -o lib/lfs.so lib/filesystem/src/lfs.c
     if [ $? -eq 0 ]; then
         echo "lfs.so built successfully."
     else
@@ -20,10 +20,10 @@ else
 fi
 
 # 2. Lua-YAML
-if [ -d "lib/lua-yaml" ]; then
+if [ -d "lib/yaml" ]; then
     echo "Compiling yaml.so..."
-    # Compile all .c files in lib/lua-yaml
-    gcc -O2 -shared -fPIC -I src/ -I lib/lua-yaml -o lib/yaml.so lib/lua-yaml/*.c
+    # Compile all .c files in lib/yaml
+    gcc -O2 -shared -fPIC -I src/ -I lib/yaml -o lib/yaml.so lib/yaml/*.c
     if [ $? -eq 0 ]; then
         echo "yaml.so built successfully."
     else
