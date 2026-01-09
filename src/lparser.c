@@ -391,7 +391,7 @@ static void close_func(LexState *ls) {
 Proto *luaY_parser(lua_State *L, ZIO *z, Mbuffer *buff, const char *name) {
   struct LexState lexstate;
   struct FuncState funcstate;
-  printf("DEBUG: luaY_parser start\n");
+
   lexstate.buff = buff;
   luaX_setinput(L, &lexstate, z, luaS_new(L, name));
   open_func(&lexstate, &funcstate);
@@ -403,7 +403,7 @@ Proto *luaY_parser(lua_State *L, ZIO *z, Mbuffer *buff, const char *name) {
   lua_assert(funcstate.prev == NULL);
   lua_assert(funcstate.f->nups == 0);
   lua_assert(lexstate.fs == NULL);
-  printf("DEBUG: luaY_parser end, returning proto %p\n", funcstate.f);
+
   return funcstate.f;
 }
 

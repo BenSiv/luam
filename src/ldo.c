@@ -329,15 +329,7 @@ int luaD_poscall(lua_State *L, StkId firstResult) {
   /* move results to correct place */
   for (i = wanted; i != 0 && firstResult < L->top; i--) {
     /* [ANTIGRAVITY] DEBUG */
-    if (ttisfunction(firstResult))
-      printf("DEBUG: luaD_poscall moving function from %p to %p\n", firstResult,
-             res);
-    else if (ttisnil(firstResult))
-      printf("DEBUG: luaD_poscall moving nil from %p to %p\n", firstResult,
-             res);
-    else
-      printf("DEBUG: luaD_poscall moving type %d from %p to %p\n",
-             ttype(firstResult), firstResult, res);
+    /* DEBUG prints removed */
     setobjs2s(L, res++, firstResult++);
   }
   while (i-- > 0)
