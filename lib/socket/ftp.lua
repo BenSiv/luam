@@ -56,7 +56,7 @@ end
 
 function metat.__index.login(__index, user, password)
     self.try(self.tp.command(tp, "user", user or _M.USER))
-   code, _ = self.try(self.tp:check{"2..", 331})
+   code, _ = self.try(self.tp.check(self.tp, {"2..", 331}))
     if code == 331 then
         self.try(self.tp.command(tp, "pass", password or _M.PASSWORD))
         self.try(self.tp.check(tp, "2.."))
@@ -142,7 +142,7 @@ function metat.__index.send(__index, sendt)
    command = sendt.command or "stor"
     -- send the transfer command and check the reply
     self.try(self.tp.command(tp, command, argument))
-   code, _ = self.try(self.tp:check{"2..", "1.."})
+   code, _ = self.try(self.tp.check(self.tp, {"2..", "1.."}))
     -- if there is not a pasvt table, then there is a server
     -- and we already sent a PORT command
     if not self.pasvt then self.portconnect(self) end
@@ -175,7 +175,7 @@ function metat.__index.receive(__index, recvt)
     if argument == "" then argument = nil end
    command = recvt.command or "retr"
     self.try(self.tp.command(tp, command, argument))
-   code,reply = self.try(self.tp:check{"1..", "2.."})
+   code,reply = self.try(self.tp.check(self.tp, {"1..", "2.."}))
     if (code >= 200) and (code <= 299) then
         recvt.sink(reply)
         return 1
@@ -203,7 +203,7 @@ function metat.__index.type(__index, type)
 end
 
 function metat.__index.greet(__index)
-   code = self.try(self.tp:check{"1..", "2.."})
+   code = self.try(self.tp.check(self.tp, {"1..", "2.."}))
     if string.find(code, "1..") then self.try(self.tp.check(tp, "2..")) end
     return 1
 end

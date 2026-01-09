@@ -51,10 +51,10 @@ end
 
 -- these are allowed within a path segment, along with alphanum
 -- other characters must be escaped
-segment_set = make_set {
+segment_set = make_set ({
     "-", "_", ".", "!", "~", "*", "'", "(",
     ")", ":", "@", "&", "=", "+", "$", ",",
-}
+})
 
 function protect_segment(s)
     return string_lib.gsub(s, "([^A-Za-z0-9_])", function (c)

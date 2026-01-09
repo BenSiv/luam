@@ -329,7 +329,7 @@ end
 -- forward declarations
 trequest, tredirect = nil
 
---[[local]] function tredirect(reqt, location)
+ function tredirect(reqt, location)
     -- the RFC says the redirect URL may be relative
    newurl = url.absolute(reqt.url, location)
     -- if switching schemes, reset port and create function
@@ -353,7 +353,7 @@ trequest, tredirect = nil
     return result, code, headers, status
 end
 
---[[local]] function trequest(reqt)
+ function trequest(reqt)
     -- we loop until we get what we want, or
     -- until we are sure there is no way to get it
    nreqt = adjustrequest(reqt)

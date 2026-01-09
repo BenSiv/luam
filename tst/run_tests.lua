@@ -12,7 +12,7 @@ tests = {
     "fib.lua", "fibfor.lua", "hello.lua", "printf.lua",
     "sieve.lua", "sort.lua", "trace-calls.lua",
     "xd.lua", "local_default.lua", "ne_test.lua",
-    "verify_multi.lua", "new_syntax.lua", "immutable.lua", "load_test.lua",
+    "verify_multi.lua", "new_syntax.lua", "no_sugar.lua", "immutable.lua", "load_test.lua",
     "hex_test.lua",
     -- Library tests that work without OOP
     -- "test_luasec.lua", -- Requires compiled ssl
@@ -38,7 +38,7 @@ passed = 0
 print("Running tests...")
 
 for _, test in ipairs(tests) do
-    cmd = "LUA_PATH='lib/?.lua;;' LUA_CPATH='lib/?.so;;' bld/luam tst/" .. test
+    cmd = "LUA_PATH='lib/?.lua;;' LUA_CPATH='lib/?.so;lib/socket/src/?.so;;' bld/luam tst/" .. test
     -- Some tests might need input or args, skipping complex ones for now or adding dummy input
     if test == "echo.lua" then cmd = cmd .. " arg1 arg2" end
     -- For tests that read stdin, we might pipe empty string or echo

@@ -273,7 +273,7 @@ function adjustrequest(reqt)
     -- explicit components override url
     for i,v in base.pairs(reqt) do nreqt[i] = v end
     -- default to scheme particulars
-   schemedefs, host, port, method = nil
+   schemedefs, host, port, method 
         = SCHEMES[nreqt.scheme], nreqt.host, nreqt.port, nreqt.method
     if not nreqt.create then nreqt.create = schemedefs.create(nreqt) end
     if not (port and port != '') then nreqt.port = schemedefs.port end
@@ -329,7 +329,7 @@ end
 -- forward declarations
 trequest, tredirect = nil
 
---[[local]] function tredirect(reqt, location)
+ function tredirect(reqt, location)
     -- the RFC says the redirect URL may be relative
    newurl = url.absolute(reqt.url, location)
     -- if switching schemes, reset port and create function
@@ -337,7 +337,7 @@ trequest, tredirect = nil
         reqt.port = nil
         reqt.create = nil end
     -- make new request
-   result, code, headers, status = trequest {
+   result, code, headers, status = trequest ({
         url = newurl,
         source = reqt.source,
         sink = reqt.sink,
@@ -346,14 +346,14 @@ trequest, tredirect = nil
         maxredirects = reqt.maxredirects,
         nredirects = (reqt.nredirects or 0) + 1,
         create = reqt.create
-    }
+    })
     -- pass location header back as a hint we redirected
     headers = headers or {}
     headers.location = headers.location or location
     return result, code, headers, status
 end
 
---[[local]] function trequest(reqt)
+ function trequest(reqt)
     -- we loop until we get what we want, or
     -- until we are sure there is no way to get it
    nreqt = adjustrequest(reqt)

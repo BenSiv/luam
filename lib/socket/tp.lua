@@ -32,13 +32,13 @@ function get_reply(c)
     code, sep = socket.skip(2, string.find(line, "^(%d%d%d)(.?)"))
     if not code then return nil, "invalid server reply" end
     if sep == "-" then -- reply is multiline
-        repeat
+        while true do
             line, err = c.receive(c)
             if err then return nil, err end
             current, sep = socket.skip(2, string.find(line, "^(%d%d%d)(.?)"))
             reply = reply .. "\n" .. line
-        -- reply ends with same code
-        until code == current and sep == " "
+            if code == current and sep == " " then break end
+        end
     end
     return code, reply
 end

@@ -623,10 +623,7 @@ static void funcargs(LexState *ls, expdesc *f) {
     check_match(ls, ')', '(', line);
     break;
   }
-  case '{': { /* funcargs -> constructor */
-    constructor(ls, &args);
-    break;
-  }
+
   case TK_STRING: { /* funcargs -> STRING */
     codestring(ls, &args, ls->t.seminfo.ts);
     luaX_next(ls); /* must use `seminfo' before `next' */
