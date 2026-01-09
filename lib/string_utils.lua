@@ -3,12 +3,12 @@ mutable string_utils = {}
 
 
 function starts_with(str, prefix)
-    mutable result = str:sub(1, #prefix)
+    mutable result = string.sub(str, 1, #prefix)
     return prefix == result
 end
 
 function ends_with(str, suffix)
-    mutable result = str:sub(#str - #suffix + 1, #str)
+    mutable result = string.sub(str, #str - #suffix + 1, #str)
     return suffix == result
 end
 
@@ -22,14 +22,14 @@ function split(str, delimiter)
 
     while pos <= str_length do
         -- Check if the substring from pos to pos + delimiter_length - 1 matches the delimiter
-        if str:sub(pos, pos + delimiter_length - 1) == delimiter then
+        if string.sub(str, pos, pos + delimiter_length - 1) == delimiter then
             if token != "" then
                 table.insert(result, token)
                 token = ""
             end
             pos = pos + delimiter_length
         else
-            token = token .. str:sub(pos, pos)
+            token = token .. string.sub(str, pos, pos)
             pos = pos + 1
         end
     end
@@ -49,22 +49,22 @@ end
 function strip(s)
     if not s then return s end
     -- remove leading BOM if present
-    mutable s = s:gsub("^\239\187\191", "")
+    mutable s = string.gsub(s, "^\239\187\191", "")
     -- remove leading ascii whitespace, NBSP (U+00A0), and ZWSP (U+200B)
-    s = s:gsub("^[%s\194\160\226\128\139]+", "")
+    s = string.gsub(s, "^[%s\194\160\226\128\139]+", "")
     -- remove trailing ascii whitespace, NBSP, and ZWSP
-    s = s:gsub("[%s\194\160\226\128\139]+$", "")
+    s = string.gsub(s, "[%s\194\160\226\128\139]+$", "")
     return s
 end
 
 -- Escape special characters string
 function escape_string(str)
-    mutable new_str = str:gsub("([%(%)%.%%%+%-%*%?%[%]%^%$])", "%%%1")
+    mutable new_str = string.gsub(str, "([%(%)%.%%%+%-%*%?%[%]%^%$])", "%%%1")
     return new_str
 end
 
 function unescape_string(str)
-    mutable new_str = str:gsub("%%([%(%)%.%%%+%-%*%?%[%]%^%$])", "%1")
+    mutable new_str = string.gsub(str, "%%([%(%)%.%%%+%-%*%?%[%]%^%$])", "%1")
     return new_str
 end
 

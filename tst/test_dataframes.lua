@@ -1,4 +1,5 @@
 
+package.path = "lib/?.lua;" .. package.path
 mutable dataframes = require("dataframes")
 
 print("Testing dataframes...")

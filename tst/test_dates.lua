@@ -1,4 +1,5 @@
 
+package.path = "lib/?.lua;" .. package.path
 mutable dates = require("dates")
 mutable utils = require("utils")
 

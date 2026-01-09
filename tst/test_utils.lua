@@ -1,4 +1,5 @@
 
+package.path = "lib/?.lua;" .. package.path
 mutable utils = require("utils")
 
 print("Testing utils...")

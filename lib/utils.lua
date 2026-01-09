@@ -1,9 +1,12 @@
 -- Define a module table
 mutable utils = {}
 
-mutable lfs = require("lfs")
-mutable yaml = require("yaml")
-mutable json = require("json.json")
+mutable ok, lfs = pcall(require, "lfs")
+if not ok then lfs = nil end
+mutable ok_yaml, yaml = pcall(require, "yaml")
+if not ok_yaml then yaml = nil end
+mutable ok_json, json = pcall(require, "json.json")
+if not ok_json then json = nil end
 
 -- Function to merge one module into another
 function merge_module(target, source)
@@ -33,9 +36,9 @@ function read(path)
     file = io.open(path, "r")
     mutable content = nil
     if file then
-        content = file:read("*all")
+        content = io.read(file, "*all")
         content = escape_string(content)
-        file:close()
+        io.close(file)
     else
         print("Failed to open " .. path)
     end
@@ -52,8 +55,8 @@ function write(path, content, append)
     end
 
     if file then
-        file:write(content)
-        file:close()
+        io.write(file, content)
+        io.close(file)
     else
         print("Failed to open " .. path)
     end
@@ -244,7 +247,7 @@ end
 
 -- Returns new table with replaced value
 function replace_string(str, old, new)
-    output_str = str:gsub(old, new)
+    output_str = string.gsub(str, old, new)
     return output_str
 end
 
@@ -290,7 +293,7 @@ function slice_table(source, start_index, end_index)
 end
 
 function slice_string(source, start_index, end_index)
-    return source:sub(start_index, end_index)
+    return string.sub(source, start_index, end_index)
 end
 
 -- Generic slice function for composable types
@@ -329,6 +332,7 @@ function reverse(input)
 end
 
 function readdir(directory)
+    if not lfs then error("luafilesystem (lfs) not loaded") end
     mutable directory = directory or "."
     files = {}
     for file in lfs.dir(directory) do
@@ -346,41 +350,44 @@ function sleep(n)
 end
 
 function read_yaml(file_path)
-    file = io.open(file_path, "r")
+    if not yaml then error("yaml library not loaded") end
+    mutable file = io.open(file_path, "r")
     mutable data
     if not file then
         error("Failed to read file: " .. file_path)
     else
-        content = file:read("*all")
+        content = io.read(file, "*all")
         -- data = yaml.load(content)
         data = yaml.eval(content)
-        file:close()
+        io.close(file)
     end
     return data
 end
 
 function read_json(file_path)
-    file = io.open(file_path, "r")
+    if not json then error("json library not loaded") end
+    mutable file = io.open(file_path, "r")
     mutable data
     if not file then
         error("Failed to read file: " .. file_path)
     else
-        content = file:read("*all")
+        content = io.read(file, "*all")
         -- data = yaml.load(content)
         data = json.decode(content)
-        file:close()
+        io.close(file)
     end
     return data
 end
 
 function write_json(file_path, lua_table)
-    content = json.encode(lua_table, { indent = true })  -- pretty-print with indentation
+    if not json then error("json library not loaded") end
+    mutable content = json.encode(lua_table, { indent = true })  -- pretty-print with indentation
     file, err = io.open(file_path, "w")
     if not file then
         error("Failed to write to file: " .. file_path .. " (" .. err .. ")")
     end
-    file:write(content)
-    file:close()
+    io.write(file, content)
+    io.close(file)
 end
 
 -- Merge function to merge two sorted arrays
@@ -604,9 +611,9 @@ end
 function save_table(filename, tbl)
     mutable file = io.open(filename, "w")
     if file then
-        file:write("return ")
-        file:write(serialize(tbl))
-        file:close()
+        io.write(file, "return ")
+        io.write(file, serialize(tbl))
+        io.close(file)
     else
         print("Error: Unable to open file for writing")
     end
@@ -643,8 +650,8 @@ end
 function get_line_length()
     mutable handle = io.popen("stty size 2>/dev/null | awk '{print $2}'")
     if handle then
-        mutable result = handle:read("*a")
-        handle:close()
+        mutable result = io.read(handle, "*a")
+        io.close(handle)
         return tonumber(result) or 80 -- Default to 80 if unable to fetch
     end
     return 80 -- Fallback to default width
@@ -652,8 +659,8 @@ end
 
 function exec_command(command)
     process = io.popen(command)  -- Only stdout is captured here
-    output = process:read("*a")  -- Read the output
-    success = process:close()  -- Close the process and check for success
+    output = io.read(process, "*a")  -- Read the output
+    success = io.close(process)  -- Close the process and check for success
     return output, success
 end
 
@@ -785,15 +792,15 @@ function write_log_file(log_dir, filename, header, entries)
     end
 
     mutable current_datetime = os.date("%Y-%m-%d-%H-%M-%S")
-    file:write(header .. "\n")
-    file:write("-- Time stamp: " .. current_datetime .. "\n\n")
+    io.write(file, header .. "\n")
+    io.write(file, "-- Time stamp: " .. current_datetime .. "\n\n")
 
     for _, entry in pairs(entries) do
-        file:write(entry)
-        file:write("\n\n")
+        io.write(file, entry)
+        io.write(file, "\n\n")
     end
 
-    file:close()
+    io.close(file)
     return "success"
 end
 
@@ -803,11 +810,11 @@ function get_function_source(func)
         return nil, "Could not retrieve debug info"
     end
 
-    if not info.source:match("^@") then
+    if not string.match(info.source, "^@") then
         return nil, "Function not defined in a file (probably loaded dynamically)"
     end
 
-    mutable file_path = info.source:sub(2) -- Remove leading '@'
+    mutable file_path = string.sub(info.source, 2) -- Remove leading '@'
 
     mutable file = io.open(file_path, "r")
     if not file then
@@ -816,7 +823,7 @@ function get_function_source(func)
 
     mutable lines = {}
     mutable current_line = 1
-    for line in file:lines() do
+    for line in io.lines(file) do
         if current_line >= info.linedefined and current_line <= info.lastlinedefined then
             table.insert(lines, line)
         end
@@ -825,7 +832,7 @@ function get_function_source(func)
         end
         current_line = current_line + 1
     end
-    file:close()
+    io.close(file)
 
     return table.concat(lines, "\n")
 end
@@ -833,20 +840,20 @@ end
 -- Parse function header and first comment
 function extract_help_from_source(source)
     -- Extract first line with 'function ...'
-    mutable header = source:match("function%s+.-%b()%s*") or source:match("function%s+.-\n")
+    mutable header = string.match(source, "function%s+.-%b()%s*") or string.match(source, "function%s+.-\n")
     if header then
-        header = header:gsub("^.*function%s+", ""):gsub("%s*$", "")
+        header = string.gsub(string.gsub(header, "^.*function%s+", ""), "%s*$", "")
     end
 
     -- Try multiline comment first: --  ... 
-    mutable comment = source:match("%-%-%[%[(.-)%]%]") 
+    mutable comment = string.match(source, "%-%-%[%[(.-)%]%]") 
     if not comment then
         -- Fallback: single line comment
-        comment = source:match("\n%s*%-%-%s*(.-)\n") or source:match("\n%s*%-%-%s*(.-)$")
+        comment = string.match(source, "\n%s*%-%-%s*(.-)\n") or string.match(source, "\n%s*%-%-%s*(.-)$")
     end
 
     if comment then
-        comment = comment:gsub("^%s+", ""):gsub("%s+$", "")
+        comment = string.gsub(string.gsub(comment, "^%s+", ""), "%s+$", "")
     end
 
     return header, comment

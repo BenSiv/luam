@@ -23,19 +23,19 @@ function normalize_datetime(datetime_str)
         year = datetime_str
         month, day, hour, min, sec = "01", "01", "00", "00", "00"
     elseif utils.length(datetime_str) == 7 then
-        year, month = datetime_str:match("(%d%d%d%d)-(%d%d)")
+        year, month = string.match(datetime_str, "(%d%d%d%d)-(%d%d)")
         if not (year and month) then return nil end
         day, hour, min, sec = "01", "00", "00", "00"
     elseif utils.length(datetime_str) == 10 then
-        year, month, day = datetime_str:match("(%d%d%d%d)-(%d%d)-(%d%d)")
+        year, month, day = string.match(datetime_str, "(%d%d%d%d)-(%d%d)-(%d%d)")
         if not (year and month and day) then return nil end
         hour, min, sec = "00", "00", "00"
     elseif utils.length(datetime_str) == 16 then
-        year, month, day, hour, min = datetime_str:match("(%d%d%d%d)-(%d%d)-(%d%d) (%d%d):(%d%d)")
+        year, month, day, hour, min = string.match(datetime_str, "(%d%d%d%d)-(%d%d)-(%d%d) (%d%d):(%d%d)")
         if not (year and month and day and hour and min) then return nil end
         sec = "00"
     elseif utils.length(datetime_str) == 19 then
-        year, month, day, hour, min, sec = datetime_str:match("(%d%d%d%d)-(%d%d)-(%d%d) (%d%d):(%d%d):(%d%d)")
+        year, month, day, hour, min, sec = string.match(datetime_str, "(%d%d%d%d)-(%d%d)-(%d%d) (%d%d):(%d%d):(%d%d)")
         if not (year and month and day and hour and min and sec) then return nil end
     else
         return nil
@@ -57,8 +57,8 @@ function is_valid_timestamp(timestamp)
 
     if timestamp then
         if type(timestamp) == "string" then
-            if timestamp:match(pattern) then
-                mutable year, month, day, hour, minute, second = timestamp:match("(%d%d%d%d)%-(%d%d)%-(%d%d) (%d%d):(%d%d):(%d%d)")
+            if string.match(timestamp, pattern) then
+                mutable year, month, day, hour, minute, second = string.match(timestamp, "(%d%d%d%d)%-(%d%d)%-(%d%d) (%d%d):(%d%d):(%d%d)")
 
                 year = tonumber(year)
                 month = tonumber(month)
@@ -89,7 +89,7 @@ end
 
 function convert_date_format(input_date)
     -- Split the input string based on the "." delimiter
-    mutable day, month, year = input_date:match("(%d+).(%d+).(%d+)")
+    mutable day, month, year = string.match(input_date, "(%d+).(%d+).(%d+)")
     -- Rearrange the components into the desired format "yyyy-mm-dd"
     mutable output_date = year .. "-" .. month .. "-" .. day
     return output_date
@@ -100,7 +100,7 @@ function date_range(first_date, last_date, unit, interval)
 	mutable current_date = first_date
 	table.insert(full_date_range, current_date)
 	while current_date != last_date do
-		mutable year, month, day = current_date:match("(%d+)-(%d+)-(%d+)")
+		mutable year, month, day = string.match(current_date, "(%d+)-(%d+)-(%d+)")
         if unit == "day" then
 		    current_date = os.date("%Y-%m-%d", os.time{year=year, month=month, day=day+interval})
         elseif unit == "month" then
@@ -116,12 +116,12 @@ function date_range(first_date, last_date, unit, interval)
 end
 
 function disect_date(input_date)
-    mutable year, month, day = input_date:match("(%d+)-(%d+)-(%d+)")
+    mutable year, month, day = string.match(input_date, "(%d+)-(%d+)-(%d+)")
     return year, month, day
 end
 
 function disect_datetime(input_datetime)
-    mutable year, month, day, hour, minute, second = input_datetime:match("(%d+)-(%d+)-(%d+)-(%d+)-(%d+)-(%d+)")
+    mutable year, month, day, hour, minute, second = string.match(input_datetime, "(%d+)-(%d+)-(%d+)-(%d+)-(%d+)-(%d+)")
     return {year, month, day, hour, minute, second}
 end
 

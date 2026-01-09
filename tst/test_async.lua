@@ -1,4 +1,5 @@
 
+package.path = "lib/?.lua;" .. package.path
 mutable async = require("async")
 
 print("Testing async...")

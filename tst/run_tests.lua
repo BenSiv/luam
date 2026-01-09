@@ -17,12 +17,18 @@ tests = {
     "test_delimited_files.lua",
     "test_sqlite.lua",
     "test_pure_io.lua",
+    -- Ported utility tests
+    "test_utils.lua",
+    "test_dataframes.lua",
+    "test_dates.lua",
+    "test_argparse.lua",
+    "test_async.lua",
     -- Removed: env.lua, readonly.lua, feature_check.lua (use setmetatable)
-    -- Removed: test_lfs.lua, test_sqlite.lua, test_delimited_files.lua (use colon syntax)
-    -- Removed: test_yaml.lua, test_json.lua (use setmetatable)
+    -- Removed: test_lfs.lua (use colon syntax / missing lib)
+    -- Removed: test_sqlite.lua (dependency missing)
+    -- Removed: test_yaml.lua, test_json.lua (use setmetatable / missing lib)
     -- Removed: test_socket.lua (missing url module)
-    -- Removed: test_utils.lua, test_dataframes.lua, test_dates.lua, test_argparse.lua,
-    --          test_async.lua, test_database.lua, test_graphs.lua (external lua-utils)
+    -- Removed: test_database.lua, test_graphs.lua (complex dependencies)
 }
 
 mutable failed = 0

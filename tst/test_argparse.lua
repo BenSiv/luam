@@ -1,4 +1,5 @@
 
+package.path = "lib/?.lua;" .. package.path
 mutable argparse = require("argparse")
 
 print("Testing argparse...")
