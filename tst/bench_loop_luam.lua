@@ -12,5 +12,5 @@ end
 
 elapsed = os.clock() - start
 
-print(string.format({"Loop sum: %d", sum})[1])
-print(string.format({"Time: %.4f seconds", elapsed})[1])
+print(string.format("Loop sum: %d", sum))
+print(string.format("Time: %.4f seconds", elapsed))

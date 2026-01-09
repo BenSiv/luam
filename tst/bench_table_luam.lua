@@ -17,5 +17,5 @@ end
 
 elapsed = os.clock() - start
 
-print(string.format({"Table sum: %d", sum})[1])
-print(string.format({"Time: %.4f seconds", elapsed})[1])
+print(string.format("Table sum: %d", sum))
+print(string.format("Time: %.4f seconds", elapsed))
