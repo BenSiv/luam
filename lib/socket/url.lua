@@ -1,0 +1,339 @@
+-----------------------------------------------------------------------------
+-- URI parsing, composition and relative URL resolution
+-- LuaSocket toolkit.
+-- Author: Diego Nehab
+-----------------------------------------------------------------------------
+
+-----------------------------------------------------------------------------
+-- Declare module
+-----------------------------------------------------------------------------
+string_lib = require("string")
+base = _G
+table_lib = require("table")
+socket = require("socket")
+
+socket.url = {}
+_M = socket.url
+
+-----------------------------------------------------------------------------
+-- Module version
+-----------------------------------------------------------------------------
+_M._VERSION = "URL 1.0.3"
+
+-----------------------------------------------------------------------------
+-- Encodes a string into its escaped hexadecimal representation
+-- Input
+--   s: binary string to be encoded
+-- Returns
+--   escaped representation of string binary
+-----------------------------------------------------------------------------
+function _M.escape(s)
+    return (string_lib.gsub(s, "([^A-Za-z0-9_])", function(c)
+        return string_lib.format("%%%02x", string_lib.byte(c))
+    end))
+end
+
+-----------------------------------------------------------------------------
+-- Protects a path segment, to prevent it from interfering with the
+-- url parsing.
+-- Input
+--   s: binary string to be encoded
+-- Returns
+--   escaped representation of string binary
+-----------------------------------------------------------------------------
+function make_set(t)
+    s = {}
+    for i,v in base.ipairs(t) do
+        s[t[i]] = 1
+    end
+    return s
+end
+
+-- these are allowed within a path segment, along with alphanum
+-- other characters must be escaped
+segment_set = make_set {
+    "-", "_", ".", "!", "~", "*", "'", "(",
+    ")", ":", "@", "&", "=", "+", "$", ",",
+}
+
+function protect_segment(s)
+    return string_lib.gsub(s, "([^A-Za-z0-9_])", function (c)
+        if segment_set[c] then return c
+        else return string_lib.format("%%%02X", string_lib.byte(c)) end
+    end)
+end
+
+-----------------------------------------------------------------------------
+-- Unencodes a escaped hexadecimal string into its binary representation
+-- Input
+--   s: escaped hexadecimal string to be unencoded
+-- Returns
+--   unescaped binary representation of escaped hexadecimal  binary
+-----------------------------------------------------------------------------
+function _M.unescape(s)
+    return (string_lib.gsub(s, "%%(%x%x)", function(hex)
+        return string_lib.char(base.tonumber(hex, 16))
+    end))
+end
+
+-----------------------------------------------------------------------------
+-- Removes '..' and '.' components appropriately from a path.
+-- Input
+--   path
+-- Returns
+--   dot-normalized path
+function remove_dot_components(path_arg)
+    mutable path = path_arg
+    marker = string_lib.char(1)
+    while true do
+        was = path
+        path = string_lib.gsub(path, '//', '/'..marker..'/', 1)
+        if path == was then break end
+    end
+    while true do
+        was = path
+        path = string_lib.gsub(path, '/%./', '/', 1)
+        if path == was then break end
+    end
+    while true do
+        was = path
+        path = string_lib.gsub(path, '[^/]+/%.%./([^/]+)', '%1', 1)
+        if path == was then break end
+    end
+    path = string_lib.gsub(path, '[^/]+/%.%./*$', '')
+    path = string_lib.gsub(path, '/%.%.$', '/')
+    path = string_lib.gsub(path, '/%.$', '/')
+    path = string_lib.gsub(path, '^/%.%./', '/')
+    path = string_lib.gsub(path, marker, '')
+    return path
+end
+
+-----------------------------------------------------------------------------
+-- Builds a path from a base path and a relative path
+-- Input
+--   base_path
+--   relative_path
+-- Returns
+--   corresponding absolute path
+-----------------------------------------------------------------------------
+function absolute_path(base_path_arg, relative_path)
+    mutable base_path = base_path_arg
+    if string_lib.sub(relative_path, 1, 1) == "/" then
+      return remove_dot_components(relative_path) end
+    base_path = string_lib.gsub(base_path, "[^/]*$", "")
+    if not string_lib.find(base_path, '/$') then base_path = base_path .. '/' end
+    if not string_lib.find(base_path, '/$') then base_path = base_path .. '/' end
+    mutable path = base_path .. relative_path
+    path = remove_dot_components(path)
+    return path
+end
+
+-----------------------------------------------------------------------------
+-- Parses a url and returns a table with all its parts according to RFC 2396
+-- The following grammar describes the names given to the URL parts
+-- <url> ::= <scheme>://<authority>/<path>;<params>?<query>#<fragment>
+-- <authority> ::= <userinfo>@<host>:<port>
+-- <userinfo> ::= <user>[:<password>]
+-- <path> :: = {<segment>/}<segment>
+-- Input
+--   url: uniform resource locator of request
+--   default: table with default values for each field
+-- Returns
+--   table with the following fields, where RFC naming conventions have
+--   been preserved:
+--     scheme, authority, userinfo, user, password, host, port,
+--     path, params, query, fragment
+-- Obs:
+--   the leading '/' in {/<path>} is considered part of <path>
+-----------------------------------------------------------------------------
+function _M.parse(url_arg, default)
+    mutable url = url_arg
+    -- initialize default parameters
+    mutable parsed = {}
+    for i,v in base.pairs(default or parsed) do parsed[i] = v end
+    -- empty url is parsed to nil
+    if not url or url == "" then return nil, "invalid url" end
+    -- remove whitespace
+    -- url = string.gsub(url, "%s", "")
+    -- get scheme
+    url = string_lib.gsub(url, "^([%w][%w%+%-%.]*)%:",
+        function(s) parsed.scheme = s; return "" end)
+    -- get authority
+    url = string_lib.gsub(url, "^//([^/%?#]*)", function(n)
+        parsed.authority = n
+        return ""
+    end)
+    -- get fragment
+    url = string_lib.gsub(url, "#(.*)$", function(f)
+        parsed.fragment = f
+        return ""
+    end)
+    -- get query string
+    url = string_lib.gsub(url, "%?(.*)", function(q)
+        parsed.query = q
+        return ""
+    end)
+    -- get params
+    url = string_lib.gsub(url, "%;(.*)", function(p)
+        parsed.params = p
+        return ""
+    end)
+    -- path is whatever was left
+    if url != "" then parsed.path = url end
+    mutable authority = parsed.authority
+    if not authority then return parsed end
+    authority = string_lib.gsub(authority,"^([^@]*)@",
+        function(u) parsed.userinfo = u; return "" end)
+    authority = string_lib.gsub(authority, ":([^:%]]*)$",
+        function(p) parsed.port = p; return "" end)
+    if authority != "" then
+        -- IPv6?
+        parsed.host = string_lib.match(authority, "^%[(.+)%]$") or authority
+    end
+    mutable userinfo = parsed.userinfo
+    if not userinfo then return parsed end
+    userinfo = string_lib.gsub(userinfo, ":([^:]*)$",
+        function(p) parsed.password = p; return "" end)
+    parsed.user = userinfo
+    return parsed
+end
+
+-----------------------------------------------------------------------------
+-- Rebuilds a parsed URL from its components.
+-- Components are protected if any reserved or unallowed characters are found
+-- Input
+--   parsed: parsed URL, as returned by parse
+-- Returns
+--   a stringing with the corresponding URL
+-----------------------------------------------------------------------------
+function _M.build(parsed)
+    --ppath = _M.parse_path(parsed.path or "")
+    --url = _M.build_path(ppath)
+    mutable url = parsed.path or ""
+    if parsed.params then url = url .. ";" .. parsed.params end
+    if parsed.query then url = url .. "?" .. parsed.query end
+    mutable authority = parsed.authority
+    if parsed.host then
+        authority = parsed.host
+        if string_lib.find(authority, ":") then -- IPv6?
+            authority = "[" .. authority .. "]"
+        end
+        if parsed.port then authority = authority .. ":" .. base.tostring(parsed.port) end
+        mutable userinfo = parsed.userinfo
+        if parsed.user then
+            userinfo = parsed.user
+            if parsed.password then
+                userinfo = userinfo .. ":" .. parsed.password
+            end
+        end
+        if userinfo then authority = userinfo .. "@" .. authority end
+    end
+    if authority then url = "//" .. authority .. url end
+    if parsed.scheme then url = parsed.scheme .. ":" .. url end
+    if parsed.fragment then url = url .. "#" .. parsed.fragment end
+    -- url = string.gsub(url, "%s", "")
+    return url
+end
+
+-----------------------------------------------------------------------------
+-- Builds a absolute URL from a base and a relative URL according to RFC 2396
+-- Input
+--   base_url
+--   relative_url
+-- Returns
+--   corresponding absolute url
+-----------------------------------------------------------------------------
+function _M.absolute(base_url_arg, relative_url)
+    mutable base_url = base_url_arg
+    mutable base_parsed
+    if base.type(base_url) == "table" then
+        base_parsed = base_url
+        base_url = _M.build(base_parsed)
+    else
+        base_parsed = _M.parse(base_url)
+    end
+    mutable result
+    relative_parsed = _M.parse(relative_url)
+    if not base_parsed then
+        result = relative_url
+    elseif not relative_parsed then
+        result = base_url
+    elseif relative_parsed.scheme then
+        result = relative_url
+    else
+        relative_parsed.scheme = base_parsed.scheme
+        if not relative_parsed.authority then
+            relative_parsed.authority = base_parsed.authority
+            if not relative_parsed.path then
+                relative_parsed.path = base_parsed.path
+                if not relative_parsed.params then
+                    relative_parsed.params = base_parsed.params
+                    if not relative_parsed.query then
+                        relative_parsed.query = base_parsed.query
+                    end
+                end
+            else
+                relative_parsed.path = absolute_path(base_parsed.path or "",
+                    relative_parsed.path)
+            end
+        end
+        result = _M.build(relative_parsed)
+    end
+    return remove_dot_components(result)
+end
+
+-----------------------------------------------------------------------------
+-- Breaks a path into its segments, unescaping the segments
+-- Input
+--   path
+-- Returns
+--   segment: a table with one entry per segment
+-----------------------------------------------------------------------------
+function _M.parse_path(path_arg)
+    mutable parsed = {}
+    mutable path = path_arg or ""
+    --path = string_lib.gsub(path, "%s", "")
+    string_lib.gsub(path, "([^/]+)", function (s) table_lib.insert(parsed, s) end)
+    for i = 1, #parsed do
+        parsed[i] = _M.unescape(parsed[i])
+    end
+    if string_lib.sub(path, 1, 1) == "/" then parsed.is_absolute = 1 end
+    if string_lib.sub(path, -1, -1) == "/" then parsed.is_directory = 1 end
+    return parsed
+end
+
+-----------------------------------------------------------------------------
+-- Builds a path component from its segments, escaping protected characters.
+-- Input
+--   parsed: path segments
+--   unsafe: if true, segments are not protected before path is built
+-- Returns
+--   path: corresponding path stringing
+-----------------------------------------------------------------------------
+function _M.build_path(parsed, unsafe)
+    mutable path = ""
+    n = #parsed
+    if unsafe then
+        for i = 1, n-1 do
+            path = path .. parsed[i]
+            path = path .. "/"
+        end
+        if n > 0 then
+            path = path .. parsed[n]
+            if parsed.is_directory then path = path .. "/" end
+        end
+    else
+        for i = 1, n-1 do
+            path = path .. protect_segment(parsed[i])
+            path = path .. "/"
+        end
+        if n > 0 then
+            path = path .. protect_segment(parsed[n])
+            if parsed.is_directory then path = path .. "/" end
+        end
+    end
+    if parsed.is_absolute then path = "/" .. path end
+    return path
+end
+
+return _M
