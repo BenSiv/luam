@@ -1,0 +1,2 @@
+add libs as part of repo, not submodule
+remove syntax sugar func{1,2,3} same as func({1,2,3})
