@@ -4,6 +4,8 @@
 -- Set package path to include libraries
 package.path = "lib/?.lua;" .. package.path
 
+
+package.cpath = "lib/?.so;" .. package.cpath
 tests = {
     -- Core tests
     "bisect.lua", "cf.lua", "echo.lua", "factorial.lua",
@@ -23,8 +25,8 @@ tests = {
     "test_dates.lua",
     "test_argparse.lua",
     "test_async.lua",
+    "test_lfs.lua",
     -- Removed: env.lua, readonly.lua, feature_check.lua (use setmetatable)
-    -- Removed: test_lfs.lua (use colon syntax / missing lib)
     -- Removed: test_sqlite.lua (dependency missing)
     -- Removed: test_yaml.lua, test_json.lua (use setmetatable / missing lib)
     -- Removed: test_socket.lua (missing url module)

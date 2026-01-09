@@ -4,7 +4,7 @@ tmp = "/tmp"
 sep = string.match (package.config, "[^\n]+")
 upper = ".."
 
-is_unix = package.config:sub(1,1) == "/"
+is_unix = string.sub(package.config, 1, 1) == "/"
 
 lfs = require"lfs"
 print (lfs._VERSION)
@@ -65,8 +65,8 @@ if not attrib.mode then
 end
 mutable f = io.open(tmpfile, "w")
 data = "hello, file!"
-f:write(data)
-f:close()
+io.write(f, data)
+io.close(f)
 
 io.write(".")
 io.flush()
@@ -108,25 +108,25 @@ if lfs.link (tmpfile, "_a_link_for_test_", true) then
     assert (lfs.symlinkattributes"_a_hard_link_for_test_".mode == "file")
     
     mutable fd = io.open(tmpfile)
-    assert(fd:read("*a") == data)
-    fd:close()
+    assert(io.read(fd, "*a") == data)
+    io.close(fd)
     
     fd = io.open("_a_link_for_test_")
-    assert(fd:read("*a") == data)
-    fd:close()
+    assert(io.read(fd, "*a") == data)
+    io.close(fd)
     
     fd = io.open("_a_hard_link_for_test_")
-    assert(fd:read("*a") == data)
-    fd:close()
+    assert(io.read(fd, "*a") == data)
+    io.close(fd)
     
     fd = io.open("_a_hard_link_for_test_", "w+")
     data2 = "write in hard link"
-    fd:write(data2)
-    fd:close()
+    io.write(fd, data2)
+    io.close(fd)
     
     fd = io.open(tmpfile)
-    assert(fd:read("*a") == data2)
-    fd:close()
+    assert(io.read(fd, "*a") == data2)
+    io.close(fd)
 
     if is_unix then
         assert (lfs.attributes (tmpfile, "nlink") == 2)
@@ -145,10 +145,10 @@ mutable result, mode = lfs.setmode(f, "binary")
 assert(result) -- on non-Windows platforms, mode is always returned as "binary"
 result, mode = lfs.setmode(f, "text")
 assert(result and mode == "binary")
-f:close()
+io.close(f)
 ok, err = pcall(lfs.setmode, f, "binary")
 -- assert(not ok, "could setmode on closed file")
--- assert(err:find("closed file"), "bad error message for setmode on closed file")
+-- assert(string.find(err, "closed file"), "bad error message for setmode on closed file")
 
 io.write(".")
 io.flush()
@@ -222,10 +222,10 @@ io.flush()
 count = 0
 for i = 1, 4000 do
     iter, dir = lfs.dir(tmp)
-    mutable file = dir:next()
+    mutable file = dir.next(dir)
     while file do
         count = count + 1
-        file = dir:next()
+        file = dir.next(dir)
     end
     assert(not pcall(dir.next, dir))
 end
@@ -235,6 +235,6 @@ io.flush()
 
 -- directory explicit close
 iter, dir = lfs.dir(tmp)
-dir:close()
+dir.close(dir)
 assert(not pcall(dir.next, dir))
 print"Ok!"

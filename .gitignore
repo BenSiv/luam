@@ -4,4 +4,4 @@ luac.out
 *.log
 *.o
 *.so
-*.a
+*.alib/*.so
