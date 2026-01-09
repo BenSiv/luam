@@ -1,6 +1,6 @@
 
 -- Set path to include local sqlite3 library
-package.path = "lib/lua-sqlite3/?.lua;" .. package.path
+-- package.path set by runner
 
 print("Loading sqlite3...")
 mutable ok, sqlite3 = pcall(require, "sqlite3")

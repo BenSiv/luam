@@ -27,9 +27,8 @@ tests = {
     "test_async.lua",
     "test_lfs.lua",
     -- Removed: env.lua, readonly.lua, feature_check.lua (use setmetatable)
-    -- Removed: test_sqlite.lua (dependency missing)
-    -- Removed: test_yaml.lua, test_json.lua (use setmetatable / missing lib)
-    -- Removed: test_socket.lua (missing url module)
+    "test_socket.lua",
+    "test_sqlite.lua",
     -- Removed: test_database.lua, test_graphs.lua (complex dependencies)
 }
 
@@ -39,7 +38,7 @@ mutable passed = 0
 print("Running tests...")
 
 for _, test in ipairs(tests) do
-    mutable cmd = "bld/luam tst/" .. test
+    mutable cmd = "LUA_PATH='lib/?.lua;;' LUA_CPATH='lib/?.so;;' bld/luam tst/" .. test
     -- Some tests might need input or args, skipping complex ones for now or adding dummy input
     if test == "echo.lua" then cmd = cmd .. " arg1 arg2" end
     -- For tests that read stdin, we might pipe empty string or echo

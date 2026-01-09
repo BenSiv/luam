@@ -7,10 +7,10 @@
 -- require("socket.http") will look for socket/http.lua or socket/http/init.lua?
 -- Or lib/luasocket/src/socket.lua declares "module('socket')"? No, it returns _M.
 
-package.path = "lib/luasocket/src/?.lua;" .. package.path
-
+-- package.path modified by runner
+print("DEBUG package.path: " .. package.path)
 print("Loading socket.url...")
-mutable url = require("url") -- Wait, file is url.lua. But it declares socket.url
+mutable url = require("socket.url")
 -- The files inside src are: socket.lua, url.lua, mime.lua...
 -- In standard installation they are renamed or moved.
 -- socket.lua provides "socket" module?
