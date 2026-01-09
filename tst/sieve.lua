@@ -19,8 +19,8 @@ function filter (p, g)
   end)
 end
 
-mutable N=N or 1000		-- from command line
-mutable x = gen(N)		-- generate primes up to N
+N=N or 1000		-- from command line
+x = gen(N)		-- generate primes up to N
 while 1 do
   n = x()		-- pick a number until done
   if n == nil then break end

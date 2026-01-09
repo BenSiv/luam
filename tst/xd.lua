@@ -1,7 +1,7 @@
 -- hex dump
 -- usage: lua xd.lua < file
 
-mutable offset=0
+offset=0
 while true do
  s=io.read(16)
  if s==nil then return end

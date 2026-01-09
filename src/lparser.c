@@ -131,33 +131,29 @@ static void checkname(LexState *ls, expdesc *e) {
   codestring(ls, e, str_checkname(ls));
 }
 
-static int is_mutable_aux(FuncState *fs, int k, int info) {
-  if (!fs)
-    return 1;
+static int is_const_aux(FuncState *fs, int k, int info) {
   if (k == VLOCAL) {
-    return getlocvar(fs, info).is_mutable;
+    return getlocvar(fs, info).is_const;
   } else if (k == VUPVAL) {
     int idx = info;
-    return is_mutable_aux(fs->prev, fs->upvalues[idx].k,
-                          fs->upvalues[idx].info);
+    return is_const_aux(fs->prev, fs->upvalues[idx].k, fs->upvalues[idx].info);
   }
-  return 1;
+  return 0;
 }
 
-static int is_mutable(FuncState *fs, expdesc *v) {
+static int is_const(FuncState *fs, expdesc *v) {
   if (v->k == VLOCAL) {
-    return getlocvar(fs, v->u.s.info).is_mutable;
+    return getlocvar(fs, v->u.s.info).is_const;
   } else if (v->k == VUPVAL) {
     int idx = v->u.s.info;
-    return is_mutable_aux(fs->prev, fs->upvalues[idx].k,
-                          fs->upvalues[idx].info);
+    return is_const_aux(fs->prev, fs->upvalues[idx].k, fs->upvalues[idx].info);
   }
-  return 1;
+  return 0;
 }
 
-static void check_immutable(LexState *ls, expdesc *v) {
-  if (!is_mutable(ls->fs, v)) {
-    luaX_syntaxerror(ls, "attempt to assign to immutable variable");
+static void check_readonly(LexState *ls, expdesc *v) {
+  if (is_const(ls->fs, v)) {
+    luaX_syntaxerror(ls, "attempt to assign to const variable");
   }
 }
 
@@ -178,12 +174,12 @@ static int registerlocalvar(LexState *ls, TString *varname) {
   new_localvar(ls, luaX_newstring(ls, "" v, (sizeof(v) / sizeof(char)) - 1),   \
                n, 0)
 
-static void new_localvar(LexState *ls, TString *name, int n, int is_mutable) {
+static void new_localvar(LexState *ls, TString *name, int n, int is_const) {
   FuncState *fs = ls->fs;
   luaY_checklimit(fs, fs->nactvar + n + 1, LUAI_MAXVARS, "local variables");
   fs->actvar[fs->nactvar + n] =
       cast(unsigned short, registerlocalvar(ls, name));
-  fs->f->locvars[fs->nlocvars - 1].is_mutable = is_mutable;
+  fs->f->locvars[fs->nlocvars - 1].is_const = is_const;
 }
 
 static void adjustlocalvars(LexState *ls, int nvars) {
@@ -481,7 +477,8 @@ static void lastlistfield(FuncState *fs, struct ConsControl *cc) {
   if (hasmultret(cc->v.k)) {
     luaK_setmultret(fs, &cc->v);
     luaK_setlist(fs, cc->t->u.s.info, cc->na, LUA_MULTRET);
-    cc->na--; /* do not count last expression (unknown number of elements) */
+    cc->na--; /* do not count last expression (unknown number of elements)
+               */
   } else {
     if (cc->v.k != VVOID)
       luaK_exp2nextreg(fs, &cc->v);
@@ -538,7 +535,8 @@ static void constructor(LexState *ls, expdesc *t) {
   SETARG_C(fs->f->code[pc], luaO_int2fb(cc.nh)); /* set initial table size */
 }
 
-/* }====================================================================== */
+/* }======================================================================
+ */
 
 static void parlist(LexState *ls) {
   /* parlist -> [ param { `,' param } ] */
@@ -938,7 +936,7 @@ static void check_conflict(LexState *ls, struct LHS_assign *lh, expdesc *v) {
 static void assignment(LexState *ls, struct LHS_assign *lh, int nvars) {
   expdesc e;
   check_condition(ls, VLOCAL <= lh->v.k && lh->v.k <= VINDEXED, "syntax error");
-  check_immutable(ls, &lh->v);
+  check_readonly(ls, &lh->v);
   if (testnext(ls, ',')) { /* assignment -> `,' primaryexp assignment */
     struct LHS_assign nv;
     nv.prev = lh;
@@ -991,7 +989,7 @@ static void assignment(LexState *ls, struct LHS_assign *lh, int nvars) {
         {
           /* Retrieve TString from constant table info */
           TString *name = rawtsvalue(&ls->fs->f->k[vars[i]->v.u.s.info]);
-          new_localvar(ls, name, i, 0); /* implicit local is immutable */
+          new_localvar(ls, name, i, 0); /* implicit local is mutable */
           vars[i]->v.k = VLOCAL;
           vars[i]->v.u.s.info = reg;
         }
@@ -1020,12 +1018,12 @@ static void assignment(LexState *ls, struct LHS_assign *lh, int nvars) {
   luaK_storevar(ls->fs, &lh->v, &e);
 }
 
-static void mutablestat(LexState *ls) {
-  /* mutablestat -> MUTABLE NAME {',' NAME} ['=' explist1] */
+static void conststat(LexState *ls) {
+  /* conststat -> CONST NAME {',' NAME} ['=' explist1] */
   int nvars = 0;
   int nexps;
   expdesc e;
-  luaX_next(ls); /* skip MUTABLE */
+  luaX_next(ls); /* skip CONST */
   do {
     new_localvar(ls, str_checkname(ls), nvars++, 1);
   } while (testnext(ls, ','));
@@ -1188,7 +1186,8 @@ static int test_then_block(LexState *ls) {
 }
 
 static void ifstat(LexState *ls, int line) {
-  /* ifstat -> IF cond THEN block {ELSEIF cond THEN block} [ELSE block] END */
+  /* ifstat -> IF cond THEN block {ELSEIF cond THEN block} [ELSE block] END
+   */
   FuncState *fs = ls->fs;
   int flist;
   int escapelist = NO_JUMP;
@@ -1309,8 +1308,8 @@ static int statement(LexState *ls) {
     breakstat(ls);
     return 1; /* must be last statement */
   }
-  case TK_MUTABLE: {
-    mutablestat(ls);
+  case TK_CONST: {
+    conststat(ls);
     return 0;
   }
   default: {

@@ -1,15 +1,15 @@
-mutable http = require("socket.http")
-mutable json = require("dkjson")
+http = require("socket.http")
+json = require("dkjson")
 
 -- URL to request
-mutable url = "https://api.sampleapis.com/coffee/hot"
+url = "https://api.sampleapis.com/coffee/hot"
 
 -- Perform the request
-mutable response, status_code, headers = http.request(url)
+response, status_code, headers = http.request(url)
 
 -- Print the results
 if status_code == 200 then
-    mutable drinks = json.decode(response)
+    drinks = json.decode(response)
     for _, drink in pairs(drinks) do
         print(drink.title)
     end

@@ -1,10 +1,10 @@
 -- trace calls
 -- example: lua -ltrace-calls bisect.lua
 
-mutable level=0
+level=0
 
 hook = function(event)
- mutable t=debug.getinfo(3)
+ t=debug.getinfo(3)
  io.write(level," >>> ",string.rep(" ",level))
  if t!=nil and t.currentline>=0 then io.write(t.short_src,":",t.currentline," ") end
  t=debug.getinfo(2)

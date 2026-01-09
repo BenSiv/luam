@@ -1,14 +1,14 @@
 print("Testing remaining features...")
-mutable passed = true
+passed = true
 
 -- Test xpcall with arguments
-mutable f = function(a, b)
+f = function(a, b)
     assert(a == 10, "xpcall arg1 mismatch")
     assert(b == 20, "xpcall arg2 mismatch")
     return a + b
 end
 
-mutable res, val = xpcall(f, debug.traceback, 10, 20)
+res, val = xpcall(f, debug.traceback, 10, 20)
 if res and val == 30 then
     print("xpcall args: PASS")
 else
@@ -17,8 +17,8 @@ else
 end
 
 -- Test __len metamethod
-mutable t = {1, 2, 3}
-mutable mt = {
+t = {1, 2, 3}
+mt = {
     __len = function(self) return 100 end
 }
 setmetatable(t, mt)
@@ -40,8 +40,8 @@ end
 
 -- Test table.pack and table.unpack
 if table.unpack then
-    mutable t = {10, 20, 30}
-    mutable a, b, c = table.unpack(t)
+    t = {10, 20, 30}
+    a, b, c = table.unpack(t)
     if a == 10 and b == 20 and c == 30 then
         print("table.unpack: PASS")
     else
@@ -54,7 +54,7 @@ else
 end
 
 if table.pack then
-    mutable t = table.pack(1, 2, 3)
+    t = table.pack(1, 2, 3)
     if t.n == 3 and t[1] == 1 and t[3] == 3 then
         print("table.pack: PASS")
     else
@@ -67,7 +67,7 @@ else
 end
 
 -- Test math.log with base
-mutable l10 = math.log(100, 10)
+l10 = math.log(100, 10)
 if math.abs(l10 - 2.0) < 0.000001 then
     print("math.log(x, base): PASS")
 else

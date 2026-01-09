@@ -1,9 +1,9 @@
 print("Testing hex escapes...")
 
-mutable passed = true
+passed = true
 
 -- Test basic hex escape
-mutable s = "\x41"
+s = "\x41"
 if s == "A" then
     print("\x41 == A: PASS")
 else

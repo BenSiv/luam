@@ -1,5 +1,5 @@
 -- graphs.lua
-mutable graphs = {}
+graphs = {}
 
 -- Switch keys and values
 function reverse_kv(tbl)
@@ -7,7 +7,7 @@ function reverse_kv(tbl)
         print("Expected table, received " .. type(tbl))
         return {}
     end
-    mutable reversed = {}
+    reversed = {}
     for k, v in pairs(tbl) do
         reversed[v] = k
     end
@@ -16,8 +16,8 @@ end
 
 -- Get or create an index for a name
 function get_or_create_index(name, node_map)
-    mutable index_map = reverse_kv(node_map)
-    mutable node_index = index_map[name]
+    index_map = reverse_kv(node_map)
+    node_index = index_map[name]
     if not node_index then
         node_index = #node_map + 1
         node_map[node_index] = name
@@ -35,11 +35,11 @@ end
 
 -- Build a DAG as adjacency list
 function build_graph(data)
-    mutable graph = {}
-    mutable node_map = {}
+    graph = {}
+    node_map = {}
     for _, entry in ipairs(data) do
-        mutable src_idx = get_or_create_index(entry.source, node_map)
-        mutable name_idx = get_or_create_index(entry.name, node_map)
+        src_idx = get_or_create_index(entry.source, node_map)
+        name_idx = get_or_create_index(entry.name, node_map)
         graph[src_idx] = graph[src_idx] or {}
         table.insert(graph[src_idx], name_idx)
     end
@@ -48,7 +48,7 @@ end
 
 -- Build reverse graph once for parent traversal
 function build_reverse_graph(graph)
-    mutable reversed = {}
+    reversed = {}
     for parent, children in pairs(graph) do
         for _, child in ipairs(children) do
             reversed[child] = reversed[child] or {}
@@ -60,10 +60,10 @@ end
 
 -- Generic DFS traversal
 function traverse_graph(graph, start_node, reverse)
-    mutable g = graph
+    g = graph
     if reverse then g = build_reverse_graph(graph) end
-    mutable visited = {}
-    mutable result = {}
+    visited = {}
+    result = {}
 
     function dfs(curr)
         if visited[curr] then return end
@@ -84,31 +84,31 @@ end
 
 -- Get all children
 function get_all_children(graph, node_map, node_name)
-    mutable idx = get_node_index(node_map, node_name)
+    idx = get_node_index(node_map, node_name)
     if not idx then return {} end
-    mutable indices = traverse_graph(graph, idx, false)
-    mutable children = {}
+    indices = traverse_graph(graph, idx, false)
+    children = {}
     for _, i in ipairs(indices) do table.insert(children, node_map[i]) end
     return children
 end
 
 -- Get all parents
 function get_all_parents(graph, node_map, node_name)
-    mutable idx = get_node_index(node_map, node_name)
+    idx = get_node_index(node_map, node_name)
     if not idx then return {} end
-    mutable indices = traverse_graph(graph, idx, true)
-    mutable parents = {}
+    indices = traverse_graph(graph, idx, true)
+    parents = {}
     for _, i in ipairs(indices) do table.insert(parents, node_map[i]) end
     return parents
 end
 
 -- Get leaves (nodes with no outgoing edges)
 function get_leaves(graph, node_map)
-    mutable has_outgoing = {}
+    has_outgoing = {}
     for node, edges in pairs(graph) do
         has_outgoing[node] = true
     end
-    mutable leaves = {}
+    leaves = {}
     for idx, name in pairs(node_map) do
         if not has_outgoing[idx] then table.insert(leaves, name) end
     end
@@ -117,8 +117,8 @@ end
 
 -- Get roots (nodes with no parents)
 function get_roots(graph, node_map)
-    mutable reversed = build_reverse_graph(graph)
-    mutable roots = {}
+    reversed = build_reverse_graph(graph)
+    roots = {}
     for idx, name in pairs(node_map) do
         if not reversed[idx] or #reversed[idx] == 0 then table.insert(roots, name) end
     end
@@ -127,8 +127,8 @@ end
 
 -- Get connected components
 function get_all_components(graph, node_map)
-    mutable visited = {}
-    mutable components = {}
+    visited = {}
+    components = {}
     function dfs(node, comp)
         if visited[node] then return end
         visited[node] = true
@@ -139,7 +139,7 @@ function get_all_components(graph, node_map)
     end
     for idx, _ in pairs(node_map) do
         if not visited[idx] then
-            mutable comp = {}
+            comp = {}
             dfs(idx, comp)
             table.insert(components, comp)
         end
@@ -149,24 +149,24 @@ end
 
 -- Get lineage depth: root = 0, subcultures increment, invalid = -1
 function get_lineage_depth(graph, node_map, sample_name)
-    mutable node_idx = get_node_index(node_map, sample_name)
+    node_idx = get_node_index(node_map, sample_name)
     if not node_idx then return -1 end  -- invalid node
 
-    mutable reversed = build_reverse_graph(graph)
+    reversed = build_reverse_graph(graph)
 
     function depth(curr, visited)
-        mutable visited = visited or {}
+        visited = visited or {}
         if visited[curr] then return -1 end  -- cycle detected, treat as invalid
         visited[curr] = true
 
-        mutable parents = reversed[curr] or {}
+        parents = reversed[curr] or {}
         if #parents == 0 then
             return 0  -- root node
         end
 
-        mutable max_depth = 0
+        max_depth = 0
         for _, p in ipairs(parents) do
-            mutable d = depth(p, visited)
+            d = depth(p, visited)
             if d == -1 then
                 -- invalid parent, propagate invalid
                 return -1

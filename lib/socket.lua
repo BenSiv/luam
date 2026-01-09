@@ -25,12 +25,12 @@ function _M.connect6(address, port, laddress, lport)
 end
 
 function _M.bind(host_arg, port, backlog)
-    mutable host = host_arg
+    host = host_arg
     if host == "*" then host = "0.0.0.0" end
     addrinfo, err = socket.dns.getaddrinfo(host);
     if not addrinfo then return nil, err end
-    mutable sock, res
-    mutable err = "no info on address"
+    sock, res = nil 
+    err = "no info on address"
     for i, alt in base.ipairs(addrinfo) do
         if alt.family == "inet" then
             sock, err = socket.tcp4()
@@ -58,7 +58,7 @@ _M.try = _M.newtry()
 
 function _M.choose(tbl)
     return function(name_arg, opt1_arg, opt2_arg)
-        mutable name, opt1, opt2 = name_arg, opt1_arg, opt2_arg
+        name, opt1, opt2 = name_arg, opt1_arg, opt2_arg
         if base.type(name) != "string" then
             name, opt1, opt2 = "default", name, opt1
         end
@@ -114,7 +114,7 @@ sourcet["by-length"] = function(sock, length_arg)
         dirty = function() return sock.dirty(sock) end
     }, {
         __call = function()
-            mutable length = length_arg
+            length = length_arg
             if length <= 0 then return nil end
             size = math.min(socket.BLOCKSIZE, length)
             chunk, err = sock.receive(sock, size)
@@ -126,7 +126,7 @@ sourcet["by-length"] = function(sock, length_arg)
 end
 
 sourcet["until-closed"] = function(sock)
-    mutable done
+    done = nil 
     return base.setmetatable({
         getfd = function() return sock.getfd(sock) end,
         dirty = function() return sock.dirty(sock) end

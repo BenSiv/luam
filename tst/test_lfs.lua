@@ -63,7 +63,7 @@ lfs.attributes(tmpdir, attrib)
 if not attrib.mode then
      error ("could not get attributes of file `"..tmpdir.."'")
 end
-mutable f = io.open(tmpfile, "w")
+f = io.open(tmpfile, "w")
 data = "hello, file!"
 io.write(f, data)
 io.close(f)
@@ -74,7 +74,7 @@ io.flush()
 -- Change access time
 testdate = os.time({ year = 2007, day = 10, month = 2, hour=0})
 assert (lfs.touch (tmpfile, testdate))
-mutable new_att = {}
+new_att = {}
 lfs.attributes (tmpfile, new_att)
 assert(new_att.mode, "could not get attributes")
 assert (new_att.access == testdate, "could not set access time")
@@ -107,7 +107,7 @@ if lfs.link (tmpfile, "_a_link_for_test_", true) then
     assert (lfs.link (tmpfile, "_a_hard_link_for_test_"))
     assert (lfs.symlinkattributes"_a_hard_link_for_test_".mode == "file")
     
-    mutable fd = io.open(tmpfile)
+    fd = io.open(tmpfile)
     assert(io.read(fd, "*a") == data)
     io.close(fd)
     
@@ -141,7 +141,7 @@ io.flush()
 
 -- Checking text/binary modes (only has an effect in Windows)
 f = io.open(tmpfile, "w")
-mutable result, mode = lfs.setmode(f, "binary")
+result, mode = lfs.setmode(f, "binary")
 assert(result) -- on non-Windows platforms, mode is always returned as "binary"
 result, mode = lfs.setmode(f, "text")
 assert(result and mode == "binary")
@@ -208,7 +208,7 @@ io.write(".")
 io.flush()
 
 -- Stressing directory iterator
-mutable count = 0
+count = 0
 for i = 1, 4000 do
     for file in lfs.dir (tmp) do
         count = count + 1
@@ -222,7 +222,7 @@ io.flush()
 count = 0
 for i = 1, 4000 do
     iter, dir = lfs.dir(tmp)
-    mutable file = dir.next(dir)
+    file = dir.next(dir)
     while file do
         count = count + 1
         file = dir.next(dir)

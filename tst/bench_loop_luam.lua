@@ -5,7 +5,7 @@ iterations = 10000000
 
 start = os.clock()
 
-mutable sum = 0
+sum = 0
 for i = 1, iterations do
     sum = sum + i * 2 - 1
 end

@@ -1,8 +1,8 @@
-mutable utils = require("utils")
-mutable dataframes = require("dataframes")
+utils = require("utils")
+dataframes = require("dataframes")
 
 -- Define a module table
-mutable argparse = {}
+argparse = {}
 
 function print_help(cmd_args, expected_args, help_string)
     print("Usage: ", cmd_args[0])
@@ -26,7 +26,7 @@ function print_help(cmd_args, expected_args, help_string)
 end
 
 function add_arg(expected_args, short, long, arg_kind, arg_type, is_required)
-    mutable expected_args = expected_args
+    expected_args = expected_args
     if not expected_args then
         expected_args = {}
     end
@@ -42,8 +42,8 @@ function add_arg(expected_args, short, long, arg_kind, arg_type, is_required)
 end
 
 function def_args(arg_string)
-    mutable expected_args = {}
-    mutable short, long, arg_kind, arg_type, is_required
+    expected_args = {}
+    short, long, arg_kind, arg_type, is_required = nil 
     for line in utils.match_all(arg_string, "[^\r\n]+") do
     	if not utils.match(line, "^$s*$") then
         	short, long, arg_kind, arg_type, is_required = utils.match(line, "%s*%-(%a)%s+%-%-([%a_]+)%s+(%a+)%s+(%a+)%s+(%a+)%s*")
@@ -70,7 +70,7 @@ function parse_args(cmd_args, expected_args, help_string)
         arg_map["--" .. arg_parsed.long] = arg_parsed
     end
 
-    mutable i = 1
+    i = 1
     while i <= utils.length(cmd_args) do
         arg_name = cmd_args[i]
         parsed_arg = arg_map[arg_name]
@@ -128,14 +128,14 @@ return argparse
 
 
 -- example of arg_string
--- mutable arg_string = [[
+-- arg_string = [[
 --     -d --detach flag string false
 --     -o --output arg string true
 --     -i --iterations arg number false
 -- 
 
--- mutable expected_args = def_args(arg_string)
--- mutable args = parse_args(arg, expected_args)
+-- expected_args = def_args(arg_string)
+-- args = parse_args(arg, expected_args)
 
 -- arg = {
 --     [-1] = "lua",

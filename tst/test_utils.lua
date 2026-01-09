@@ -1,17 +1,17 @@
 
 package.path = "lib/?.lua;" .. package.path
-mutable utils = require("utils")
+utils = require("utils")
 
 print("Testing utils...")
 
 -- Test keys
-mutable t = {a=1, b=2}
-mutable k = utils.keys(t)
+t = {a=1, b=2}
+k = utils.keys(t)
 assert(#k == 2, "keys failed")
 
 -- Test merge
-mutable t1 = {a=1}
-mutable t2 = {b=2}
+t1 = {a=1}
+t2 = {b=2}
 utils.merge_module(t1, t2)
 assert(t1.b == 2, "merge_module failed")
 

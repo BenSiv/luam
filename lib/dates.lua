@@ -1,15 +1,15 @@
--- mutable current_time = os.time()
--- mutable current_date = os.date("%Y-%m-%d")
--- mutable converted_date = os.date("%Y-%m-%d", os.time{year=2024, month=1, day=10})
+-- current_time = os.time()
+-- current_date = os.date("%Y-%m-%d")
+-- converted_date = os.date("%Y-%m-%d", os.time{year=2024, month=1, day=10})
 
-mutable utils = require("utils")
+utils = require("utils")
 
 -- Define a module table
-mutable dates = {}
+dates = {}
 
 function pad_to_length(input, total_length, pad_char)
-    mutable input = input
-    mutable pad_char = pad_char or '0'
+    input = input
+    pad_char = pad_char or '0'
     while utils.length(input) < total_length do
         input = input .. pad_char
     end
@@ -17,7 +17,7 @@ function pad_to_length(input, total_length, pad_char)
 end
 
 function normalize_datetime(datetime_str)
-    mutable year, month, day, hour, min, sec
+    year, month, day, hour, min, sec = nil 
 
     if utils.length(datetime_str) == 4 then
         year = datetime_str
@@ -52,13 +52,13 @@ function normalize_datetime(datetime_str)
 end
 
 function is_valid_timestamp(timestamp)
-    mutable pattern = "^%d%d%d%d%-%d%d%-%d%d %d%d:%d%d:%d%d$"
-    mutable answer = false
+    pattern = "^%d%d%d%d%-%d%d%-%d%d %d%d:%d%d:%d%d$"
+    answer = false
 
     if timestamp then
         if type(timestamp) == "string" then
             if string.match(timestamp, pattern) then
-                mutable year, month, day, hour, minute, second = string.match(timestamp, "(%d%d%d%d)%-(%d%d)%-(%d%d) (%d%d):(%d%d):(%d%d)")
+                year, month, day, hour, minute, second = string.match(timestamp, "(%d%d%d%d)%-(%d%d)%-(%d%d) (%d%d):(%d%d):(%d%d)")
 
                 year = tonumber(year)
                 month = tonumber(month)
@@ -67,8 +67,8 @@ function is_valid_timestamp(timestamp)
                 minute = tonumber(minute)
                 second = tonumber(second)
 
-                mutable is_leap_year = (year % 4 == 0 and year % 100 != 0) or (year % 400 == 0)
-                mutable days_in_month = {
+                is_leap_year = (year % 4 == 0 and year % 100 != 0) or (year % 400 == 0)
+                days_in_month = {
                     31, (is_leap_year and 29 or 28), 31, 30, 31, 30, 31, 31, 30, 31, 30, 31
                 }
 
@@ -89,18 +89,18 @@ end
 
 function convert_date_format(input_date)
     -- Split the input string based on the "." delimiter
-    mutable day, month, year = string.match(input_date, "(%d+).(%d+).(%d+)")
+    day, month, year = string.match(input_date, "(%d+).(%d+).(%d+)")
     -- Rearrange the components into the desired format "yyyy-mm-dd"
-    mutable output_date = year .. "-" .. month .. "-" .. day
+    output_date = year .. "-" .. month .. "-" .. day
     return output_date
 end
 
 function date_range(first_date, last_date, unit, interval)
-	mutable full_date_range = {}
-	mutable current_date = first_date
+	full_date_range = {}
+	current_date = first_date
 	table.insert(full_date_range, current_date)
 	while current_date != last_date do
-		mutable year, month, day = string.match(current_date, "(%d+)-(%d+)-(%d+)")
+		year, month, day = string.match(current_date, "(%d+)-(%d+)-(%d+)")
         if unit == "day" then
 		    current_date = os.date("%Y-%m-%d", os.time{year=year, month=month, day=day+interval})
         elseif unit == "month" then
@@ -116,27 +116,27 @@ function date_range(first_date, last_date, unit, interval)
 end
 
 function disect_date(input_date)
-    mutable year, month, day = string.match(input_date, "(%d+)-(%d+)-(%d+)")
+    year, month, day = string.match(input_date, "(%d+)-(%d+)-(%d+)")
     return year, month, day
 end
 
 function disect_datetime(input_datetime)
-    mutable year, month, day, hour, minute, second = string.match(input_datetime, "(%d+)-(%d+)-(%d+)-(%d+)-(%d+)-(%d+)")
+    year, month, day, hour, minute, second = string.match(input_datetime, "(%d+)-(%d+)-(%d+)-(%d+)-(%d+)-(%d+)")
     return {year, month, day, hour, minute, second}
 end
 
 function get_day(input_date)
-    mutable year, month, day = disect_date(input_date)
+    year, month, day = disect_date(input_date)
     return day
 end
 
 function get_month(input_date)
-    mutable year, month, day = disect_date(input_date)
+    year, month, day = disect_date(input_date)
     return month
 end
 
 function get_year(input_date)
-    mutable year, month, day = disect_date(input_date)
+    year, month, day = disect_date(input_date)
     return year
 end
 

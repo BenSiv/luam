@@ -6,8 +6,8 @@ io.write("Testing stdout write... ")
 print("OK")
 
 -- 2. Test file IO with explicit handle
-mutable fname = "test_io.txt"
-mutable f = io.open(fname, "w")
+fname = "test_io.txt"
+f = io.open(fname, "w")
 if not f then
     print("Failed to open file")
     os.exit(1)
@@ -19,16 +19,16 @@ io.close(f)
 
 -- 3. Test reading back
 f = io.open(fname, "r")
-mutable line1 = io.read(f, "*l")
+line1 = io.read(f, "*l")
 assert(line1 == "Hello Pure IO", "Read mismatch line 1")
-mutable line2 = io.read(f, "*l")
+line2 = io.read(f, "*l")
 assert(line2 == "Line 2", "Read mismatch line 2")
 io.close(f)
 
 -- 4. Test method syntax (should FAIL at compile time, but we test runtime index here)
 -- We expect f.read to be nil (userdata has no meta methods)
-mutable val = nil
-mutable ok, err = pcall(function() val = f.read end)
+val = nil
+ok, err = pcall(function() val = f.read end)
 if not ok then
    print("Indexing userdata failed as expected: " .. tostring(err))
 elseif val == nil then

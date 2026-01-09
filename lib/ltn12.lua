@@ -35,7 +35,7 @@ _M._VERSION = "LTN12 1.0.3"
 function filter.cycle(low, ctx, extra)
     base.assert(low)
     return function(chunk)
-        mutable ret
+        ret = nil 
         ret, ctx = low(ctx, chunk, extra)
         return ret
     end
@@ -46,10 +46,10 @@ end
 function filter.chain(...)
     arg = {...}
     n = select('#',...)
-    mutable top, index = 1, 1
-    mutable retry = ""
+    top, index = 1, 1
+    retry = ""
     return function(chunk_arg)
-        mutable chunk = chunk_arg
+        chunk = chunk_arg
         retry = chunk and retry
         while true do
             if index == top then
@@ -107,7 +107,7 @@ end
 -- turns a fancy source into a simple source
 function source.simplify(src_arg)
     base.assert(src_arg)
-    mutable src = src_arg
+    src = src_arg
     return function()
         chunk, err_or_new = src()
         src = err_or_new or src
@@ -119,7 +119,7 @@ end
 -- creates string source
 function source.string(s)
     if s then
-        mutable i = 1
+        i = 1
         return function()
             chunk = string_lib.sub(s, i, i+_M.BLOCKSIZE-1)
             i = i + _M.BLOCKSIZE
@@ -132,7 +132,7 @@ end
 -- creates table source
 function source.table(t)
     base.assert('table' == type(t))
-    mutable i = 0
+    i = 0
     return function()
         i = i + 1
         return t[i]
@@ -158,9 +158,9 @@ end
 function source.chain(src, f, ...)
     if ... then f=filter.chain(f, ...) end
     base.assert(src and f)
-    mutable last_in, last_out = "", ""
-    mutable state = "feeding"
-    mutable err
+    last_in, last_out = "", ""
+    state = "feeding"
+    err = nil 
     return function()
         if not last_out then
             base.error('source is empty!', 2)
@@ -208,7 +208,7 @@ end
 -- (thanks to Wim Couwenberg)
 function source.cat(...)
     arg = {...}
-    mutable src = table_lib.remove(arg, 1)
+    src = table_lib.remove(arg, 1)
     return function()
         while src do
             chunk, err = src()
@@ -224,7 +224,7 @@ end
 -----------------------------------------------------------------------------
 -- creates a sink that stores into a table
 function sink.table(t_arg)
-    mutable t = t_arg or {}
+    t = t_arg or {}
     f = function(chunk, err)
         if chunk then table_lib.insert(t, chunk) end
         return 1
@@ -235,7 +235,7 @@ end
 -- turns a fancy sink into a simple sink
 function sink.simplify(snk_arg)
     base.assert(snk_arg)
-    mutable snk = snk_arg
+    snk = snk_arg
     return function(chunk, err)
         ret, err_or_new = snk(chunk, err)
         if not ret then return nil, err_or_new end
@@ -274,7 +274,7 @@ end
 
 -- chains a sink with one or several filter(s)
 function sink.chain(f, snk_arg, ...)
-    mutable snk = snk_arg
+    snk = snk_arg
     if ... then
         args = { f, snk, ... }
         snk = table_lib.remove(args, #args)
@@ -283,7 +283,7 @@ function sink.chain(f, snk_arg, ...)
     base.assert(f and snk)
     return function(chunk, err)
         if chunk != "" then
-            mutable filtered = f(chunk)
+            filtered = f(chunk)
             done = chunk and ""
             while true do
                 ret, snkerr = snk(filtered, err)

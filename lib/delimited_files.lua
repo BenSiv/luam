@@ -1,15 +1,15 @@
 -- delimited_files library for LuaM
 
 -- Define a module table
-mutable delimited_files = {}
+delimited_files = {}
 
 function dlm_split(str, delimiter)
-    mutable result = {}
-    mutable token = ""
-    mutable pos = 1
+    result = {}
+    token = ""
+    pos = 1
 
     while pos <= string.len(str) do
-        mutable char = string.sub(str, pos, pos)
+        char = string.sub(str, pos, pos)
         if char == delimiter then
             table.insert(result, token)
             token = ""
@@ -28,23 +28,23 @@ end
 
 -- Reads a delimited file into a table, assumes correct format, loads all data as string
 function readdlm(filename, delimiter, header)
-    mutable file = io.open(filename, "r")
+    file = io.open(filename, "r")
     if not file then
         print("Error opening file: " .. filename)
         return
     end
 
-    mutable data = {}
-    mutable cols = {}
-    mutable line_count = 1
-    mutable num_cols = 0
+    data = {}
+    cols = {}
+    line_count = 1
+    num_cols = 0
 
     for line in io.lines(file) do
-        mutable line = line
+        line = line
         -- Remove trailing '\r' character from line end
         line = string.gsub(line, "\r$", "")
 
-        mutable fields = dlm_split(line, delimiter)
+        fields = dlm_split(line, delimiter)
 
         if header and line_count == 1 then
             -- Use the first line as keys
@@ -52,7 +52,7 @@ function readdlm(filename, delimiter, header)
             num_cols = #cols
         else
             -- Create a new table for each row
-            mutable entry = {}
+            entry = {}
 
             if header then
                 -- Initialize all keys with empty strings
@@ -62,14 +62,14 @@ function readdlm(filename, delimiter, header)
 
                 -- Populate values
                 for i, value in ipairs(fields) do
-                    mutable num_value = tonumber(value)
+                    num_value = tonumber(value)
                     entry[cols[i]] = num_value or value or ""
                 end
             else
                 -- For rows without a header, fill missing values with empty strings
                 for i = 1, num_cols do
-                    mutable value = fields[i] or ""
-                    mutable num_value = tonumber(value)
+                    value = fields[i] or ""
+                    num_value = tonumber(value)
                     table.insert(entry, num_value or value)
                 end
             end
@@ -85,7 +85,7 @@ end
 
 -- Writes a delimited file from a table
 function writedlm(data, filename, delimiter, header, append, column_order)
-    mutable file
+    file = nil 
 
     if append then
         file = io.open(filename, "a")
@@ -101,24 +101,24 @@ function writedlm(data, filename, delimiter, header, append, column_order)
     -- Determine the column order (use the first row's keys if not provided)
     if not column_order then
         -- Get the keys from the first row to determine the column order
-        mutable column_order = {}
+        column_order = {}
         for k, v in pairs(data[1]) do table.insert(column_order, k) end
     end
 
     -- Write header line if header is true
     if header then
-        mutable header_line = table.concat(column_order, delimiter)
+        header_line = table.concat(column_order, delimiter)
         io.write(file, header_line .. "\n")
     end
 
     -- Write data lines
     for i, row in ipairs(data) do
-        mutable line_parts = {}
+        line_parts = {}
         -- Ensure the values are written in the same order as column_order
         for _, col in ipairs(column_order) do
             table.insert(line_parts, row[col])
         end
-        mutable line = table.concat(line_parts, delimiter)
+        line = table.concat(line_parts, delimiter)
         io.write(file, line .. "\n")
     end
 

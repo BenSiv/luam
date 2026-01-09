@@ -1,11 +1,11 @@
 -- Define a module table
-mutable utils = {}
+utils = {}
 
-mutable ok, lfs = pcall(require, "lfs")
+ok, lfs = pcall(require, "lfs")
 if not ok then lfs = nil end
-mutable ok_yaml, yaml = pcall(require, "yaml")
+ok_yaml, yaml = pcall(require, "yaml")
 if not ok_yaml then yaml = nil end
-mutable ok_json, json = pcall(require, "json.json")
+ok_json, json = pcall(require, "json.json")
 if not ok_json then json = nil end
 
 -- Function to merge one module into another
@@ -17,10 +17,10 @@ function merge_module(target, source)
   	end
 end
 
-mutable string_utils = require("string_utils")
+string_utils = require("string_utils")
 merge_module(utils, string_utils)
 
-mutable table_utils = require("table_utils")
+table_utils = require("table_utils")
 merge_module(utils, table_utils)
 
 -- Exposes all functions to global scope
@@ -34,7 +34,7 @@ end
 -- Read file content
 function read(path)
     file = io.open(path, "r")
-    mutable content = nil
+    content = nil
     if file then
         content = io.read(file, "*all")
         content = escape_string(content)
@@ -47,7 +47,7 @@ end
 
 -- write content to file
 function write(path, content, append)
-    mutable file
+    file = nil 
     if append then
         file = io.open(path, "a")
     else
@@ -64,15 +64,15 @@ end
 
 -- Pretty print a table with limit
 function show_table(tbl, indent_level, limit)
-    mutable indent_level = indent_level or 0
-    mutable limit = limit or math.huge  -- if limit not provided, show all
-    mutable indent = repeat_string(" ", 4)
-    mutable current_indent = repeat_string(indent, indent_level)
+    indent_level = indent_level or 0
+    limit = limit or math.huge  -- if limit not provided, show all
+    indent = repeat_string(" ", 4)
+    current_indent = repeat_string(indent, indent_level)
     print(current_indent .. "{")
     indent_level = indent_level + 1
     current_indent = repeat_string(indent, indent_level)
 
-    mutable count = 0
+    count = 0
     for key, value in pairs(tbl) do
         count = count + 1
         if count > limit then
@@ -108,12 +108,12 @@ end
 
 -- Length alias for the # symbol
 -- function length(tbl)
---     mutable len = #tbl
+--     len = #tbl
 --     return len
 -- end
 
 function length(containable)
-    mutable cnt
+    cnt = nil 
     if type(containable) == "string" then
         cnt = #containable
     elseif type(containable) == "table" then
@@ -185,7 +185,7 @@ function occursin(element, source)
 end
 
 function isempty(source)
-    mutable answer = false
+    answer = false
     if source and (type(source) == "table" or type(source) == "string") then
         if length(source) == 0 then
             answer = true
@@ -221,7 +221,7 @@ end
 
 -- Generic copy
 function copy(source)
-    mutable new_copy
+    new_copy = nil 
     if type(source) == "table" then
         new_copy = copy_table(source)
     else
@@ -266,7 +266,7 @@ end
 
 -- Generic function to return the 0 value of type
 function empty(reference)
-    mutable new_var
+    new_var = nil 
 
     if type(reference) == "number" then
         new_var = 0 -- Initialize as a number
@@ -311,7 +311,7 @@ end
 -- Reverse order of composable type, only top level
 function reverse(input)
 
-    mutable reversed
+    reversed = nil 
     if type(input) == "string" then
         reversed = ""
         -- Reverse a string
@@ -333,7 +333,7 @@ end
 
 function readdir(directory)
     if not lfs then error("luafilesystem (lfs) not loaded") end
-    mutable directory = directory or "."
+    directory = directory or "."
     files = {}
     for file in lfs.dir(directory) do
         if file != "." and file != ".." then
@@ -351,8 +351,8 @@ end
 
 function read_yaml(file_path)
     if not yaml then error("yaml library not loaded") end
-    mutable file = io.open(file_path, "r")
-    mutable data
+    file = io.open(file_path, "r")
+    data = nil 
     if not file then
         error("Failed to read file: " .. file_path)
     else
@@ -366,8 +366,8 @@ end
 
 function read_json(file_path)
     if not json then error("json library not loaded") end
-    mutable file = io.open(file_path, "r")
-    mutable data
+    file = io.open(file_path, "r")
+    data = nil 
     if not file then
         error("Failed to read file: " .. file_path)
     else
@@ -381,7 +381,7 @@ end
 
 function write_json(file_path, lua_table)
     if not json then error("json library not loaded") end
-    mutable content = json.encode(lua_table, { indent = true })  -- pretty-print with indentation
+    content = json.encode(lua_table, { indent = true })  -- pretty-print with indentation
     file, err = io.open(file_path, "w")
     if not file then
         error("Failed to write to file: " .. file_path .. " (" .. err .. ")")
@@ -394,7 +394,7 @@ end
 function merge(left, right)
     result = {}
     left_size, right_size = #left, #right
-    mutable left_index, right_index, result_index = 1, 1, 1
+    left_index, right_index, result_index = 1, 1, 1
 
     -- Pre-allocate size
     for _ = 1, left_size + right_size do
@@ -432,7 +432,7 @@ end
 
 -- Merge Sort function
 function merge_sort(array)
-    mutable len_array = #array
+    len_array = #array
 
     -- Base case: If array has one or zero elements, it's already sorted
     if len_array <= 1 then
@@ -441,8 +441,8 @@ function merge_sort(array)
 
     -- Split the array into two halves
     middle = math.floor(len_array / 2)
-    mutable left = {}
-    mutable right = {}
+    left = {}
+    right = {}
 
     for i = 1, middle do
         table.insert(left, array[i])
@@ -463,7 +463,7 @@ end
 -- Merge function to merge two sorted arrays along with their indices
 function merge_with_indices(left, right)
     result = {}
-    mutable left_index, right_index = 1, 1
+    left_index, right_index = 1, 1
 
     while left_index <= #left and right_index <= #right do
         if left[left_index].value < right[right_index].value then
@@ -505,9 +505,9 @@ function merge_sort_with_indices(array, _inner)
     end
 
     -- Split the array into two halves
-    mutable middle = math.floor(#array / 2)
-    mutable left = {}
-    mutable right = {}
+    middle = math.floor(#array / 2)
+    left = {}
+    right = {}
 
     for i = 1, middle do
         table.insert(left, array[i])
@@ -538,7 +538,7 @@ end
 
 -- Function to sort a table's values (and sub-tables recursively)
 function deep_sort(tbl)
-	mutable sorted = merge_sort(tbl)
+	sorted = merge_sort(tbl)
 
     for key, value in pairs(sorted) do
         if type(value) == "table" then
@@ -550,8 +550,8 @@ function deep_sort(tbl)
 end
 
 function apply(func, tbl, level, key, _current_level)
-    mutable _current_level = _current_level or 0
-    mutable level = level or 0
+    _current_level = _current_level or 0
+    level = level or 0
     result = {}
     if _current_level < level then
         for k,v in pairs(tbl) do
@@ -587,7 +587,7 @@ end
 
 -- Helper function to serialize table to string
 function serialize(tbl)
-    mutable str = "{"
+    str = "{"
     for k, v in pairs(tbl) do
         if type(k) == "number" then
             str = str .. "[" .. k .. "]=" 
@@ -609,7 +609,7 @@ end
 
 -- Function to save a Lua table to a file
 function save_table(filename, tbl)
-    mutable file = io.open(filename, "w")
+    file = io.open(filename, "w")
     if file then
         io.write(file, "return ")
         io.write(file, serialize(tbl))
@@ -621,7 +621,7 @@ end
 
 -- Function to load a Lua table from a file
 function load_table(filename)
-    mutable chunk, err = loadfile(filename)
+    chunk, err = loadfile(filename)
     if chunk then
         return chunk()
     else
@@ -635,7 +635,7 @@ function is_array(tbl)
         return false
     end
 
-    mutable idx = 0
+    idx = 0
     for _ in pairs(tbl) do
         idx = idx + 1
         if tbl[idx] == nil then
@@ -648,9 +648,9 @@ end
 
 -- Get the terminal line length
 function get_line_length()
-    mutable handle = io.popen("stty size 2>/dev/null | awk '{print $2}'")
+    handle = io.popen("stty size 2>/dev/null | awk '{print $2}'")
     if handle then
-        mutable result = io.read(handle, "*a")
+        result = io.read(handle, "*a")
         io.close(handle)
         return tonumber(result) or 80 -- Default to 80 if unable to fetch
     end
@@ -665,10 +665,10 @@ function exec_command(command)
 end
 
 function breakpoint()
-    mutable level = 2  -- 1 would be inside this function, 2 is the caller
-    mutable i = 1
+    level = 2  -- 1 would be inside this function, 2 is the caller
+    i = 1
     while true do
-        mutable name, value = debug.getlocal(level, i)
+        name, value = debug.getlocal(level, i)
         if not name then break end
         _G[name] = value
         i = i + 1
@@ -677,10 +677,10 @@ function breakpoint()
 end
 
 -- function breakpoint()
---     mutable level = 2  -- caller stack frame
---     mutable i = 1
+--     level = 2  -- caller stack frame
+--     i = 1
 --     while true do
---         mutable name, value = debug.getlocal(level, i)
+--         name, value = debug.getlocal(level, i)
 --         if not name then break end
 --         _G[name] = value
 --         i = i + 1
@@ -688,7 +688,7 @@ end
 
 --     while true do
 --         io.write("debug> ")
---         mutable line = io.read("*line")
+--         line = io.read("*line")
 
 --         if line == "" then
 --             -- Exiting debug shell, continuing execution
@@ -697,9 +697,9 @@ end
 --             -- Exiting debug shell, exit program entirely
 --             os.exit(0)
 --         else
---             mutable chunk, err = load(line, "=(debug repl)")
+--             chunk, err = load(line, "=(debug repl)")
 --             if chunk then
---                 mutable ok, res = pcall(chunk)
+--                 ok, res = pcall(chunk)
 --                 if ok then
 --                     if res != nil then
 --                         print(res)
@@ -726,11 +726,11 @@ end
 
 -- Draw a progress bar
 function draw_progress(current, total)
-    mutable width = get_line_length()
-    mutable bar_width = width - 10 -- Room for percentage and brackets
-    mutable percent = current / total
-    mutable completed = math.floor(bar_width * percent)
-    mutable remaining = bar_width - completed
+    width = get_line_length()
+    bar_width = width - 10 -- Room for percentage and brackets
+    percent = current / total
+    completed = math.floor(bar_width * percent)
+    remaining = bar_width - completed
 
     io.write("\r[")
     io.write(string.rep("=", completed))
@@ -761,14 +761,14 @@ end
 utils.default_globals = list_globals()
 
 function user_defined_globals()
-    mutable is_default_global = {}
+    is_default_global = {}
    
     for _, entry in ipairs(utils.default_globals) do
         is_default_global[entry.name] = true
     end
     
 
-    mutable user_globals = {}
+    user_globals = {}
     for k, v in pairs(_G) do
         if not is_default_global[k] then
             table.insert(user_globals, {
@@ -791,7 +791,7 @@ function write_log_file(log_dir, filename, header, entries)
         return nil
     end
 
-    mutable current_datetime = os.date("%Y-%m-%d-%H-%M-%S")
+    current_datetime = os.date("%Y-%m-%d-%H-%M-%S")
     io.write(file, header .. "\n")
     io.write(file, "-- Time stamp: " .. current_datetime .. "\n\n")
 
@@ -805,7 +805,7 @@ function write_log_file(log_dir, filename, header, entries)
 end
 
 function get_function_source(func)
-    mutable info = debug.getinfo(func, "Sln")
+    info = debug.getinfo(func, "Sln")
     if not info or not info.source or not info.linedefined or not info.lastlinedefined then
         return nil, "Could not retrieve debug info"
     end
@@ -814,15 +814,15 @@ function get_function_source(func)
         return nil, "Function not defined in a file (probably loaded dynamically)"
     end
 
-    mutable file_path = string.sub(info.source, 2) -- Remove leading '@'
+    file_path = string.sub(info.source, 2) -- Remove leading '@'
 
-    mutable file = io.open(file_path, "r")
+    file = io.open(file_path, "r")
     if not file then
         return nil, "Could not open file: " .. file_path
     end
 
-    mutable lines = {}
-    mutable current_line = 1
+    lines = {}
+    current_line = 1
     for line in io.lines(file) do
         if current_line >= info.linedefined and current_line <= info.lastlinedefined then
             table.insert(lines, line)
@@ -840,13 +840,13 @@ end
 -- Parse function header and first comment
 function extract_help_from_source(source)
     -- Extract first line with 'function ...'
-    mutable header = string.match(source, "function%s+.-%b()%s*") or string.match(source, "function%s+.-\n")
+    header = string.match(source, "function%s+.-%b()%s*") or string.match(source, "function%s+.-\n")
     if header then
         header = string.gsub(string.gsub(header, "^.*function%s+", ""), "%s*$", "")
     end
 
     -- Try multiline comment first: --  ... 
-    mutable comment = string.match(source, "%-%-%[%[(.-)%]%]") 
+    comment = string.match(source, "%-%-%[%[(.-)%]%]") 
     if not comment then
         -- Fallback: single line comment
         comment = string.match(source, "\n%s*%-%-%s*(.-)\n") or string.match(source, "\n%s*%-%-%s*(.-)$")
@@ -868,19 +868,19 @@ function help(func_name)
     --
     -- Returns:
     -- - nil
-    mutable func = _G[func_name]
+    func = _G[func_name]
     if type(func) != "function" then
         print("No function named '" .. tostring(func_name) .. "'")
         return
     end
 
-    mutable src, err = get_function_source(func)
+    src, err = get_function_source(func)
     if not src then
         print("Error: " .. err)
         return
     end
 
-    mutable header, comment = extract_help_from_source(src)
+    header, comment = extract_help_from_source(src)
 
     if header then print("Signature: " .. header) end
     if comment then print("Description: " .. comment) end

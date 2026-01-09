@@ -10,17 +10,17 @@
 -- package.path modified by runner
 print("DEBUG package.path: " .. package.path)
 print("Loading socket.url...")
-mutable url = require("socket.url")
+url = require("socket.url")
 -- The files inside src are: socket.lua, url.lua, mime.lua...
 -- In standard installation they are renamed or moved.
 -- socket.lua provides "socket" module?
--- Let's check socket.lua line 13: mutable socket = require("socket.core")
+-- Let's check socket.lua line 13: socket = require("socket.core")
 -- This implies socket.core (C module) is needed.
 
 -- Let's try to verify pure lua modules first.
 -- url.lua does require("socket"), so it depends on socket.lua.
 
-mutable ok, socket = pcall(require, "socket")
+ok, socket = pcall(require, "socket")
 if not ok then
     print("Failed to load socket (likely missing C module socket.core): " .. tostring(socket))
     -- If C module is missing, we can't test much that depends on it.
@@ -33,10 +33,10 @@ if not ok then
 end
 
 print("Loading url...")
-mutable ok_url, url = pcall(require, "url")
+ok_url, url = pcall(require, "url")
 if ok_url then
     print("Testing url...")
-    mutable parsed = url.parse("http://www.example.com:8080/path?query=1#frag")
+    parsed = url.parse("http://www.example.com:8080/path?query=1#frag")
     assert(parsed.host == "www.example.com")
     assert(parsed.port == "8080")
     print("URL test passed")
@@ -45,12 +45,12 @@ else
 end
 
 print("Loading ltn12...")
-mutable ok_ltn12, ltn12 = pcall(require, "ltn12")
+ok_ltn12, ltn12 = pcall(require, "ltn12")
 if ok_ltn12 then
     print("Testing ltn12...")
-    mutable t = {}
-    mutable sink = ltn12.sink.table(t)
-    mutable source = ltn12.source.string("Hello World")
+    t = {}
+    sink = ltn12.sink.table(t)
+    source = ltn12.source.string("Hello World")
     ltn12.pump.all(source, sink)
     assert(table.concat(t) == "Hello World")
     print("LTN12 test passed")
@@ -59,12 +59,12 @@ else
 end
 
 print("Loading mime...")
-mutable ok_mime, mime = pcall(require, "mime")
+ok_mime, mime = pcall(require, "mime")
 if ok_mime then
     print("Testing mime...")
     -- mime requires mime.core (C module)
     -- If mime.core is missing, require "mime" might fail if it does require("mime.core")
-    -- mime.lua line 12: mutable mime = require("mime.core")
+    -- mime.lua line 12: mime = require("mime.core")
     print("Mime loaded (or failed inside).")
 else
     print("Failed to load mime: " .. tostring(mime))

@@ -5,12 +5,12 @@ iterations = 1000000
 
 start = os.clock()
 
-mutable t = {}
+t = {}
 for i = 1, iterations do
     t[i] = i * 2
 end
 
-mutable sum = 0
+sum = 0
 for i = 1, iterations do
     sum = sum + t[i]
 end

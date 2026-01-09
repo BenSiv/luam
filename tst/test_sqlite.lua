@@ -3,7 +3,7 @@
 -- package.path set by runner
 
 print("Loading sqlite3...")
-mutable ok, sqlite3 = pcall(require, "sqlite3")
+ok, sqlite3 = pcall(require, "sqlite3")
 
 if not ok then
     print("Failed to load sqlite3: " .. tostring(sqlite3))
@@ -16,12 +16,12 @@ end
 print("SQLite3 loaded.")
 
 -- Create in-memory DB
-mutable db = sqlite3.open_memory()
+db = sqlite3.open_memory()
 print("Opened memory DB")
 
 db.exec(db, "CREATE TABLE test (id INTEGER PRIMARY KEY, content TEXT); INSERT INTO test (content) VALUES ('Hello SQLite'); INSERT INTO test (content) VALUES ('Lua is great');")
 
-mutable count = 0
+count = 0
 for row in db.rows(db, "SELECT * FROM test") do
   print(row.id, row.content)
   count = count + 1

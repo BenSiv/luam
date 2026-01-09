@@ -7,8 +7,8 @@ function qsort(x,l,u,f)
   m=math.random(u-(l-1))+l-1	-- choose a random pivot in range l..u
   x[l],x[m]=x[m],x[l]			-- swap pivot to first position
   t=x[l]				-- pivot value
-  mutable m=l
-  mutable i=l+1
+  m=l
+  i=l+1
   while i<=u do
     -- invariant: x[l+1..m] < t <= x[m+1..i-1]
     if f(x[i],t) then
@@ -25,9 +25,9 @@ function qsort(x,l,u,f)
 end
 
 function selectionsort(x,n,f)
- mutable i=1
+ i=1
  while i<=n do
-  mutable m,j=i,i+1
+  m,j=i,i+1
   while j<=n do
    if f(x[j],x[m]) then m=j end
    j=j+1
@@ -39,7 +39,7 @@ end
 
 function show(m,x)
  io.write(m,"\n\t")
- mutable i=1
+ i=1
  while x[i] do
   io.write(x[i])
   i=i+1
@@ -49,7 +49,7 @@ function show(m,x)
 end
 
 function testsorts(x)
- mutable n=1
+ n=1
  while x[n] do n=n+1 end; n=n-1		-- count elements
  show("original",x)
  qsort(x,1,n,function (x,y) return x<y end)

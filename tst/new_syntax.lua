@@ -17,7 +17,7 @@ assert(s2 == '"User": "Name",\n"Age": 20\n', "Triple quote with internal quotes 
 
 -- Test 3: elseif syntax
 a = 10
-mutable res = ""
+res = ""
 if a < 5 then
     res = "low"
 elseif a < 15 then

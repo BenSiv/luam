@@ -1,9 +1,9 @@
 print("Testing unified load...")
 
-mutable passed = true
+passed = true
 
 -- Test load with string (formerly loadstring)
-mutable f, err = load("return 'loaded from string'")
+f, err = load("return 'loaded from string'")
 if f then
     if f() == 'loaded from string' then
         print("load(string): PASS")
@@ -17,9 +17,9 @@ else
 end
 
 -- Test load with function
-mutable code_part = "return 'loaded from function'"
-mutable i = 0
-mutable func_reader = function()
+code_part = "return 'loaded from function'"
+i = 0
+func_reader = function()
     i = i + 1
     if i == 1 then return code_part else return nil end
 end

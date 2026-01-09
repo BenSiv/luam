@@ -263,7 +263,7 @@ typedef struct LocVar {
   TString *varname;
   int startpc;  /* first point where variable is active */
   int endpc;    /* first point where variable is dead */
-  lu_byte is_mutable;
+  lu_byte is_const;
 } LocVar;
 
 

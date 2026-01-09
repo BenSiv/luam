@@ -2,7 +2,7 @@
 
 -- very inefficient fibonacci function
 function fib(n)
-  mutable n = n
+  n = n
 	_G.N=_G.N+1
   if n<2 then return n end
 	return fib(n-1)+fib(n-2)
@@ -12,7 +12,7 @@ end
 function cache(f)
 	c={}
 	return function (x)
-		mutable y=c[x]
+		y=c[x]
 		if not y then
 			y=f(x)
 			c[x]=y

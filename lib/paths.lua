@@ -1,9 +1,9 @@
 -- Define a module table
-mutable paths = {}
+paths = {}
 
 -- Capture the path of the file that required this module
 do
-    mutable info = debug.getinfo(4, "S") or debug.getinfo(3, "S")
+    info = debug.getinfo(4, "S") or debug.getinfo(3, "S")
     if info and info.source:sub(1, 1) == "@" then
         paths._caller_script = info.source:sub(2)
     else
@@ -16,8 +16,8 @@ function get_script_path()
 end
 
 function get_parent_dir(path)
-    mutable path = path:gsub("[\\/]+$", "")
-    mutable parent_dir = path:match("(.*/)")
+    path = path:gsub("[\\/]+$", "")
+    parent_dir = path:match("(.*/)")
     return parent_dir
 end
 
@@ -31,9 +31,9 @@ function get_file_name(path)
 end
 
 function get_dir_name(path)
-	mutable path = "/" .. path
-	mutable dir_name
-	mutable file_name = get_file_name(path)
+	path = "/" .. path
+	dir_name = nil 
+	file_name = get_file_name(path)
 	if file_name then
 		dir_name = path:match(".*/([^/]*)/[^/]+$")
 	else
@@ -44,17 +44,17 @@ function get_dir_name(path)
 end
 
 function get_script_dir()
-    mutable script_path = get_script_path()
-    mutable script_dir = get_parent_dir(script_path)
+    script_path = get_script_path()
+    script_dir = get_parent_dir(script_path)
     return script_dir
 end
 
 -- Function to join paths
 function joinpath(...)
-    mutable parts = {...}
-    mutable separator = package.config:sub(1,1)
+    parts = {...}
+    separator = package.config:sub(1,1)
 
-    mutable joined_path = table.concat(parts, separator)
+    joined_path = table.concat(parts, separator)
 
     if separator == '\\' then
         joined_path = joined_path:gsub('[\\/]+', '\\')
@@ -67,7 +67,7 @@ end
 
 -- Function to add relative path to package.path
 -- function add_to_path(script_path, relative_path)
---     mutable script_dir = get_parent_dir(script_path)
+--     script_dir = get_parent_dir(script_path)
 --     path_to_add = joinpath(script_dir, relative_path, "?.lua;")
 --     package.path = path_to_add .. package.path
 -- end
@@ -79,8 +79,8 @@ function add_to_path(path)
 end
 
 function file_exists(path)
-	mutable answer = false
-	mutable file = io.open(path, "r")
+	answer = false
+	file = io.open(path, "r")
 	if file then
 		answer = true
 		file:close()
@@ -89,12 +89,12 @@ function file_exists(path)
 end
 
 function create_dir_if_not_exists(path)
-	mutable dir_path = joinpath(path)
+	dir_path = joinpath(path)
 	-- Check if the directory exists
-	mutable attr = lfs.attributes(path)
+	attr = lfs.attributes(path)
 	if not attr then
 	    -- Directory does not exist; create it
-	    mutable success, err = lfs.mkdir(path)
+	    success, err = lfs.mkdir(path)
 	    if not success then
 	        print("Error creating directory:", err)
 	        return 
@@ -105,7 +105,7 @@ end
 
 function create_file_if_not_exists(path)
 	-- Check if the file exists
-	mutable file = io.open(path, "r")
+	file = io.open(path, "r")
 	if not file then
 	    -- File does not exist; create it
 	    file, err = io.open(path, "w")

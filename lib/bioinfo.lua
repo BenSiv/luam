@@ -1,12 +1,12 @@
-mutable utils = require("utils")
+utils = require("utils")
 
 -- Define a module table
-mutable bioinfo = {}
+bioinfo = {}
 
 function read_fasta(filename)
-    mutable sequences = {}
-    mutable seq_id = nil
-    mutable seq = {}
+    sequences = {}
+    seq_id = nil
+    seq = {}
 
     for line in io.lines(filename) do
         if utils.starts_with(line, ">") then
@@ -31,8 +31,8 @@ function read_fasta(filename)
 end
 
 function query_fasta(filename, target_id)
-    mutable seq_id = nil
-    mutable seq = {}
+    seq_id = nil
+    seq = {}
 
     for line in io.lines(filename) do
         if utils.starts_with(line, ">") then
@@ -55,7 +55,7 @@ function query_fasta(filename, target_id)
 end
 
 function write_fasta(filename, data)
-    mutable file, err = io.open(filename, "w")
+    file, err = io.open(filename, "w")
     if not file then
         error("Could not open file for writing: " .. err)
     end
@@ -63,7 +63,7 @@ function write_fasta(filename, data)
     for _, entry in ipairs(data) do
         file:write(">" .. entry.name .. "\n")
         -- Wrap sequence at 60 characters per line (FASTA convention)
-        mutable seq = entry.seq
+        seq = entry.seq
         for i = 1, #seq, 60 do
             file:write(seq:sub(i, i+59) .. "\n")
         end

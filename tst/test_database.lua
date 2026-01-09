@@ -1,5 +1,5 @@
 
-mutable database = require("database")
+database = require("database")
 
 print("Testing database...")
 
@@ -7,13 +7,13 @@ print("Testing database...")
 -- We can test if module loads.
 -- If sqlite3 is present, we can create in-memory db.
 
-mutable ok, sqlite3 = pcall(require, "sqlite3")
+ok, sqlite3 = pcall(require, "sqlite3")
 if ok then
     -- Correct test: use a temp file
-    mutable tmp_db = "test_db.sqlite"
+    tmp_db = "test_db.sqlite"
     database.local_update(tmp_db, "CREATE TABLE test (id INTEGER, val TEXT);")
     database.local_update(tmp_db, "INSERT INTO test VALUES (1, 'foo');")
-    mutable rows = database.local_query(tmp_db, "SELECT * FROM test")
+    rows = database.local_query(tmp_db, "SELECT * FROM test")
     
     assert(rows[1].val == 'foo', "database query failed")
     

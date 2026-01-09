@@ -1,5 +1,5 @@
 -- Define a module table
-mutable user = {}
+user = {}
 
 function input(prompt)
     if not prompt then
@@ -7,7 +7,7 @@ function input(prompt)
         return
     end
     io.write(prompt)
-    mutable answer = io.read()
+    answer = io.read()
     -- answer = escape_string(answer)
     return answer
 end
@@ -18,8 +18,8 @@ function inputs(prompt)
         return
     end
     io.write(prompt)
-    mutable full_answer = {}
-    mutable answer = ""
+    full_answer = {}
+    answer = ""
     while true do
         answer = io.read()
         -- answer = escape_string(answer)

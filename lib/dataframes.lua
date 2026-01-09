@@ -1,7 +1,7 @@
-mutable utils = require("utils")
+utils = require("utils")
 
 -- Define a module table
-mutable dataframes = {}
+dataframes = {}
 
 -- dataframe definition:
 -- 2 dimentional and rectangular table (same number of columns in each row)
@@ -18,7 +18,7 @@ function is_dataframe(tbl)
         return false
     end
 
-    mutable num_columns = nil
+    num_columns = nil
     for index, row in pairs(tbl) do
         valid_row_content = type(row) == "table"
         valid_row_index = type(index) == "number"
@@ -26,7 +26,7 @@ function is_dataframe(tbl)
             return false
         end
 
-        mutable current_num_columns = 0
+        current_num_columns = 0
         for col_name, col_value in pairs(row) do
             valid_col_name = type(col_name) == "string"
             valid_col_value = type(col_value) == "number" or type(col_value) == "string"
@@ -54,8 +54,8 @@ function string_keys(obj)
 
     new_table = {}
     for key, value in pairs(obj) do
-        mutable key = key
-        mutable value = value
+        key = key
+        value = value
         if type(key) != "string" then
             key = tostring(key)
         end
@@ -113,10 +113,10 @@ end
 
 -- Pretty print a dataframe
 function view(data_table, args)
-	mutable args = args or {}
+	args = args or {}
     -- Extract keyword arguments
     limit = args.limit
-    mutable columns = args.columns
+    columns = args.columns
 
     if utils.isempty(data_table) then
         print("Empty table")
@@ -127,7 +127,7 @@ function view(data_table, args)
     end
 
     -- Get terminal line length
-    mutable line_length = utils.get_line_length()
+    line_length = utils.get_line_length()
 
     -- If no specific columns are provided, use all columns from the first row
     if not columns or #columns == 0 then
@@ -148,7 +148,7 @@ function view(data_table, args)
     end
 
     -- Adjust column widths to fit within terminal line length
-    mutable total_width = 0
+    total_width = 0
     for _, width in pairs(column_widths) do
         total_width = total_width + width + 1 -- Add 1 for spacing
     end
@@ -165,20 +165,20 @@ function view(data_table, args)
     -- Print column headers in bold
     for _, col_name in ipairs(columns) do
         io.write("\27[1m")
-        mutable padded_key = tostring(col_name)
+        padded_key = tostring(col_name)
         padded_key = padded_key .. string.rep(" ", column_widths[col_name] - #padded_key)
         io.write(padded_key .. "\27[0m\t")
     end
     io.write("\n")
 
     -- Print rows
-    mutable row_count = 0
+    row_count = 0
     for _, row in pairs(data_table) do
         if limit and row_count >= limit then
             break
         end
         for _, col_name in ipairs(columns) do
-            mutable value = tostring(row[col_name] or "")
+            value = tostring(row[col_name] or "")
             value = value .. string.rep(" ", column_widths[col_name] - #value)
             io.write(value .. "\t")
         end
@@ -197,9 +197,9 @@ end
 
 -- Function to group data by a specified key
 -- function group_by(data, key)    
---     mutable groups = {}
+--     groups = {}
 --     for _, entry in ipairs(data) do
---         mutable group_key = entry[key]
+--         group_key = entry[key]
 --         if not groups[group_key] then
 --             groups[group_key] = {}
 --         end
@@ -210,7 +210,7 @@ end
 
 -- Group by multiple keys and return flat list
 function group_by(data, keys)
-    mutable keys = keys
+    keys = keys
     if type(keys) == "string" then
         keys = { keys } -- Normalize to table
     end
@@ -242,7 +242,7 @@ function group_by(data, keys)
         -- Copy only non-group columns
         row = {}
         for col, val in pairs(entry) do
-            mutable is_group_col = false
+            is_group_col = false
             for _, k in ipairs(keys) do
                 if col == k then
                     is_group_col = true
@@ -262,7 +262,7 @@ end
 
 -- Function to sum values in a table
 function sum_values(data, key)
-    mutable total = 0
+    total = 0
     for _, entry in ipairs(data) do
         total = total + entry[key]
     end
@@ -271,8 +271,8 @@ end
 
 -- Function to compute the mean of values in a table
 function mean_values(data, key)
-    mutable total = 0
-    mutable count = 0
+    total = 0
+    count = 0
     for _, entry in ipairs(data) do
         total = total + entry[key]
         count = count + 1
@@ -355,7 +355,7 @@ function filter_unique(tbl, column)
     
     -- Collect rows where the column value appears only once
     filtered = {}
-    mutable index = 1
+    index = 1
     for _, row in pairs(tbl) do
         if count[row[column]] == 1 then
             filtered[index] = row
@@ -401,8 +401,8 @@ end
 -- Function to rows on specific columns
 function diff(tbl, col)
     result = {}
-    mutable last_value = 0
-    mutable value = 0
+    last_value = 0
+    value = 0
     for index, row in pairs(tbl) do
         if index == 1 then 
             -- do not update values
@@ -416,7 +416,7 @@ function diff(tbl, col)
 end
 
 function innerjoin(df1, df2, columns, prefixes)
-    mutable prefixes = prefixes or {"df1", "df2"}
+    prefixes = prefixes or {"df1", "df2"}
     joined_df = {}
 
     -- Convert join columns to a set for quick lookup
@@ -496,7 +496,7 @@ end
 
 
 function innerjoin_multiple(tables, columns, prefixes)
-    mutable prefixes = prefixes or {}
+    prefixes = prefixes or {}
     joined_table = {}
     join_columns = {}
     
@@ -533,7 +533,7 @@ function innerjoin_multiple(tables, columns, prefixes)
     -- Helper to check if rows match on all join columns
     function rows_match(rows)
         for _, col in ipairs(columns) do
-            mutable val = rows[1][col]
+            val = rows[1][col]
             for i = 2, #rows do
                 if rows[i][col] != val then
                     return false

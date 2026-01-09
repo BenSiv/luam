@@ -1,15 +1,15 @@
-mutable utils = require("utils")
-mutable delimited_files = require("delimited_files")
-mutable dataframes = require("dataframes")
-mutable sqlite = require("sqlite3")
+utils = require("utils")
+delimited_files = require("delimited_files")
+dataframes = require("dataframes")
+sqlite = require("sqlite3")
 _G.sqlite3 = nil
 
 
 -- Define a module table
-mutable database = {}
+database = {}
 
 function local_query(db_path, query)
-    mutable query = query
+    query = query
     db = sqlite.open(db_path)
     if not db then
         error("Error opening database")
@@ -17,7 +17,7 @@ function local_query(db_path, query)
     db:exec("PRAGMA busy_timeout = 5000;")
 
     query = utils.unescape_string(query)
-    mutable stmt, err = db:prepare(query)
+    stmt, err = db:prepare(query)
     if not stmt then
         db:close()
         error("Invalid query: " .. err)
@@ -52,7 +52,7 @@ function local_query(db_path, query)
 end
 
 function local_update(db_path, statement)
-    mutable statement = statement
+    statement = statement
     db = sqlite.open(db_path)
 
     if not db then
@@ -71,8 +71,8 @@ function local_update(db_path, statement)
 end
 
 function get_sql_values(row, col_names)
-	mutable value
-	mutable sql_values = {}
+	value = nil 
+	sql_values = {}
 	for _, col in pairs(col_names) do
 		value = row[col]
 		if value and value != "" then
@@ -97,7 +97,7 @@ function import_delimited(db_path, file_path, table_name, delimiter)
     
     col_names = utils.keys(content[1]) -- problematic if first row does not have all the columns
     col_row = table.concat(col_names, "', '")
-    mutable insert_statement = string.format("INSERT INTO %s ('%s') VALUES ", table_name, col_row)
+    insert_statement = string.format("INSERT INTO %s ('%s') VALUES ", table_name, col_row)
 
     value_rows = {}
     for _, row in pairs(content) do
@@ -204,7 +204,7 @@ function load_df(db_path, table_name, dataframe)
 
     -- Prepare column names for the insert statement
     col_row = table.concat(columns, "', '")
-    mutable insert_statement = string.format("INSERT INTO %s ('%s') VALUES ", table_name, col_row)
+    insert_statement = string.format("INSERT INTO %s ('%s') VALUES ", table_name, col_row)
 
     -- Prepare the data rows for insertion
     value_rows = {}
@@ -328,8 +328,8 @@ function get_schema(db_path)
 end
 
 -- function get_schema(db_path)
---     mutable schema = {}
---     mutable tables = get_tables(db_path)
+--     schema = {}
+--     tables = get_tables(db_path)
 -- 
 --     for _, tname in ipairs(tables) do
 --         schema[tname] = get_table_info(db_path, tname)
@@ -339,7 +339,7 @@ end
 -- end
 
 function compare_schemas(old_schema, new_schema, migration_config)
-    mutable migration_config = migration_config
+    migration_config = migration_config
     migration_config = migration_config or {}
     migration_config.tables = migration_config.tables or {}
     migration_config.columns = migration_config.columns or {}
@@ -410,7 +410,7 @@ function compare_schemas(old_schema, new_schema, migration_config)
             -- detect added columns (not from rename)
             for _, newcol in ipairs(new_cols) do
                 if not old_col_map[newcol.name] then
-                    mutable is_rename = false
+                    is_rename = false
                     for _, mapped in pairs(column_renames) do
                         if mapped == newcol.name then
                             is_rename = true
@@ -434,7 +434,7 @@ function compare_schemas(old_schema, new_schema, migration_config)
 
     -- track tables added (not from rename)
     for new_tname, _ in pairs(new_schema) do
-        mutable is_rename = false
+        is_rename = false
         for _, mapped in pairs(migration_config.tables) do
             if mapped == new_tname then
                 is_rename = true

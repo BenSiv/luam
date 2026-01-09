@@ -22,7 +22,7 @@ _M.wrapt   = wrapt
 -- creates a function that chooses a filter by name from a given table
 function choose(tbl)
     return function(name_arg, opt1_arg, opt2_arg)
-        mutable name, opt1, opt2 = name_arg, opt1_arg, opt2_arg
+        name, opt1, opt2 = name_arg, opt1_arg, opt2_arg
         if base.type(name) != "string" then
             name, opt1, opt2 = "default", name, opt1
         end
@@ -54,7 +54,7 @@ end
 
 -- define the line-wrap filters
 wrapt['text'] = function(length_arg)
-    mutable length = length_arg or 76
+    length = length_arg or 76
     return ltn12.filter.cycle(_M.wrp, length, length)
 end
 wrapt['base64'] = wrapt['text']

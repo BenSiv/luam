@@ -6,10 +6,10 @@ print("Loading ssl...")
 -- ssl module usually requires C module 'ssl.core' which might be built as 'ssl.so'
 -- or 'ssl.dll'.
 -- require("ssl") loads lib/luasec/src/ssl.lua
--- ssl.lua line 7: mutable core    = require("ssl.core")
+-- ssl.lua line 7: core    = require("ssl.core")
 -- This C module dependency is unavoidable for LuaSec.
 
-mutable ok, ssl = pcall(require, "ssl")
+ok, ssl = pcall(require, "ssl")
 
 if not ok then
     print("Failed to load ssl (likely missing C module ssl.core): " .. tostring(ssl))
@@ -21,7 +21,7 @@ if not ok then
     
     -- Let's check options.lua which seems standalone-ish
     print("Loading options.lua...")
-    mutable ok_opt, options = pcall(require, "options")
+    ok_opt, options = pcall(require, "options")
     if ok_opt then
        print("options.lua loaded")
     else
@@ -31,8 +31,8 @@ else
     print("SSL loaded.")
     print("Testing functionality...")
     -- Simple test create context (might fail if no certs)
-    mutable params = { mode = "client", protocol = "any" }
-    mutable ctx, err = ssl.newcontext(params)
+    params = { mode = "client", protocol = "any" }
+    ctx, err = ssl.newcontext(params)
     if ctx then
         print("Created SSL context")
     else

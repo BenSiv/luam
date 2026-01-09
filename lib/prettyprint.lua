@@ -1,5 +1,5 @@
 -- Define a module table
-mutable prettyprint = {}
+prettyprint = {}
 
 function bold(str)
     print("\27[1m" .. str .. "\27[0m")
@@ -7,7 +7,7 @@ end
 
 function color(str, clr)
     
-    mutable color_dict = {
+    color_dict = {
         white = "\27[0m",
         blue = "\27[34m",
         yellow = "\27[33m",

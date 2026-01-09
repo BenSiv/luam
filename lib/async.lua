@@ -1,11 +1,11 @@
 -- Async I/O utility for concurrent operations using lua-lanes
 -- Provides a simple map_concurrent function for parallel I/O-bound tasks
 
-mutable async = {}
+async = {}
 
 -- Check if lua-lanes is available
 function has_lanes()
-    mutable ok, lanes = pcall(require, "lanes")
+    ok, lanes = pcall(require, "lanes")
     return ok, lanes
 end
 
@@ -16,14 +16,14 @@ end
 -- @param progress_fn: optional function(completed, total) called on each completion
 -- @return: array of results in same order as items, whether concurrent was used
 function async.map_concurrent(items, worker_fn, max_workers, progress_fn)
-    mutable max_workers = max_workers
+    max_workers = max_workers
     max_workers = max_workers or 10
     
     -- Check if lanes available and worth parallelizing
-    mutable ok, lanes = has_lanes()
+    ok, lanes = has_lanes()
     if not ok or #items <= 1 then
         -- Fallback to sequential processing
-        mutable results = {}
+        results = {}
         for i, item in ipairs(items) do
             results[i] = worker_fn(item)
         end
@@ -33,33 +33,33 @@ function async.map_concurrent(items, worker_fn, max_workers, progress_fn)
     -- Configure lanes
     lanes = lanes.configure()
     
-    mutable active = {}
-    mutable results = {}
-    mutable item_idx = 1
-    mutable completed = 0
+    active = {}
+    results = {}
+    item_idx = 1
+    completed = 0
     
     -- Process items with worker pool
     while completed < #items do
         -- Spawn new workers up to max
         while #active < max_workers and item_idx <= #items do
-            mutable idx = item_idx
-            mutable item = items[idx]
+            idx = item_idx
+            item = items[idx]
             
             -- Create lane worker
-            mutable worker = lanes.gen("*", worker_fn)(item)
+            worker = lanes.gen("*", worker_fn)(item)
             table.insert(active, {lane = worker, idx = idx})
             item_idx = item_idx + 1
         end
         
         -- Check and collect completed workers
-        mutable i = 1
+        i = 1
         while i <= #active do
-            mutable lane_obj = active[i].lane
-            mutable status = lane_obj.status
+            lane_obj = active[i].lane
+            status = lane_obj.status
             
             if status == "done" then
                 -- Get result
-                mutable ok, result = pcall(function() return lane_obj[1] end)
+                ok, result = pcall(function() return lane_obj[1] end)
                 if ok then
                     results[active[i].idx] = result
                 else
@@ -76,7 +76,7 @@ function async.map_concurrent(items, worker_fn, max_workers, progress_fn)
                 table.remove(active, i)
             elseif status == "error" then
                 -- Lane had an error
-                mutable err = lane_obj[0]
+                err = lane_obj[0]
                 print("Worker error: " .. tostring(err))
                 results[active[i].idx] = nil
                 completed = completed + 1

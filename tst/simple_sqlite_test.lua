@@ -1,6 +1,6 @@
 print("Testing sqlite3 module...")
-mutable sqlite3 = nil
-mutable ok = pcall({function()
+sqlite3 = nil
+ok = pcall({function()
     sqlite3 = require({"sqlite3"})
 end})
 
@@ -8,7 +8,7 @@ if ok then
     print("Successfully loaded sqlite3 module.")
     if sqlite3.api and sqlite3.api.open then
         print("sqlite3.api.open found.")
-        mutable db = nil
+        db = nil
         if sqlite3.api then
            print("sqlite3.api found. Module loaded successfully.")
         else

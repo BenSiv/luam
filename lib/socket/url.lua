@@ -83,7 +83,7 @@ end
 -- Returns
 --   dot-normalized path
 function remove_dot_components(path_arg)
-    mutable path = path_arg
+    path = path_arg
     marker = string_lib.char(1)
     while true do
         was = path
@@ -117,13 +117,13 @@ end
 --   corresponding absolute path
 -----------------------------------------------------------------------------
 function absolute_path(base_path_arg, relative_path)
-    mutable base_path = base_path_arg
+    base_path = base_path_arg
     if string_lib.sub(relative_path, 1, 1) == "/" then
       return remove_dot_components(relative_path) end
     base_path = string_lib.gsub(base_path, "[^/]*$", "")
     if not string_lib.find(base_path, '/$') then base_path = base_path .. '/' end
     if not string_lib.find(base_path, '/$') then base_path = base_path .. '/' end
-    mutable path = base_path .. relative_path
+    path = base_path .. relative_path
     path = remove_dot_components(path)
     return path
 end
@@ -147,9 +147,9 @@ end
 --   the leading '/' in {/<path>} is considered part of <path>
 -----------------------------------------------------------------------------
 function _M.parse(url_arg, default)
-    mutable url = url_arg
+    url = url_arg
     -- initialize default parameters
-    mutable parsed = {}
+    parsed = {}
     for i,v in base.pairs(default or parsed) do parsed[i] = v end
     -- empty url is parsed to nil
     if not url or url == "" then return nil, "invalid url" end
@@ -180,7 +180,7 @@ function _M.parse(url_arg, default)
     end)
     -- path is whatever was left
     if url != "" then parsed.path = url end
-    mutable authority = parsed.authority
+    authority = parsed.authority
     if not authority then return parsed end
     authority = string_lib.gsub(authority,"^([^@]*)@",
         function(u) parsed.userinfo = u; return "" end)
@@ -190,7 +190,7 @@ function _M.parse(url_arg, default)
         -- IPv6?
         parsed.host = string_lib.match(authority, "^%[(.+)%]$") or authority
     end
-    mutable userinfo = parsed.userinfo
+    userinfo = parsed.userinfo
     if not userinfo then return parsed end
     userinfo = string_lib.gsub(userinfo, ":([^:]*)$",
         function(p) parsed.password = p; return "" end)
@@ -209,17 +209,17 @@ end
 function _M.build(parsed)
     --ppath = _M.parse_path(parsed.path or "")
     --url = _M.build_path(ppath)
-    mutable url = parsed.path or ""
+    url = parsed.path or ""
     if parsed.params then url = url .. ";" .. parsed.params end
     if parsed.query then url = url .. "?" .. parsed.query end
-    mutable authority = parsed.authority
+    authority = parsed.authority
     if parsed.host then
         authority = parsed.host
         if string_lib.find(authority, ":") then -- IPv6?
             authority = "[" .. authority .. "]"
         end
         if parsed.port then authority = authority .. ":" .. base.tostring(parsed.port) end
-        mutable userinfo = parsed.userinfo
+        userinfo = parsed.userinfo
         if parsed.user then
             userinfo = parsed.user
             if parsed.password then
@@ -244,15 +244,15 @@ end
 --   corresponding absolute url
 -----------------------------------------------------------------------------
 function _M.absolute(base_url_arg, relative_url)
-    mutable base_url = base_url_arg
-    mutable base_parsed
+    base_url = base_url_arg
+    base_parsed = nil 
     if base.type(base_url) == "table" then
         base_parsed = base_url
         base_url = _M.build(base_parsed)
     else
         base_parsed = _M.parse(base_url)
     end
-    mutable result
+    result = nil 
     relative_parsed = _M.parse(relative_url)
     if not base_parsed then
         result = relative_url
@@ -290,8 +290,8 @@ end
 --   segment: a table with one entry per segment
 -----------------------------------------------------------------------------
 function _M.parse_path(path_arg)
-    mutable parsed = {}
-    mutable path = path_arg or ""
+    parsed = {}
+    path = path_arg or ""
     --path = string_lib.gsub(path, "%s", "")
     string_lib.gsub(path, "([^/]+)", function (s) table_lib.insert(parsed, s) end)
     for i = 1, #parsed do
@@ -311,7 +311,7 @@ end
 --   path: corresponding path stringing
 -----------------------------------------------------------------------------
 function _M.build_path(parsed, unsafe)
-    mutable path = ""
+    path = ""
     n = #parsed
     if unsafe then
         for i = 1, n-1 do

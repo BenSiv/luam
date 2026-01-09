@@ -1,24 +1,24 @@
 -- Define a module table
-mutable string_utils = {}
+string_utils = {}
 
 
 function starts_with(str, prefix)
-    mutable result = string.sub(str, 1, #prefix)
+    result = string.sub(str, 1, #prefix)
     return prefix == result
 end
 
 function ends_with(str, suffix)
-    mutable result = string.sub(str, #str - #suffix + 1, #str)
+    result = string.sub(str, #str - #suffix + 1, #str)
     return suffix == result
 end
 
 -- Splits a string by delimiter to a table
 function split(str, delimiter)
-    mutable result = {}
-    mutable token = ""
-    mutable pos = 1
-    mutable delimiter_length = #delimiter
-    mutable str_length = #str
+    result = {}
+    token = ""
+    pos = 1
+    delimiter_length = #delimiter
+    str_length = #str
 
     while pos <= str_length do
         -- Check if the substring from pos to pos + delimiter_length - 1 matches the delimiter
@@ -49,7 +49,7 @@ end
 function strip(s)
     if not s then return s end
     -- remove leading BOM if present
-    mutable s = string.gsub(s, "^\239\187\191", "")
+    s = string.gsub(s, "^\239\187\191", "")
     -- remove leading ascii whitespace, NBSP (U+00A0), and ZWSP (U+200B)
     s = string.gsub(s, "^[%s\194\160\226\128\139]+", "")
     -- remove trailing ascii whitespace, NBSP, and ZWSP
@@ -59,18 +59,18 @@ end
 
 -- Escape special characters string
 function escape_string(str)
-    mutable new_str = string.gsub(str, "([%(%)%.%%%+%-%*%?%[%]%^%$])", "%%%1")
+    new_str = string.gsub(str, "([%(%)%.%%%+%-%*%?%[%]%^%$])", "%%%1")
     return new_str
 end
 
 function unescape_string(str)
-    mutable new_str = string.gsub(str, "%%([%(%)%.%%%+%-%*%?%[%]%^%$])", "%1")
+    new_str = string.gsub(str, "%%([%(%)%.%%%+%-%*%?%[%]%^%$])", "%1")
     return new_str
 end
 
 -- Repeats a string n times into a new concatenated string
 function repeat_string(str, n)
-    mutable result = ""
+    result = ""
     for i = 1, n do
         result = result .. str
     end

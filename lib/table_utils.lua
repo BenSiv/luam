@@ -1,8 +1,8 @@
 -- Define a module table
-mutable table_utils = {}
+table_utils = {}
 
 function swap_keys_values(tbl)
-    mutable swapped = {}
+    swapped = {}
     for k, v in pairs(tbl) do
         swapped[v] = k
     end
@@ -14,7 +14,7 @@ function keys(tbl)
         error("Input is not a table")
     end
 
-    mutable keys = {}
+    keys = {}
     for key, _ in pairs(tbl) do
         table.insert(keys, key)
     end
@@ -26,7 +26,7 @@ function values(tbl)
         error("Input is not a table")
     end
 
-    mutable values = {}
+    values = {}
     for _, value in pairs(tbl) do
         table.insert(values, value)
     end
@@ -44,7 +44,7 @@ function unique(tbl)
 end
 
 function concat_arrays(...)
-    mutable result = {}
+    result = {}
     for _, t in ipairs({...}) do
         for i = 1, #t do
             result[#result + 1] = t[i]
