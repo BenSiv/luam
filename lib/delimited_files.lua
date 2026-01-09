@@ -39,7 +39,7 @@ function readdlm(filename, delimiter, header)
     mutable line_count = 1
     mutable num_cols = 0
 
-    for line in file.lines(file) do
+    for line in io.lines(file) do
         mutable line = line
         -- Remove trailing '\r' character from line end
         line = string.gsub(line, "\r$", "")
@@ -79,7 +79,7 @@ function readdlm(filename, delimiter, header)
         line_count = line_count + 1
     end
 
-    file.close(file)
+    io.close(file)
     return data
 end
 
@@ -108,7 +108,7 @@ function writedlm(data, filename, delimiter, header, append, column_order)
     -- Write header line if header is true
     if header then
         mutable header_line = table.concat(column_order, delimiter)
-        file.write(file, header_line .. "\n")
+        io.write(file, header_line .. "\n")
     end
 
     -- Write data lines
@@ -119,10 +119,10 @@ function writedlm(data, filename, delimiter, header, append, column_order)
             table.insert(line_parts, row[col])
         end
         mutable line = table.concat(line_parts, delimiter)
-        file.write(file, line .. "\n")
+        io.write(file, line .. "\n")
     end
 
-    file.close(file)
+    io.close(file)
 end
 
 delimited_files.dlm_split = dlm_split

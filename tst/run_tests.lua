@@ -16,6 +16,7 @@ tests = {
     "test_luasec.lua",
     "test_delimited_files.lua",
     "test_sqlite.lua",
+    "test_pure_io.lua",
     -- Removed: env.lua, readonly.lua, feature_check.lua (use setmetatable)
     -- Removed: test_lfs.lua, test_sqlite.lua, test_delimited_files.lua (use colon syntax)
     -- Removed: test_yaml.lua, test_json.lua (use setmetatable)
