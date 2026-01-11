@@ -140,9 +140,11 @@ function view(data_table, args)
     -- Calculate column widths
     column_widths = {}
     for _, row in pairs(data_table) do
-        for _, col_name in ipairs(columns) do
+        for col_idx, col_name in ipairs(columns) do
             col_width = #tostring(col_name)
-            val_width = #tostring(row[col_name] or "")
+            -- Support both named and numeric column access
+            cell_value = row[col_name] or row[col_idx] or ""
+            val_width = #tostring(cell_value)
             column_widths[col_name] = math.max(column_widths[col_name] or 0, col_width, val_width)
         end
     end
@@ -177,8 +179,10 @@ function view(data_table, args)
         if limit and row_count >= limit then
             break
         end
-        for _, col_name in ipairs(columns) do
-            value = tostring(row[col_name] or "")
+        for col_idx, col_name in ipairs(columns) do
+            -- Support both named and numeric column access
+            cell_value = row[col_name] or row[col_idx] or ""
+            value = tostring(cell_value)
             value = value .. string.rep(" ", column_widths[col_name] - #value)
             io.write(value .. "\t")
         end
