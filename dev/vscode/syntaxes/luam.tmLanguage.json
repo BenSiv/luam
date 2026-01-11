@@ -1,0 +1,73 @@
+{
+    "name": "Luam",
+    "scopeName": "source.luam",
+    "fileTypes": [
+        "lua"
+    ],
+    "patterns": [
+        {
+            "name": "comment.line.double-dash.luam",
+            "match": "--.*$"
+        },
+        {
+            "name": "comment.block.luam",
+            "begin": "--\\[\\[",
+            "end": "\\]\\]"
+        },
+        {
+            "name": "string.quoted.triple.luam",
+            "begin": "\"\"\"",
+            "end": "\"\"\""
+        },
+        {
+            "name": "string.quoted.double.luam",
+            "begin": "\"",
+            "end": "\"",
+            "patterns": [
+                {
+                    "name": "constant.character.escape.luam",
+                    "match": "\\\\."
+                }
+            ]
+        },
+        {
+            "name": "string.quoted.single.luam",
+            "begin": "'",
+            "end": "'",
+            "patterns": [
+                {
+                    "name": "constant.character.escape.luam",
+                    "match": "\\\\."
+                }
+            ]
+        },
+        {
+            "name": "keyword.control.luam",
+            "match": "\\b(break|do|else|elseif|end|for|if|return|then|while)\\b"
+        },
+        {
+            "name": "storage.type.luam",
+            "match": "\\b(function|var|mutable)\\b"
+        },
+        {
+            "name": "constant.language.luam",
+            "match": "\\b(true|false|nil)\\b"
+        },
+        {
+            "name": "variable.language.self.luam",
+            "match": "\\bself\\b"
+        },
+        {
+            "name": "support.function.library.luam",
+            "match": "\\b(print|type|tostring|tonumber|require|error|setmetatable|getmetatable|rawget|rawset|pairs|ipairs|next|assert|pcall|xpcall|collectgarbage|dofile|load|loadfile|loadstring|module|select|unpack)\\b"
+        },
+        {
+            "name": "keyword.operator.luam",
+            "match": "!|!=|==|<=|>=|<|>|=;|=|\\.|:|\\.\\.|\\.\\.\\.|\\+|\\-|\\*|/|%|\\^|#"
+        },
+        {
+            "name": "constant.numeric.luam",
+            "match": "\\b\\d+(\\.\\d+)?([eE][+-]?\\d+)?\\b|\\b0x[0-9a-fA-F]+\\b"
+        }
+    ]
+}

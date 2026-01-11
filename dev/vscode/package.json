@@ -1,0 +1,34 @@
+{
+    "name": "luam-lang",
+    "displayName": "Luam Language",
+    "description": "Syntax highlighting for Luam",
+    "version": "0.0.1",
+    "engines": {
+        "vscode": "^1.75.0"
+    },
+    "categories": [
+        "Programming Languages"
+    ],
+    "contributes": {
+        "languages": [
+            {
+                "id": "luam",
+                "aliases": [
+                    "Luam",
+                    "luam"
+                ],
+                "extensions": [
+                    ".lua"
+                ],
+                "configuration": "./language-configuration.json"
+            }
+        ],
+        "grammars": [
+            {
+                "language": "luam",
+                "scopeName": "source.luam",
+                "path": "./syntaxes/luam.tmLanguage.json"
+            }
+        ]
+    }
+}

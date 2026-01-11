@@ -1,0 +1,49 @@
+filetype: luam
+
+detect:
+    filename: "\\.lua$"
+
+rules:
+    # Comments
+    - type: "comment"
+      start: "--\\[\\["
+      end: "\\]\\]"
+    - type: "comment"
+      match: "--.*$"
+
+    # Strings
+    - type: "string"
+      start: "\"\"\""
+      end: "\"\"\""
+    - type: "string"
+      start: "\""
+      end: "\""
+      skip: "\\\\."
+    - type: "string"
+      start: "'"
+      end: "'"
+      skip: "\\\\."
+
+    # Keywords (control flow)
+    - type: "keyword"
+      match: "\\b(break|do|else|elseif|end|for|if|return|then|while)\\b"
+
+    # Keywords (storage/declarations)
+    - type: "type"
+      match: "\\b(function|var|mutable)\\b"
+
+    # Constants
+    - type: "constant"
+      match: "\\b(true|false|nil)\\b"
+    - type: "constant.number"
+      match: "\\b\\d+(\\.\\d+)?([eE][+-]?\\d+)?\\b|\\b0x[0-9a-fA-F]+\\b"
+
+    # Operators & Punctuation
+    - type: "symbol.operator"
+      match: "(!=|==|<=|>=|<|>|=;|\\.\\.\\.|\\.\\.|[-+*/%^#=])"
+    - type: "symbol.brackets"
+      match: "[(){}\\[\\]]"
+
+    # Standard Library Functions (Common subset)
+    - type: "identifier"
+      match: "\\b(print|type|tostring|tonumber|require|error|assert|pcall|pairs|ipairs)\\b"
