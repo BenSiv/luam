@@ -36,8 +36,11 @@ function read(path)
     file = io.open(path, "r")
     content = nil
     if file then
-        content = io.read(file, "*all")
-        content = escape_string(content)
+        io.input(file)
+        content = io.read("*all")
+        if content then
+            content = escape_string(content)
+        end
         io.close(file)
     else
         print("Failed to open " .. path)
