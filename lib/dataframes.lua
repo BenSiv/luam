@@ -28,7 +28,7 @@ function is_dataframe(tbl)
 
         current_num_columns = 0
         for col_name, col_value in pairs(row) do
-            valid_col_name = type(col_name) == "string"
+            valid_col_name = type(col_name) == "string" or type(col_name) == "number"
             valid_col_value = type(col_value) == "number" or type(col_value) == "string"
             if not valid_col_name or not valid_col_value then
                 return false

@@ -114,4 +114,14 @@ else
     echo "Skipping ssl (source not found)"
 fi
 
+# 6. Static Tool
+if [ -d "lib/static" ]; then
+    echo "Installing static tool..."
+    cp lib/static/static.lua lib/
+    chmod +x lib/static.lua
+    echo "static tool installed to lib/static.lua"
+else
+    echo "Skipping static tool (source not found)"
+fi
+
 echo "Build complete."

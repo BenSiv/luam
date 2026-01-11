@@ -102,11 +102,11 @@ function date_range(first_date, last_date, unit, interval)
 	while current_date != last_date do
 		year, month, day = string.match(current_date, "(%d+)-(%d+)-(%d+)")
         if unit == "day" then
-		    current_date = os.date("%Y-%m-%d", os.time{year=year, month=month, day=day+interval})
+		    current_date = os.date("%Y-%m-%d", os.time({year=year, month=month, day=day+interval}))
         elseif unit == "month" then
-		    current_date = os.date("%Y-%m-%d", os.time{year=year, month=month+interval, day=day})
+		    current_date = os.date("%Y-%m-%d", os.time({year=year, month=month+interval, day=day}))
         elseif unit == "year" then
-		    current_date = os.date("%Y-%m-%d", os.time{year=year+interval, month=month, day=day})
+		    current_date = os.date("%Y-%m-%d", os.time({year=year+interval, month=month, day=day}))
         else
             print("Unknown time unit")
         end

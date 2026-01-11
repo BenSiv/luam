@@ -1,1 +1,3 @@
-
+TODO:
+- generate dev dir with syntax highlighting for vs code and micro
+- add build script to run make clean with ANSI checks

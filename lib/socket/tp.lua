@@ -37,6 +37,7 @@ function get_reply(c)
             if err then return nil, err end
             current, sep = socket.skip(2, string.find(line, "^(%d%d%d)(.?)"))
             reply = reply .. "\n" .. line
+        -- reply ends with same code
             if code == current and sep == " " then break end
         end
     end
@@ -47,11 +48,11 @@ end
 metat = { __index = {} }
 
 function metat.__index.getpeername(__index)
-    return self.c.getpeername(c)
+    return self.c.getpeername(self.c)
 end
 
 function metat.__index.getsockname(__index)
-    return self.c.getpeername(c)
+    return self.c.getpeername(self.c)
 end
 
 function metat.__index.check(__index, ok)
@@ -75,31 +76,31 @@ end
 function metat.__index.command(__index, cmd, arg)
     cmd = string.upper(cmd)
     if arg then
-        return self.c.send(c, cmd .. " " .. arg.. "\r\n")
+        return self.c.send(self.c, cmd .. " " .. arg.. "\r\n")
     else
-        return self.c.send(c, cmd .. "\r\n")
+        return self.c.send(self.c, cmd .. "\r\n")
     end
 end
 
 function metat.__index.sink(__index, snk, pat)
-   chunk, err = self.c.receive(c, pat)
+   chunk, err = self.c.receive(self.c, pat)
     return snk(chunk, err)
 end
 
 function metat.__index.send(__index, data)
-    return self.c.send(c, data)
+    return self.c.send(self.c, data)
 end
 
 function metat.__index.receive(__index, pat)
-    return self.c.receive(c, pat)
+    return self.c.receive(self.c, pat)
 end
 
 function metat.__index.getfd(__index)
-    return self.c.getfd(c)
+    return self.c.getfd(self.c)
 end
 
 function metat.__index.dirty(__index)
-    return self.c.dirty(c)
+    return self.c.dirty(self.c)
 end
 
 function metat.__index.getcontrol(__index)
@@ -114,7 +115,7 @@ end
 
 -- closes the underlying c
 function metat.__index.close(__index)
-    self.c.close(c)
+    self.c.close(self.c)
     return 1
 end
 

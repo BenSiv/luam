@@ -7,7 +7,7 @@
 -- Declare module and import dependencies
 -----------------------------------------------------------------------------
 base = _G
-string_lib = require("string")
+string = require("string")
 math = require("math")
 socket = require("socket.core")
 
@@ -24,12 +24,11 @@ function _M.connect6(address, port, laddress, lport)
     return socket.connect(address, port, laddress, lport, "inet6")
 end
 
-function _M.bind(host_arg, port, backlog)
-    host = host_arg
+function _M.bind(host, port, backlog)
     if host == "*" then host = "0.0.0.0" end
-    addrinfo, err = socket.dns.getaddrinfo(host);
+   addrinfo, err = socket.dns.getaddrinfo(host);
     if not addrinfo then return nil, err end
-    sock, res = nil 
+   sock, res = nil, nil
     err = "no info on address"
     for i, alt in base.ipairs(addrinfo) do
         if alt.family == "inet" then
@@ -56,13 +55,12 @@ end
 
 _M.try = _M.newtry()
 
-function _M.choose(tbl)
-    return function(name_arg, opt1_arg, opt2_arg)
-        name, opt1, opt2 = name_arg, opt1_arg, opt2_arg
+function _M.choose(table)
+    return function(name, opt1, opt2)
         if base.type(name) != "string" then
             name, opt1, opt2 = "default", name, opt1
         end
-        f = tbl[name or "nil"]
+       f = table[name or "nil"]
         if not f then base.error("unknown key (".. base.tostring(name) ..")", 3)
         else return f(opt1, opt2) end
     end
@@ -108,32 +106,31 @@ sinkt["default"] = sinkt["keep-open"]
 
 _M.sink = _M.choose(sinkt)
 
-sourcet["by-length"] = function(sock, length_arg)
+sourcet["by-length"] = function(sock, length)
     return base.setmetatable({
         getfd = function() return sock.getfd(sock) end,
         dirty = function() return sock.dirty(sock) end
     }, {
         __call = function()
-            length = length_arg
             if length <= 0 then return nil end
-            size = math.min(socket.BLOCKSIZE, length)
-            chunk, err = sock.receive(sock, size)
+           size = math.min(socket.BLOCKSIZE, length)
+           chunk, err = sock.receive(sock, size)
             if err then return nil, err end
-            length = length - string_lib.len(chunk)
+            length = length - string.len(chunk)
             return chunk
         end
     })
 end
 
 sourcet["until-closed"] = function(sock)
-    done = nil 
+   done = nil
     return base.setmetatable({
         getfd = function() return sock.getfd(sock) end,
         dirty = function() return sock.dirty(sock) end
     }, {
         __call = function()
             if done then return nil end
-            chunk, err, partial = sock.receive(sock, socket.BLOCKSIZE)
+           chunk, err, partial = sock.receive(sock, socket.BLOCKSIZE)
             if not err then return chunk
             elseif err == "closed" then
                 sock.close(sock)

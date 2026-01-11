@@ -134,7 +134,7 @@ end
 
 function metat.__index.sendrequestline(__index, method, uri)
    reqline = string.format("%s %s HTTP/1.1\r\n", method or "GET", uri)
-    return self.try(self.c.send(c, reqline))
+    return self.try(self.c.send(self.c, reqline))
 end
 
 function metat.__index.sendheaders(__index, tosend)
@@ -143,7 +143,7 @@ function metat.__index.sendheaders(__index, tosend)
     for f, v in base.pairs(tosend) do
         h = (canonic[f] or f) .. ": " .. v .. "\r\n" .. h
     end
-    self.try(self.c.send(c, h))
+    self.try(self.c.send(self.c, h))
     return 1
 end
 
@@ -157,7 +157,7 @@ function metat.__index.sendbody(__index, headers, source, step)
 end
 
 function metat.__index.receivestatusline(__index)
-   status,ec = self.try(self.c.receive(c, 5))
+   status,ec = self.try(self.c.receive(self.c, 5))
     -- identify HTTP/0.9 responses, which do not contain a status line
     -- this is just a heuristic, but is what the RFC recommends
     if status != "HTTP/" then
@@ -167,7 +167,7 @@ function metat.__index.receivestatusline(__index)
         return nil, status
     end
     -- otherwise proceed reading a status line
-    status = self.try(self.c.receive(c, "*l", status))
+    status = self.try(self.c.receive(self.c, "*l", status))
    code = socket.skip(2, string.find(status, "HTTP/%d*%.%d* (%d%d%d)"))
     return self.try(base.tonumber(code), status)
 end
@@ -195,7 +195,7 @@ function metat.__index.receive09body(__index, status, sink, step)
 end
 
 function metat.__index.close(__index)
-    return self.c.close(c)
+    return self.c.close(self.c)
 end
 
 -----------------------------------------------------------------------------
@@ -273,7 +273,7 @@ function adjustrequest(reqt)
     -- explicit components override url
     for i,v in base.pairs(reqt) do nreqt[i] = v end
     -- default to scheme particulars
-   schemedefs, host, port, method 
+   schemedefs, host, port, method = nil
         = SCHEMES[nreqt.scheme], nreqt.host, nreqt.port, nreqt.method
     if not nreqt.create then nreqt.create = schemedefs.create(nreqt) end
     if not (port and port != '') then nreqt.port = schemedefs.port end
@@ -337,7 +337,7 @@ trequest, tredirect = nil
         reqt.port = nil
         reqt.create = nil end
     -- make new request
-   result, code, headers, status = trequest ({
+   result, code, headers, status = trequest {
         url = newurl,
         source = reqt.source,
         sink = reqt.sink,
@@ -346,7 +346,7 @@ trequest, tredirect = nil
         maxredirects = reqt.maxredirects,
         nredirects = (reqt.nredirects or 0) + 1,
         create = reqt.create
-    })
+    }
     -- pass location header back as a hint we redirected
     headers = headers or {}
     headers.location = headers.location or location

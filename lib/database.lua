@@ -135,7 +135,7 @@ end
 
 -- Escapes single quotes for safe SQLite string usage
 function escape_sqlite(value)
-    return tostring(value):gsub("'", "''")
+    return string.gsub(tostring(value), "'", "''")
 end
 
 function load_df_rows(db_path, table_name, dataframe)
@@ -278,12 +278,12 @@ function get_table_info(db_path, table_name)
     -- Open the database
     db = sqlite.open(db_path)
     if not db then
-        error(("Failed to open database at %s"):format(db_path))
+        error(string.format("Failed to open database at %s", db_path))
     end
 
     -- Collect column info
     columns = {}
-    sql = ("PRAGMA table_info(%s);"):format(table_name)
+    sql = string.format("PRAGMA table_info(%s);", table_name)
 
     for row in db.rows(db, sql) do
         columns[#columns + 1] = {
@@ -302,7 +302,7 @@ end
 function get_schema(db_path)
     db = sqlite.open(db_path)
     if not db then
-        error(("Failed to open database at %s"):format(db_path))
+        error(string.format("Failed to open database at %s", db_path))
     end
 
     schema = {}
@@ -311,7 +311,7 @@ function get_schema(db_path)
         table_name = row.name
         schema[table_name] = {}
 
-        sql = ("PRAGMA table_info(%s);"):format(table_name)
+        sql = string.format("PRAGMA table_info(%s);", table_name)
         for col in db.rows(db, sql) do
             schema[table_name][#schema[table_name] + 1] = {
                 name = col.name,

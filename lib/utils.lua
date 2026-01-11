@@ -357,8 +357,8 @@ function read_yaml(file_path)
         error("Failed to read file: " .. file_path)
     else
         content = io.read(file, "*all")
-        -- data = yaml.load(content)
-        data = yaml.eval(content)
+        data = yaml.load(content)
+        -- data = yaml.eval(content)
         io.close(file)
     end
     return data

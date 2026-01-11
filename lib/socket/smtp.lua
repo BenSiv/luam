@@ -42,51 +42,51 @@ _M.ZONE = "-0000"
 metat = { __index = {} }
 
 function metat.__index.greet(__index, domain)
-    self.try(self.tp.check(tp, "2.."))
-    self.try(self.tp.command(tp, "EHLO", domain or _M.DOMAIN))
-    return socket.skip(1, self.try(self.tp.check(tp, "2..")))
+    self.try(self.tp.check(self.tp, "2.."))
+    self.try(self.tp.command(self.tp, "EHLO", domain or _M.DOMAIN))
+    return socket.skip(1, self.try(self.tp.check(self.tp, "2..")))
 end
 
 function metat.__index.mail(__index, from)
-    self.try(self.tp.command(tp, "MAIL", "FROM:" .. from))
-    return self.try(self.tp.check(tp, "2.."))
+    self.try(self.tp.command(self.tp, "MAIL", "FROM:" .. from))
+    return self.try(self.tp.check(self.tp, "2.."))
 end
 
 function metat.__index.rcpt(__index, to)
-    self.try(self.tp.command(tp, "RCPT", "TO:" .. to))
-    return self.try(self.tp.check(tp, "2.."))
+    self.try(self.tp.command(self.tp, "RCPT", "TO:" .. to))
+    return self.try(self.tp.check(self.tp, "2.."))
 end
 
 function metat.__index.data(__index, src, step)
-    self.try(self.tp.command(tp, "DATA"))
-    self.try(self.tp.check(tp, "3.."))
-    self.try(self.tp.source(tp, src, step))
-    self.try(self.tp.send(tp, "\r\n.\r\n"))
-    return self.try(self.tp.check(tp, "2.."))
+    self.try(self.tp.command(self.tp, "DATA"))
+    self.try(self.tp.check(self.tp, "3.."))
+    self.try(self.tp.source(self.tp, src, step))
+    self.try(self.tp.send(self.tp, "\r\n.\r\n"))
+    return self.try(self.tp.check(self.tp, "2.."))
 end
 
 function metat.__index.quit(__index)
-    self.try(self.tp.command(tp, "QUIT"))
-    return self.try(self.tp.check(tp, "2.."))
+    self.try(self.tp.command(self.tp, "QUIT"))
+    return self.try(self.tp.check(self.tp, "2.."))
 end
 
 function metat.__index.close(__index)
-    return self.tp.close(tp)
+    return self.tp.close(self.tp)
 end
 
 function metat.__index.login(__index, user, password)
-    self.try(self.tp.command(tp, "AUTH", "LOGIN"))
-    self.try(self.tp.check(tp, "3.."))
-    self.try(self.tp.send(tp, mime.b64(user) .. "\r\n"))
-    self.try(self.tp.check(tp, "3.."))
-    self.try(self.tp.send(tp, mime.b64(password) .. "\r\n"))
-    return self.try(self.tp.check(tp, "2.."))
+    self.try(self.tp.command(self.tp, "AUTH", "LOGIN"))
+    self.try(self.tp.check(self.tp, "3.."))
+    self.try(self.tp.send(self.tp, mime.b64(user) .. "\r\n"))
+    self.try(self.tp.check(self.tp, "3.."))
+    self.try(self.tp.send(self.tp, mime.b64(password) .. "\r\n"))
+    return self.try(self.tp.check(self.tp, "2.."))
 end
 
 function metat.__index.plain(__index, user, password)
    auth = "PLAIN " .. mime.b64("\0" .. user .. "\0" .. password)
-    self.try(self.tp.command(tp, "AUTH", auth))
-    return self.try(self.tp.check(tp, "2.."))
+    self.try(self.tp.command(self.tp, "AUTH", auth))
+    return self.try(self.tp.check(self.tp, "2.."))
 end
 
 function metat.__index.auth(__index, user, password, ext)

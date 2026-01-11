@@ -62,6 +62,7 @@ end
 
 function parse_args(cmd_args, expected_args, help_string)
     result = {}
+    
     arg_map = {}
 
     -- Create a map for quick lookup of parsed_args by short and long names
@@ -71,12 +72,12 @@ function parse_args(cmd_args, expected_args, help_string)
     end
 
     i = 1
-    while i <= utils.length(cmd_args) do
+    while i <= #cmd_args do
         arg_name = cmd_args[i]
         parsed_arg = arg_map[arg_name]
 
         if not parsed_arg then
-            print("Unknown argument: " .. arg_name)
+            print("Unknown argument: " .. tostring(arg_name))
             print_help(cmd_args, expected_args, help_string)
             return nil
         end

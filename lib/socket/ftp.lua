@@ -43,30 +43,30 @@ function _M.open(server, port, create)
 end
 
 function metat.__index.portconnect(__index)
-    self.try(self.server.settimeout(server, _M.TIMEOUT))
-    self.data = self.try(self.server.accept(server))
-    self.try(self.data.settimeout(data, _M.TIMEOUT))
+    self.try(self.server.settimeout(self.server, _M.TIMEOUT))
+    self.data = self.try(self.server.accept(self.server))
+    self.try(self.data.settimeout(self.data, _M.TIMEOUT))
 end
 
 function metat.__index.pasvconnect(__index)
     self.data = self.try(socket.tcp())
-    self.try(self.data.settimeout(data, _M.TIMEOUT))
-    self.try(self.data.connect(data, self.pasvt.address, self.pasvt.port))
+    self.try(self.data.settimeout(self.data, _M.TIMEOUT))
+    self.try(self.data.connect(self.data, self.pasvt.address, self.pasvt.port))
 end
 
 function metat.__index.login(__index, user, password)
-    self.try(self.tp.command(tp, "user", user or _M.USER))
+    self.try(self.tp.command(self.tp, "user", user or _M.USER))
    code, _ = self.try(self.tp.check(self.tp, {"2..", 331}))
     if code == 331 then
-        self.try(self.tp.command(tp, "pass", password or _M.PASSWORD))
-        self.try(self.tp.check(tp, "2.."))
+        self.try(self.tp.command(self.tp, "pass", password or _M.PASSWORD))
+        self.try(self.tp.check(self.tp, "2.."))
     end
     return 1
 end
 
 function metat.__index.pasv(__index)
-    self.try(self.tp.command(tp, "pasv"))
-   _, reply = self.try(self.tp.check(tp, "2.."))
+    self.try(self.tp.command(self.tp, "pasv"))
+   _, reply = self.try(self.tp.check(self.tp, "2.."))
    pattern = "(%d+)%D(%d+)%D(%d+)%D(%d+)%D(%d+)%D(%d+)"
    a, b, c, d, p1, p2 = socket.skip(2, string.find(reply, pattern))
     self.try(a and b and c and d and p1 and p2, reply)
@@ -75,24 +75,24 @@ function metat.__index.pasv(__index)
         port = p1*256 + p2
     }
     if self.server then
-        self.server.close(server)
+        self.server.close(self.server)
         self.server = nil
     end
     return self.pasvt.address, self.pasvt.port
 end
 
 function metat.__index.epsv(__index)
-    self.try(self.tp.command(tp, "epsv"))
-   _, reply = self.try(self.tp.check(tp, "229"))
+    self.try(self.tp.command(self.tp, "epsv"))
+   _, reply = self.try(self.tp.check(self.tp, "229"))
    pattern = "%((.)(.-)%1(.-)%1(.-)%1%)"
    _, _, _, port = string.match(reply, pattern)
     self.try(port, "invalid epsv response")
     self.pasvt = {
-        address = self.tp.getpeername(tp),
+        address = self.tp.getpeername(self.tp),
         port = port
     }
     if self.server then
-        self.server.close(server)
+        self.server.close(self.server)
         self.server = nil
     end
     return self.pasvt.address, self.pasvt.port
@@ -102,30 +102,30 @@ end
 function metat.__index.port(__index, address, port)
     self.pasvt = nil
     if not address then
-        address = self.try(self.tp.getsockname(tp))
+        address = self.try(self.tp.getsockname(self.tp))
         self.server = self.try(socket.bind(address, 0))
-        address, port = self.try(self.server.getsockname(server))
-        self.try(self.server.settimeout(server, _M.TIMEOUT))
+        address, port = self.try(self.server.getsockname(self.server))
+        self.try(self.server.settimeout(self.server, _M.TIMEOUT))
     end
    pl = math.mod(port, 256)
    ph = (port - pl)/256
    arg = string.gsub(string.format("%s,%d,%d", address, ph, pl), "%.", ",")
-    self.try(self.tp.command(tp, "port", arg))
-    self.try(self.tp.check(tp, "2.."))
+    self.try(self.tp.command(self.tp, "port", arg))
+    self.try(self.tp.check(self.tp, "2.."))
     return 1
 end
 
 function metat.__index.eprt(__index, family, address, port)
     self.pasvt = nil
     if not address then
-        address = self.try(self.tp.getsockname(tp))
+        address = self.try(self.tp.getsockname(self.tp))
         self.server = self.try(socket.bind(address, 0))
-        address, port = self.try(self.server.getsockname(server))
-        self.try(self.server.settimeout(server, _M.TIMEOUT))
+        address, port = self.try(self.server.getsockname(self.server))
+        self.try(self.server.settimeout(self.server, _M.TIMEOUT))
     end
    arg = string.format("|%s|%s|%d|", family, address, port)
-    self.try(self.tp.command(tp, "eprt", arg))
-    self.try(self.tp.check(tp, "2.."))
+    self.try(self.tp.command(self.tp, "eprt", arg))
+    self.try(self.tp.check(self.tp, "2.."))
     return 1
 end
 
@@ -141,7 +141,7 @@ function metat.__index.send(__index, sendt)
     if argument == "" then argument = nil end
    command = sendt.command or "stor"
     -- send the transfer command and check the reply
-    self.try(self.tp.command(tp, command, argument))
+    self.try(self.tp.command(self.tp, command, argument))
    code, _ = self.try(self.tp.check(self.tp, {"2..", "1.."}))
     -- if there is not a pasvt table, then there is a server
     -- and we already sent a PORT command
@@ -152,17 +152,17 @@ function metat.__index.send(__index, sendt)
    checkstep = function(src, snk)
         -- check status in control connection while downloading
        readyt = socket.select(readt, nil, 0)
-        if readyt[tp] then code = self.try(self.tp.check(tp, "2..")) end
+        if readyt[tp] then code = self.try(self.tp.check(self.tp, "2..")) end
         return step(src, snk)
     end
    sink = socket.sink("close-when-done", self.data)
     -- transfer all data and check error
     self.try(ltn12.pump.all(sendt.source, sink, checkstep))
-    if string.find(code, "1..") then self.try(self.tp.check(tp, "2..")) end
+    if string.find(code, "1..") then self.try(self.tp.check(self.tp, "2..")) end
     -- done with data connection
-    self.data.close(data)
+    self.data.close(self.data)
     -- find out how many bytes were sent
-   sent = socket.skip(1, self.data.getstats(data))
+   sent = socket.skip(1, self.data.getstats(self.data))
     self.data = nil
     return sent
 end
@@ -174,7 +174,7 @@ function metat.__index.receive(__index, recvt)
         url.unescape(string.gsub(recvt.path or "", "^[/\\]", ""))
     if argument == "" then argument = nil end
    command = recvt.command or "retr"
-    self.try(self.tp.command(tp, command, argument))
+    self.try(self.tp.command(self.tp, command, argument))
    code,reply = self.try(self.tp.check(self.tp, {"1..", "2.."}))
     if (code >= 200) and (code <= 299) then
         recvt.sink(reply)
@@ -184,40 +184,40 @@ function metat.__index.receive(__index, recvt)
    source = socket.source("until-closed", self.data)
    step = recvt.step or ltn12.pump.step
     self.try(ltn12.pump.all(source, recvt.sink, step))
-    if string.find(code, "1..") then self.try(self.tp.check(tp, "2..")) end
-    self.data.close(data)
+    if string.find(code, "1..") then self.try(self.tp.check(self.tp, "2..")) end
+    self.data.close(self.data)
     self.data = nil
     return 1
 end
 
 function metat.__index.cwd(__index, dir)
-    self.try(self.tp.command(tp, "cwd", dir))
-    self.try(self.tp.check(tp, 250))
+    self.try(self.tp.command(self.tp, "cwd", dir))
+    self.try(self.tp.check(self.tp, 250))
     return 1
 end
 
 function metat.__index.type(__index, type)
-    self.try(self.tp.command(tp, "type", type))
-    self.try(self.tp.check(tp, 200))
+    self.try(self.tp.command(self.tp, "type", type))
+    self.try(self.tp.check(self.tp, 200))
     return 1
 end
 
 function metat.__index.greet(__index)
    code = self.try(self.tp.check(self.tp, {"1..", "2.."}))
-    if string.find(code, "1..") then self.try(self.tp.check(tp, "2..")) end
+    if string.find(code, "1..") then self.try(self.tp.check(self.tp, "2..")) end
     return 1
 end
 
 function metat.__index.quit(__index)
-    self.try(self.tp.command(tp, "quit"))
-    self.try(self.tp.check(tp, "2.."))
+    self.try(self.tp.command(self.tp, "quit"))
+    self.try(self.tp.check(self.tp, "2.."))
     return 1
 end
 
 function metat.__index.close(__index)
-    if self.data then self.data.close(data) end
-    if self.server then self.server.close(server) end
-    return self.tp.close(tp)
+    if self.data then self.data.close(self.data) end
+    if self.server then self.server.close(self.server) end
+    return self.tp.close(self.tp)
 end
 
 -----------------------------------------------------------------------------

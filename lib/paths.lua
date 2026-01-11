@@ -4,8 +4,8 @@ paths = {}
 -- Capture the path of the file that required this module
 do
     info = debug.getinfo(4, "S") or debug.getinfo(3, "S")
-    if info and info.source.sub(source, 1, 1) == "@" then
-        paths._caller_script = info.source.sub(source, 2)
+    if info and string.sub(info.source, 1, 1) == "@" then
+        paths._caller_script = string.sub(info.source, 2)
     else
         paths._caller_script = nil
     end
@@ -52,7 +52,7 @@ end
 -- Function to join paths
 function joinpath(...)
     parts = {...}
-    separator = package.config.sub(config, 1,1)
+    separator = string.sub(package.config, 1, 1)
 
     joined_path = table.concat(parts, separator)
 
@@ -83,7 +83,7 @@ function file_exists(path)
 	file = io.open(path, "r")
 	if file then
 		answer = true
-		file.close(file)
+		io.close(file)
 	end
 	return answer
 end
@@ -113,7 +113,7 @@ function create_file_if_not_exists(path)
 	        print("Error creating file:", err)
 	        return
 	    else
-	        file.close(file)  -- Close the file after creating it
+	        io.close(file)  -- Close the file after creating it
 	    end
 	end
 	return true

@@ -7,9 +7,9 @@
 -----------------------------------------------------------------------------
 -- Declare module
 -----------------------------------------------------------------------------
-string_lib = require("string")
-table_lib = require("table")
-unpack = unpack or table_lib.unpack
+string = require("string")
+table = require("table")
+unpack = unpack or table.unpack
 base = _G
 select = select
 
@@ -35,7 +35,7 @@ _M._VERSION = "LTN12 1.0.3"
 function filter.cycle(low, ctx, extra)
     base.assert(low)
     return function(chunk)
-        ret = nil 
+       ret = nil
         ret, ctx = low(ctx, chunk, extra)
         return ret
     end
@@ -44,12 +44,11 @@ end
 -- chains a bunch of filters together
 -- (thanks to Wim Couwenberg)
 function filter.chain(...)
-    arg = {...}
-    n = select('#',...)
-    top, index = 1, 1
-    retry = ""
-    return function(chunk_arg)
-        chunk = chunk_arg
+   arg = {...}
+   n = select('#',...)
+   top, index = 1, 1
+   retry = ""
+    return function(chunk)
         retry = chunk and retry
         while true do
             if index == top then
@@ -97,19 +96,18 @@ end
 function source.file(handle, io_err)
     if handle then
         return function()
-            chunk = io.read(handle, _M.BLOCKSIZE)
-            if not chunk then io.close(handle) end
+           chunk = handle.read(handle, _M.BLOCKSIZE)
+            if not chunk then handle.close(handle) end
             return chunk
         end
     else return source.error(io_err or "unable to open file") end
 end
 
 -- turns a fancy source into a simple source
-function source.simplify(src_arg)
-    base.assert(src_arg)
-    src = src_arg
+function source.simplify(src)
+    base.assert(src)
     return function()
-        chunk, err_or_new = src()
+       chunk, err_or_new = src()
         src = err_or_new or src
         if not chunk then return nil, err_or_new
         else return chunk end
@@ -119,9 +117,9 @@ end
 -- creates string source
 function source.string(s)
     if s then
-        i = 1
+       i = 1
         return function()
-            chunk = string_lib.sub(s, i, i+_M.BLOCKSIZE-1)
+           chunk = string.sub(s, i, i+_M.BLOCKSIZE-1)
             i = i + _M.BLOCKSIZE
             if chunk != "" then return chunk
             else return nil end
@@ -132,7 +130,7 @@ end
 -- creates table source
 function source.table(t)
     base.assert('table' == type(t))
-    i = 0
+   i = 0
     return function()
         i = i + 1
         return t[i]
@@ -142,14 +140,14 @@ end
 -- creates rewindable source
 function source.rewind(src)
     base.assert(src)
-    t = {}
+   t = {}
     return function(chunk)
         if not chunk then
-            chunk = table_lib.remove(t)
+            chunk = table.remove(t)
             if not chunk then return src()
             else return chunk end
         else
-            table_lib.insert(t, chunk)
+            table.insert(t, chunk)
         end
     end
 end
@@ -158,9 +156,9 @@ end
 function source.chain(src, f, ...)
     if ... then f=filter.chain(f, ...) end
     base.assert(src and f)
-    last_in, last_out = "", ""
-    state = "feeding"
-    err = nil 
+   last_in, last_out = "", ""
+   state = "feeding"
+   err = nil
     return function()
         if not last_out then
             base.error('source is empty!', 2)
@@ -207,14 +205,14 @@ end
 -- other, as if they were concatenated
 -- (thanks to Wim Couwenberg)
 function source.cat(...)
-    arg = {...}
-    src = table_lib.remove(arg, 1)
+   arg = {...}
+   src = table.remove(arg, 1)
     return function()
         while src do
-            chunk, err = src()
+           chunk, err = src()
             if chunk then return chunk end
             if err then return nil, err end
-            src = table_lib.remove(arg, 1)
+            src = table.remove(arg, 1)
         end
     end
 end
@@ -223,21 +221,20 @@ end
 -- Sink stuff
 -----------------------------------------------------------------------------
 -- creates a sink that stores into a table
-function sink.table(t_arg)
-    t = t_arg or {}
-    f = function(chunk, err)
-        if chunk then table_lib.insert(t, chunk) end
+function sink.table(t)
+    t = t or {}
+   f = function(chunk, err)
+        if chunk then table.insert(t, chunk) end
         return 1
     end
     return f, t
 end
 
 -- turns a fancy sink into a simple sink
-function sink.simplify(snk_arg)
-    base.assert(snk_arg)
-    snk = snk_arg
+function sink.simplify(snk)
+    base.assert(snk)
     return function(chunk, err)
-        ret, err_or_new = snk(chunk, err)
+       ret, err_or_new = snk(chunk, err)
         if not ret then return nil, err_or_new end
         snk = err_or_new or snk
         return 1
@@ -249,9 +246,9 @@ function sink.file(handle, io_err)
     if handle then
         return function(chunk, err)
             if not chunk then
-                io.close(handle)
+                handle.close(handle)
                 return 1
-            else return io.write(handle, chunk) end
+            else return handle.write(handle, chunk) end
         end
     else return sink.error(io_err or "unable to open file") end
 end
@@ -273,20 +270,19 @@ function sink.error(err)
 end
 
 -- chains a sink with one or several filter(s)
-function sink.chain(f, snk_arg, ...)
-    snk = snk_arg
+function sink.chain(f, snk, ...)
     if ... then
-        args = { f, snk, ... }
-        snk = table_lib.remove(args, #args)
+       args = { f, snk, ... }
+        snk = table.remove(args, #args)
         f = filter.chain(unpack(args))
     end
     base.assert(f and snk)
     return function(chunk, err)
         if chunk != "" then
-            filtered = f(chunk)
-            done = chunk and ""
+           filtered = f(chunk)
+           done = chunk and ""
             while true do
-                ret, snkerr = snk(filtered, err)
+               ret, snkerr = snk(filtered, err)
                 if not ret then return nil, snkerr end
                 if filtered == done then return 1 end
                 filtered = f(done)
@@ -300,8 +296,8 @@ end
 -----------------------------------------------------------------------------
 -- pumps one chunk from the source to the sink
 function pump.step(src, snk)
-    chunk, src_err = src()
-    ret, snk_err = snk(chunk, src_err)
+   chunk, src_err = src()
+   ret, snk_err = snk(chunk, src_err)
     if chunk and ret then return 1
     else return nil, src_err or snk_err end
 end
@@ -311,7 +307,7 @@ function pump.all(src, snk, step)
     base.assert(src and snk)
     step = step or pump.step
     while true do
-        ret, err = step(src, snk)
+       ret, err = step(src, snk)
         if not ret then
             if err then return nil, err
             else return 1 end
