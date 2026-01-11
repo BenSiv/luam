@@ -1,4 +1,2 @@
 TODO:
-- generate dev dir with syntax highlighting for vs code and micro
-- add build script to run make clean with ANSI checks
-- orgenize benchmarking code in prf dir (don't imbed lua5.1 in it)
+- generate dev dir with syntax highlighting for vscode and micro
