@@ -256,6 +256,7 @@ end
 
 -- Returns new table with replaced value
 function replace(container, old, new)
+    answer = nil
     if type(container) == "table" then
         answer = replace_table(container, old, new)
     elseif type(container) == "string" then
