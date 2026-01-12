@@ -589,9 +589,10 @@ reentry: /* entry point */
     }
     case OP_TESTSET: {
       TValue *rb = RB(i);
-      /* [ANTIGRAVITY] Strict conditionals: nil is not a valid boolean */
-      if (ttisnil(rb))
-        luaG_runerror(L, "nil is not a conditional value");
+      /* OP_TESTSET used for and/or - allow nil for fallback patterns like 'x or
+       * default' */
+      /* Strict nil check removed here - only OP_TEST (if statements) errors on
+       * nil */
       if (l_isfalse(rb) != GETARG_C(i)) {
         setobjs2s(L, ra, rb);
         dojump(L, pc, GETARG_sBx(*pc));
