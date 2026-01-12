@@ -28,11 +28,11 @@
 
 /* ORDER RESERVED */
 const char *const luaX_tokens[] = {
-    "and",   "break",    "do",       "else",     "elseif", "end",
-    "false", "for",      "function", "if",       "in",     "const",
-    "nil",   "not",      "or",       "return",   "then",   "true",
-    "while", "..",       "...",      "==",       ">=",     "<=",
-    "!=",    "<number>", "<name>",   "<string>", "<eof>",  NULL};
+    "and",      "break",    "do",     "else", "elseif", "end",      "false",
+    "for",      "function", "if",     "in",   "is",     "const",    "nil",
+    "not",      "or",       "return", "then", "true",   "while",    "..",
+    "...",      "==",       ">=",     "<=",   "!=",     "<number>", "<name>",
+    "<string>", "<eof>",    NULL};
 
 #define save_and_next(ls) (save(ls, ls->current), next(ls))
 
