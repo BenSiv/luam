@@ -130,7 +130,7 @@ for i, name in ipairs(arg) do
 			end
 			is_module = false
 			if string.find(nmout, "T _?luaL_newstate") != nil then
-				if string.find(nmout, "U _?dlopen") then
+				if string.find(nmout, "U _?dlopen") != nil then
 					if UNAME == "Linux" or UNAME == "SunOS" or UNAME == "Darwin" then
 -- 						--"""
 -- 						Link with libdl because liblua was built with support loading 
@@ -197,12 +197,12 @@ end
 function out_lua_source(file)
 	f = io.open(file.path, "r")
 	prefix = io.read(f, 4)
-	if prefix then
-		if string.match(prefix, "\xef\xbb\xbf") then
+	if prefix != nil then
+		if string.match(prefix, "\xef\xbb\xbf") != nil then
 			-- Strip the UTF-8 byte order mark.
 			prefix = string.sub(prefix, 4)
 		end
-		if string.match(prefix, "#") then
+		if string.match(prefix, "#") != nil then
 			-- Strip the shebang.
 			io.read(f, "*line")
 			prefix = "\n"
@@ -211,7 +211,7 @@ function out_lua_source(file)
 	end
 	while true do
 		strdata = io.read(f, 4096)
-		if strdata then
+		if strdata != nil then
 			out(string_to_c_hex_literal(strdata), ", ")
 		else
 			break
@@ -440,7 +440,7 @@ end
 -- http://lua-users.org/lists/lua-l/2009-05/msg00147.html
 rdynamic = "-rdynamic"
 binary_extension = ""
-if string.match(shellout(CC .. " -dumpmachine"), "mingw") then
+if string.match(shellout(CC .. " -dumpmachine"), "mingw") != nil then
 	rdynamic = ""
 	binary_extension = ".exe"
 end
