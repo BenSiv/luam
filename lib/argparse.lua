@@ -45,13 +45,13 @@ function def_args(arg_string)
     expected_args = {}
     short, long, arg_kind, arg_type, is_required = nil 
     for line in utils.match_all(arg_string, "[^\r\n]+") do
-    	if not is utils.match(line, "^$s*$") then
+    	if utils.match(line, "^$s*$") == nil then
         	short, long, arg_kind, arg_type, is_required = utils.match(line, "%s*%-(%a)%s+%-%-([%a_]+)%s+(%a+)%s+(%a+)%s+(%a+)%s*")
             if short == "h" or long == "help" then
                 error("short h and long help are reserved arguments")
             end
         	is_required = is_required == "true"
-        	if short != nil and long != nil and arg_kind != nil and is arg_type then
+        	if short != nil and long != nil and arg_kind != nil and arg_type != nil then
         		expected_args = add_arg(expected_args, short, long, arg_kind, arg_type, is_required)
         	end
         end

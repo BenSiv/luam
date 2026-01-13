@@ -133,7 +133,7 @@ function view(data_table, args)
     line_length = utils.get_line_length()
 
     -- If no specific columns are provided, use all columns from the first row
-    if not is columns or #columns == 0 then
+    if columns == nil or #columns == 0 then
         columns = {}
         for col_name, _ in pairs(data_table[1]) do
             table.insert(columns, col_name)
