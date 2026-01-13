@@ -122,21 +122,23 @@ static void getfunc(lua_State *L, int opt) {
   }
 }
 
+/* REMOVED: getfenv - deprecated in Lua 5.2+
 static int luaB_getfenv(lua_State *L) {
   getfunc(L, 1);
-  if (lua_iscfunction(L, -1))           /* is a C function? */
-    lua_pushvalue(L, LUA_GLOBALSINDEX); /* return the thread's global env. */
+  if (lua_iscfunction(L, -1))
+    lua_pushvalue(L, LUA_GLOBALSINDEX);
   else
     lua_getfenv(L, -1);
   return 1;
 }
+*/
 
+/* REMOVED: setfenv - deprecated in Lua 5.2+
 static int luaB_setfenv(lua_State *L) {
   luaL_checktype(L, 2, LUA_TTABLE);
   getfunc(L, 0);
   lua_pushvalue(L, 2);
   if (lua_isnumber(L, 1) && lua_tonumber(L, 1) == 0) {
-    /* change environment of current thread */
     lua_pushthread(L);
     lua_insert(L, -2);
     lua_setfenv(L, -2);
@@ -146,6 +148,7 @@ static int luaB_setfenv(lua_State *L) {
                LUA_QL("setfenv") " cannot change environment of given object");
   return 1;
 }
+*/
 
 static int luaB_rawequal(lua_State *L) {
   luaL_checkany(L, 1);
@@ -171,10 +174,12 @@ static int luaB_rawset(lua_State *L) {
   return 1;
 }
 
+/* REMOVED: gcinfo - use collectgarbage("count") instead
 static int luaB_gcinfo(lua_State *L) {
   lua_pushinteger(L, lua_getgccount(L));
   return 1;
 }
+*/
 
 static int luaB_collectgarbage(lua_State *L) {
   static const char *const opts[] = {"stop", "restart",  "collect",    "count",
@@ -402,37 +407,39 @@ static int luaB_tostring(lua_State *L) {
   return 1;
 }
 
+/* REMOVED: newproxy - undocumented hack for weak tables
 static int luaB_newproxy(lua_State *L) {
   lua_settop(L, 1);
-  lua_newuserdata(L, 0); /* create proxy */
+  lua_newuserdata(L, 0);
   if (lua_toboolean(L, 1) == 0)
-    return 1; /* no metatable */
+    return 1;
   else if (lua_isboolean(L, 1)) {
-    lua_newtable(L);      /* create a new metatable `m' ... */
-    lua_pushvalue(L, -1); /* ... and mark `m' as a valid metatable */
+    lua_newtable(L);
+    lua_pushvalue(L, -1);
     lua_pushboolean(L, 1);
-    lua_rawset(L, lua_upvalueindex(1)); /* weaktable[m] = true */
+    lua_rawset(L, lua_upvalueindex(1));
   } else {
-    int validproxy = 0; /* to check if weaktable[metatable(u)] == true */
+    int validproxy = 0;
     if (lua_getmetatable(L, 1)) {
       lua_rawget(L, lua_upvalueindex(1));
       validproxy = lua_toboolean(L, -1);
-      lua_pop(L, 1); /* remove value */
+      lua_pop(L, 1);
     }
     luaL_argcheck(L, validproxy, 1, "boolean or proxy expected");
-    lua_getmetatable(L, 1); /* metatable is valid; get it */
+    lua_getmetatable(L, 1);
   }
   lua_setmetatable(L, 2);
   return 1;
 }
+*/
 
 static const luaL_Reg base_funcs[] = {
     {"assert", luaB_assert},
     {"collectgarbage", luaB_collectgarbage},
     {"dofile", luaB_dofile},
     {"error", luaB_error},
-    {"gcinfo", luaB_gcinfo},
-    {"getfenv", luaB_getfenv},
+    /* {"gcinfo", luaB_gcinfo}, */   /* REMOVED: deprecated */
+    /* {"getfenv", luaB_getfenv}, */ /* REMOVED: deprecated in Lua 5.2+ */
     /* {"getmetatable", luaB_getmetatable}, */ /* REMOVED: metatables disabled
                                                   in LuaM */
     {"loadfile", luaB_loadfile},
@@ -445,7 +452,7 @@ static const luaL_Reg base_funcs[] = {
     {"rawget", luaB_rawget},
     {"rawset", luaB_rawset},
     {"select", luaB_select},
-    {"setfenv", luaB_setfenv},
+    /* {"setfenv", luaB_setfenv}, */ /* REMOVED: deprecated in Lua 5.2+ */
     /* {"setmetatable", luaB_setmetatable}, */ /* REMOVED: metatables disabled
                                                   in LuaM */
     {"tonumber", luaB_tonumber},
@@ -600,14 +607,15 @@ static void base_open(lua_State *L) {
   /* `ipairs' and `pairs' need auxiliary functions as upvalues */
   auxopen(L, "ipairs", luaB_ipairs, ipairsaux);
   auxopen(L, "pairs", luaB_pairs, luaB_next);
-  /* `newproxy' needs a weaktable as upvalue */
-  lua_createtable(L, 0, 1); /* new table `w' */
-  lua_pushvalue(L, -1);     /* `w' will be its own metatable */
+  /* REMOVED: newproxy - undocumented hack
+  lua_createtable(L, 0, 1);
+  lua_pushvalue(L, -1);
   lua_setmetatable(L, -2);
   lua_pushliteral(L, "kv");
-  lua_setfield(L, -2, "__mode"); /* metatable(w).__mode = "kv" */
+  lua_setfield(L, -2, "__mode");
   lua_pushcclosure(L, luaB_newproxy, 1);
-  lua_setglobal(L, "newproxy"); /* set global `newproxy' */
+  lua_setglobal(L, "newproxy");
+  */
 }
 
 LUALIB_API int luaopen_base(lua_State *L) {
