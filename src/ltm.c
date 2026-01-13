@@ -18,7 +18,7 @@
 #include "ltm.h"
 
 const char *const luaT_typenames[] = {"nil",    "flag",  "userdata", "number",
-                                      "text",   "table", "function", "userdata",
+                                      "string", "table", "function", "userdata",
                                       "thread", "proto", "upval"};
 
 void luaT_init(lua_State *L) {

@@ -653,7 +653,7 @@ end
 -- Get the terminal line length
 function get_line_length()
     handle = io.popen("stty size 2>/dev/null | awk '{print $2}'")
-    if handle then
+    if is handle then
         result = io.read(handle, "*a")
         io.close(handle)
         return tonumber(result) or 80 -- Default to 80 if unable to fetch

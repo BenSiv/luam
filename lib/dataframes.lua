@@ -23,14 +23,16 @@ function is_dataframe(tbl)
         valid_row_content = type(row) == "table"
         valid_row_index = type(index) == "number"
         if not valid_row_content or not valid_row_index then
+            print("Invalid row content/index at " .. index)
             return false
         end
 
         current_num_columns = 0
         for col_name, col_value in pairs(row) do
-            valid_col_name = type(col_name) == "string" or type(col_name) == "number"
-            valid_col_value = type(col_value) == "number" or type(col_value) == "string"
+            valid_col_name = type(col_name) == "string" or type(col_name) == "text" or type(col_name) == "number"
+            valid_col_value = type(col_value) == "number" or type(col_value) == "string" or type(col_value) == "text"
             if not valid_col_name or not valid_col_value then
+                print("Invalid col " .. tostring(col_name) .. " type " .. type(col_value))
                 return false
             end
             current_num_columns = current_num_columns + 1
@@ -39,6 +41,7 @@ function is_dataframe(tbl)
         if num_columns == nil then
             num_columns = current_num_columns
         elseif current_num_columns != num_columns then
+            print("Row " .. index .. " has " .. current_num_columns .. " cols, expected " .. num_columns)
             return false
         end
     end
@@ -130,7 +133,7 @@ function view(data_table, args)
     line_length = utils.get_line_length()
 
     -- If no specific columns are provided, use all columns from the first row
-    if not columns or #columns == 0 then
+    if not is columns or #columns == 0 then
         columns = {}
         for col_name, _ in pairs(data_table[1]) do
             table.insert(columns, col_name)

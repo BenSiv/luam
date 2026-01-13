@@ -17,7 +17,7 @@ function pad_to_length(input, total_length, pad_char)
 end
 
 function normalize_datetime(datetime_str)
-    if not datetime_str or datetime_str == "" then
+    if not is datetime_str or datetime_str == "" then
         return nil
     end
     
