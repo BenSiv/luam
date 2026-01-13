@@ -87,16 +87,44 @@ fi
 # 5. LuaSec (ssl)
 if [ -d "lib/ssl/src" ]; then
     echo "Compiling ssl.core.so..."
+
+    # Vendor OpenSSL
+    OPENSSL_VER="1.1.1w"
+    OPENSSL_DIR="$(pwd)/deps/openssl-${OPENSSL_VER}"
+    OPENSSL_TAR="openssl-${OPENSSL_VER}.tar.gz"
+    
+    mkdir -p deps
+    if [ ! -d "$OPENSSL_DIR" ]; then
+        echo "Downloading OpenSSL ${OPENSSL_VER}..."
+        if [ ! -f "deps/$OPENSSL_TAR" ]; then
+            cd deps
+            wget "https://www.openssl.org/source/$OPENSSL_TAR" || curl -O "https://www.openssl.org/source/$OPENSSL_TAR"
+            cd ..
+        fi
+        echo "Extracting OpenSSL..."
+        cd deps
+        tar -xzf "$OPENSSL_TAR"
+        cd "openssl-${OPENSSL_VER}"
+        echo "Configuring OpenSSL (static)..."
+        ./config no-shared no-tests
+        echo "Building OpenSSL..."
+        make -j$(nproc)
+        cd ../..
+    fi
+
     # Copy Lua files
     cp lib/ssl/src/ssl.lua lib/
     cp lib/ssl/src/https.lua lib/ssl/
 
+
     # Compile SSL Core
-    # We link against socket.core.so to satisfy socket symbols if needed, and system openssl
+    # Link against local OpenSSL static libs
     gcc -O2 -shared -fPIC -I src/ -I lib/ssl/src -I lib/socket/src \
+        -I "$OPENSSL_DIR/include" \
         -o lib/ssl/core.so \
         lib/ssl/src/{options,x509,context,ssl,config,ec}.c \
-        -lssl -lcrypto lib/socket/core.so
+        "$OPENSSL_DIR/libssl.a" "$OPENSSL_DIR/libcrypto.a" \
+        lib/socket/core.so -ldl -lpthread
 
     if [ $? -eq 0 ]; then
         echo "ssl.core.so built successfully."
