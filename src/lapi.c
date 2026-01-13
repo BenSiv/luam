@@ -145,7 +145,9 @@ LUA_API lua_State *lua_newthread(lua_State *L) {
 ** basic stack manipulation
 */
 
-LUA_API int lua_gettop(lua_State *L) { return cast_int(L->top - L->base); }
+LUA_API int lua_gettop(lua_State *L) {
+  return cast_int(L->top - L->base);
+}
 
 LUA_API void lua_settop(lua_State *L, int idx) {
   lua_lock(L);
@@ -822,7 +824,9 @@ LUA_API int lua_dump(lua_State *L, lua_Writer writer, void *data) {
   return status;
 }
 
-LUA_API int lua_status(lua_State *L) { return L->status; }
+LUA_API int lua_status(lua_State *L) {
+  return L->status;
+}
 
 /*
 ** Garbage-collection function

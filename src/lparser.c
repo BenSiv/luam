@@ -865,7 +865,9 @@ static BinOpr subexpr(LexState *ls, expdesc *v, unsigned int limit) {
   return op; /* return first untreated operator */
 }
 
-static void expr(LexState *ls, expdesc *v) { subexpr(ls, v, 0); }
+static void expr(LexState *ls, expdesc *v) {
+  subexpr(ls, v, 0);
+}
 
 /* }==================================================================== */
 

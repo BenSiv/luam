@@ -378,9 +378,7 @@ static void Arith(lua_State *L, StkId ra, const TValue *rb, const TValue *rc,
 #define Protect(x)                                                             \
   {                                                                            \
     L->savedpc = pc;                                                           \
-    {                                                                          \
-      x;                                                                       \
-    };                                                                         \
+    { x; };                                                                    \
     base = L->base;                                                            \
   }
 
