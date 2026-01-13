@@ -564,10 +564,7 @@ static void setpath(lua_State *L, const char *fieldname, const char *envname,
 static const luaL_Reg pk_funcs[] = {
     {"loadlib", ll_loadlib}, {"seeall", ll_seeall}, {NULL, NULL}};
 
-static const luaL_Reg ll_funcs[] = {
-    /* {"module", ll_module}, */ /* REMOVED: deprecated module system */
-    {"require", ll_require},
-    {NULL, NULL}};
+static const luaL_Reg ll_funcs[] = {{"require", ll_require}, {NULL, NULL}};
 
 static const lua_CFunction loaders[] = {loader_preload, loader_Lua, loader_C,
                                         loader_Croot, NULL};
