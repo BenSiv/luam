@@ -34,6 +34,19 @@ typedef enum {
   VVARARG     /* info = instruction pc */
 } expkind;
 
+/*
+** Inferred type for compile-time type tracking
+*/
+typedef enum {
+  INFERRED_UNKNOWN, /* Type not yet inferred */
+  INFERRED_NIL,
+  INFERRED_BOOLEAN,
+  INFERRED_NUMBER,
+  INFERRED_STRING,
+  INFERRED_TABLE,
+  INFERRED_FUNCTION
+} InferredType;
+
 typedef struct expdesc {
   expkind k;
   union {
@@ -42,8 +55,9 @@ typedef struct expdesc {
     } s;
     lua_Number nval;
   } u;
-  int t; /* patch list of `exit when true' */
-  int f; /* patch list of `exit when false' */
+  int t;                 /* patch list of `exit when true' */
+  int f;                 /* patch list of `exit when false' */
+  InferredType inferred; /* compile-time inferred type */
 } expdesc;
 
 
@@ -72,8 +86,9 @@ typedef struct FuncState {
   int np;                 /* number of elements in `p' */
   short nlocvars;         /* number of elements in `locvars' */
   lu_byte nactvar;        /* number of active local variables */
-  upvaldesc upvalues[LUAI_MAXUPVALUES]; /* upvalues */
-  unsigned short actvar[LUAI_MAXVARS];  /* declared-variable stack */
+  upvaldesc upvalues[LUAI_MAXUPVALUES];   /* upvalues */
+  unsigned short actvar[LUAI_MAXVARS];    /* declared-variable stack */
+  InferredType actvartypes[LUAI_MAXVARS]; /* inferred types for locals */
 } FuncState;
 
 

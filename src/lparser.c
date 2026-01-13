@@ -121,10 +121,12 @@ static void init_exp(expdesc *e, expkind k, int i) {
   e->f = e->t = NO_JUMP;
   e->k = k;
   e->u.s.info = i;
+  e->inferred = INFERRED_UNKNOWN; /* default: type not known */
 }
 
 static void codestring(LexState *ls, expdesc *e, TString *s) {
   init_exp(e, VK, luaK_stringK(ls->fs, s));
+  e->inferred = INFERRED_STRING;
 }
 
 static void checkname(LexState *ls, expdesc *e) {
@@ -245,6 +247,7 @@ static int singlevaraux(FuncState *fs, TString *n, expdesc *var, int base) {
     int v = searchvar(fs, n); /* look up at current level */
     if (v >= 0) {
       init_exp(var, VLOCAL, v);
+      var->inferred = fs->actvartypes[v]; /* propagate stored type */
       if (!base)
         markupval(fs, v); /* local will be used as an upval */
       return VLOCAL;
@@ -725,6 +728,7 @@ static void simpleexp(LexState *ls, expdesc *v) {
   case TK_NUMBER: {
     init_exp(v, VKNUM, 0);
     v->u.nval = ls->t.seminfo.r;
+    v->inferred = INFERRED_NUMBER;
     break;
   }
   case TK_STRING: {
@@ -733,14 +737,17 @@ static void simpleexp(LexState *ls, expdesc *v) {
   }
   case TK_NIL: {
     init_exp(v, VNIL, 0);
+    v->inferred = INFERRED_NIL;
     break;
   }
   case TK_TRUE: {
     init_exp(v, VTRUE, 0);
+    v->inferred = INFERRED_BOOLEAN;
     break;
   }
   case TK_FALSE: {
     init_exp(v, VFALSE, 0);
+    v->inferred = INFERRED_BOOLEAN;
     break;
   }
   case TK_DOTS: { /* vararg */
@@ -753,11 +760,13 @@ static void simpleexp(LexState *ls, expdesc *v) {
   }
   case '{': { /* constructor */
     constructor(ls, v);
+    v->inferred = INFERRED_TABLE;
     return;
   }
   case TK_FUNCTION: {
     luaX_next(ls);
     body(ls, v, 0, ls->linenumber);
+    v->inferred = INFERRED_FUNCTION;
     return;
   }
   default: {
@@ -1058,7 +1067,8 @@ static int cond(LexState *ls) {
     luaX_syntaxerror(
         ls, "nil is not a conditional value"); /* strict: no literal nil */
   /* Skip strict check for provably boolean expressions */
-  int is_provably_bool = (v.k == VJMP || v.k == VTRUE || v.k == VFALSE);
+  int is_provably_bool = (v.inferred == INFERRED_BOOLEAN || v.k == VJMP ||
+                          v.k == VTRUE || v.k == VFALSE);
   luaK_goiftrue(ls->fs, &v, is_provably_bool ? 0 : 1);
   return v.f;
 }

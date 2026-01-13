@@ -439,6 +439,8 @@ void luaK_storevar(FuncState *fs, expdesc *var, expdesc *ex) {
   case VLOCAL: {
     freeexp(fs, ex);
     exp2reg(fs, ex, var->u.s.info);
+    /* Track inferred type for local variable */
+    fs->actvartypes[var->u.s.info] = ex->inferred;
     return;
   }
   case VUPVAL: {
@@ -685,6 +687,7 @@ static void codecomp(FuncState *fs, OpCode op, int cond, expdesc *e1,
   }
   e1->u.s.info = condjump(fs, op, cond, o1, o2);
   e1->k = VJMP;
+  e1->inferred = INFERRED_BOOLEAN; /* comparisons always produce boolean */
 }
 
 void luaK_prefix(FuncState *fs, UnOpr op, expdesc *e) {
