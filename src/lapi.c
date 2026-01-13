@@ -548,8 +548,8 @@ LUA_API int lua_getmetatable(lua_State *L, int objindex) {
     mt = hvalue(obj)->metatable;
     break;
   case LUA_TUSERDATA:
-    /* metatable field removed - metatables disabled in LuaM */
-    return 0;
+    mt = uvalue(obj)->metatable;
+    break;
   default:
     mt = G(L)->mt[ttype(obj)];
     break;
@@ -661,7 +661,7 @@ LUA_API int lua_setmetatable(lua_State *L, int objindex) {
     break;
   }
   case LUA_TUSERDATA: {
-    /* metatable removed: uvalue(obj)->metatable = mt; */
+    uvalue(obj)->metatable = mt;
     if (mt)
       luaC_objbarrier(L, rawuvalue(obj), mt);
     break;

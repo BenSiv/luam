@@ -231,7 +231,8 @@ typedef union Udata {
   L_Umaxalign dummy; /* ensures maximum alignment for `local' udata */
   struct {
     CommonHeader;
-    /* metatable field removed - metatables disabled in LuaM */
+    struct Table
+        *metatable; /* restored: C libraries need this for type checking */
     struct Table *env;
     size_t len;
   } uv;
