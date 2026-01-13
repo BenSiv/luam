@@ -62,7 +62,7 @@ function local_update(db_path, statement)
     
     statement = utils.unescape_string(statement)
     _, err = db.exec(db, statement)
-    if err then
+    if is err then
         error("Error: " .. tostring(err))
     end
 
@@ -108,7 +108,7 @@ function import_delimited(db_path, file_path, table_name, delimiter)
     insert_statement = insert_statement .. table.concat(value_rows, ", ") .. ";"
 
     _, err = db.exec(db, insert_statement)
-    if err then
+    if is err then
         error("Error: " .. err)
     end
 
@@ -229,7 +229,7 @@ function load_df(db_path, table_name, dataframe)
 
     -- Execute the insert statement
     _, err = db.exec(db, insert_statement)
-    if err then
+    if is err then
         print("Error: " .. err)
         print("Insert Statement: " .. insert_statement)
         db.close(db)
@@ -357,10 +357,10 @@ function compare_schemas(old_schema, new_schema, migration_config)
         mapped_new_tname = migration_config.tables[old_tname]
         new_tname = mapped_new_tname or old_tname
 
-        if not new_schema[new_tname] then
+        if not is new_schema[new_tname] then
             table.insert(changes.tables_dropped, old_tname)
         else
-            if mapped_new_tname then
+            if is mapped_new_tname then
                 changes.tables_renamed[old_tname] = mapped_new_tname
             end
 
@@ -390,7 +390,7 @@ function compare_schemas(old_schema, new_schema, migration_config)
                 mapped_new_colname = column_renames[old_colname]
                 newcol = new_col_map[old_colname] or (mapped_new_colname and new_col_map[mapped_new_colname])
 
-                if not newcol then
+                if not is newcol then
                     table.insert(diff.columns_dropped, old_colname)
                 else
                     if mapped_new_colname and old_colname != mapped_new_colname then
@@ -409,7 +409,7 @@ function compare_schemas(old_schema, new_schema, migration_config)
 
             -- detect added columns (not from rename)
             for _, newcol in ipairs(new_cols) do
-                if not old_col_map[newcol.name] then
+                if not is old_col_map[newcol.name] then
                     is_rename = false
                     for _, mapped in pairs(column_renames) do
                         if mapped == newcol.name then
@@ -442,7 +442,7 @@ function compare_schemas(old_schema, new_schema, migration_config)
             end
         end
 
-        if not old_schema[new_tname] and not is_rename then
+        if not is old_schema[new_tname] and not is_rename then
             table.insert(changes.tables_added, new_tname)
         end
     end

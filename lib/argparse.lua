@@ -6,7 +6,7 @@ argparse = {}
 
 function print_help(cmd_args, expected_args, help_string)
     print("Usage: ", cmd_args[0])
-    if help_string then
+    if is help_string then
         print(help_string)
     else
         print("Available arguments:")
@@ -45,13 +45,13 @@ function def_args(arg_string)
     expected_args = {}
     short, long, arg_kind, arg_type, is_required = nil 
     for line in utils.match_all(arg_string, "[^\r\n]+") do
-    	if not utils.match(line, "^$s*$") then
+    	if not is utils.match(line, "^$s*$") then
         	short, long, arg_kind, arg_type, is_required = utils.match(line, "%s*%-(%a)%s+%-%-([%a_]+)%s+(%a+)%s+(%a+)%s+(%a+)%s*")
             if short == "h" or long == "help" then
                 error("short h and long help are reserved arguments")
             end
         	is_required = is_required == "true"
-        	if short and long and arg_kind and arg_type then
+        	if is short and is long and is arg_kind and is arg_type then
         		expected_args = add_arg(expected_args, short, long, arg_kind, arg_type, is_required)
         	end
         end

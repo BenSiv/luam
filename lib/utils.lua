@@ -35,10 +35,10 @@ end
 function read(path)
     file = io.open(path, "r")
     content = nil
-    if file then
+    if is file then
         io.input(file)
         content = io.read("*all")
-        if content then
+        if is content then
             content = escape_string(content)
         end
         io.close(file)
@@ -51,13 +51,13 @@ end
 -- write content to file
 function write(path, content, append)
     file = nil 
-    if append then
+    if is append and append then
         file = io.open(path, "a")
     else
         file = io.open(path, "w")
     end
 
-    if file then
+    if is file then
         io.write(file, content)
         io.close(file)
     else
@@ -189,7 +189,7 @@ end
 
 function isempty(source)
     answer = false
-    if source and (type(source) == "table" or type(source) == "string") then
+    if is source and source and (type(source) == "table" or type(source) == "string") then
         if length(source) == 0 then
             answer = true
         end
@@ -286,7 +286,7 @@ end
 function slice_table(source, start_index, end_index)
     result = {}
     for i = start_index, end_index do
-        if source[i] then
+        if is source[i] then
             table.insert(result, source[i])
         else
             error("ERROR: index is out of range")
@@ -336,7 +336,7 @@ function reverse(input)
 end
 
 function readdir(directory)
-    if not lfs then error("luafilesystem (lfs) not loaded") end
+    if not is lfs then error("luafilesystem (lfs) not loaded") end
     directory = directory or "."
     files = {}
     for file in lfs.dir(directory) do
@@ -354,7 +354,7 @@ function sleep(n)
 end
 
 function read_yaml(file_path)
-    if not yaml then error("yaml library not loaded") end
+    if not is yaml then error("yaml library not loaded") end
     file = io.open(file_path, "r")
     data = nil 
     if not is file then
@@ -369,7 +369,7 @@ function read_yaml(file_path)
 end
 
 function read_json(file_path)
-    if not json then error("json library not loaded") end
+    if not is json then error("json library not loaded") end
     file = io.open(file_path, "r")
     data = nil 
     if not is file then
@@ -384,7 +384,7 @@ function read_json(file_path)
 end
 
 function write_json(file_path, lua_table)
-    if not json then error("json library not loaded") end
+    if not is json then error("json library not loaded") end
     content = json.encode(lua_table, { indent = true })  -- pretty-print with indentation
     file, err = io.open(file_path, "w")
     if not is file then
@@ -562,7 +562,7 @@ function apply(func, tbl, level, key, _current_level)
             table.insert(result, apply(func, tbl[k], level, key, _current_level+1))
         end
     else
-        if not key then
+        if not is key then
             for k,v in pairs(tbl) do
                 result[k] = func(v)
             end

@@ -47,7 +47,8 @@ tmpdir = current..sep.."lfs_tmp_dir"
 tmpfile = tmpdir..sep.."tmp_file"
 -- Test for existence of a previous lfs_tmp_dir
 -- that may have resulted from an interrupted test execution and remove it
-if lfs.chdir (tmpdir) then
+ok = lfs.chdir (tmpdir)
+if is ok and ok then
     assert (lfs.chdir (upper), "could not change to upper directory")
     os.remove (tmpfile)
     assert (lfs.rmdir (tmpdir), "could not remove directory from previous test")
@@ -60,7 +61,7 @@ io.flush()
 assert (lfs.mkdir (tmpdir), "could not make a new directory")
 attrib = {}
 lfs.attributes(tmpdir, attrib)
-if not attrib.mode then
+if not is attrib.mode then
      error ("could not get attributes of file `"..tmpdir.."'")
 end
 f = io.open(tmpfile, "w")
@@ -96,7 +97,8 @@ assert (new_att.modification == testdate1, "could not set modification time")
 io.write(".")
 io.flush()
 
-if lfs.link (tmpfile, "_a_link_for_test_", true) then
+link_ok = lfs.link (tmpfile, "_a_link_for_test_", true)
+if is link_ok and link_ok then
     assert (lfs.attributes"_a_link_for_test_".mode == "file")
     assert (lfs.symlinkattributes"_a_link_for_test_".mode == "link")
     assert (lfs.symlinkattributes"_a_link_for_test_".target == tmpfile)
