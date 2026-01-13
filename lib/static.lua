@@ -102,7 +102,7 @@ for i, name in ipairs(arg) do
 	extension = string.match(name, "%.(%a+)$")
 	if i == 1 or (is_source_file(extension) or is_binary_library(extension)) then
 		if not file_exists(name) then
-			io.write(io.stderr, "file does not exist: " .. name .. "\n")
+			io.io.write(stderr, "file does not exist: " .. name .. "\n")
 			os.exit(1)
 		end
 
