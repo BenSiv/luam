@@ -159,6 +159,19 @@ The following legacy features are not available in Luam:
 
 ---
 
+## Codebase Size
+
+Luam remains compact despite adding significant features.
+
+| Metric | Lua 5.1 | Luam | Difference |
+|--------|---------|------|------------|
+| **Source Lines (Core)** | 16,963 | 18,811 | +1,848 (+11%) |
+| **Binary Size** | 231 KB | 224 KB | **-7 KB (-3%)** |
+
+The +11% source increase covers type inference, strict conditionals, and the `const` keyword. The binary is actually 3% smaller due to removal of legacy features (`getfenv`, `setfenv`, `module`, `newproxy`).
+
+---
+
 ## Building Luam
 
 ```bash
