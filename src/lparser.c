@@ -1057,7 +1057,9 @@ static int cond(LexState *ls) {
   if (v.k == VNIL)
     luaX_syntaxerror(
         ls, "nil is not a conditional value"); /* strict: no literal nil */
-  luaK_goiftrue(ls->fs, &v, 1); /* strict=1 for control flow (if/while) */
+  /* Skip strict check for provably boolean expressions */
+  int is_provably_bool = (v.k == VJMP || v.k == VTRUE || v.k == VFALSE);
+  luaK_goiftrue(ls->fs, &v, is_provably_bool ? 0 : 1);
   return v.f;
 }
 

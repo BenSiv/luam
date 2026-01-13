@@ -362,7 +362,9 @@
   }
 #else
 #define luai_apicheck(L, o)                                                    \
-  { (void)L; }
+  {                                                                            \
+    (void)L;                                                                   \
+  }
 #endif
 
 /*
@@ -644,7 +646,9 @@ union luai_Cast {
 #else
 #define LUA_TMPNAMBUFSIZE L_tmpnam
 #define lua_tmpnam(b, e)                                                       \
-  { e = (tmpnam(b) == NULL); }
+  {                                                                            \
+    e = (tmpnam(b) == NULL);                                                   \
+  }
 #endif
 
 #endif
@@ -741,5 +745,16 @@ union luai_Cast {
 ** Local configuration. You can use this space to add your redefinitions
 ** without modifying the main part of the file.
 */
+
+/*
+** Branch prediction hints
+*/
+#if defined(__GNUC__)
+#define luai_likely(x) __builtin_expect(!!(x), 1)
+#define luai_unlikely(x) __builtin_expect(!!(x), 0)
+#else
+#define luai_likely(x) (x)
+#define luai_unlikely(x) (x)
+#endif
 
 #endif
