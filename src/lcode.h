@@ -63,7 +63,7 @@ LUAI_FUNC void luaK_exp2val(FuncState *fs, expdesc *e);
 LUAI_FUNC int luaK_exp2RK(FuncState *fs, expdesc *e);
 LUAI_FUNC void luaK_self(FuncState *fs, expdesc *e, expdesc *key);
 LUAI_FUNC void luaK_indexed(FuncState *fs, expdesc *t, expdesc *k);
-LUAI_FUNC void luaK_goiftrue(FuncState *fs, expdesc *e);
+LUAI_FUNC void luaK_goiftrue(FuncState *fs, expdesc *e, int strict);
 LUAI_FUNC void luaK_storevar(FuncState *fs, expdesc *var, expdesc *e);
 LUAI_FUNC void luaK_setreturns(FuncState *fs, expdesc *e, int nresults);
 LUAI_FUNC void luaK_setoneret(FuncState *fs, expdesc *e);

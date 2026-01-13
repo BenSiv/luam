@@ -1043,8 +1043,9 @@ static int cond(LexState *ls) {
   expdesc v;
   expr(ls, &v); /* read condition */
   if (v.k == VNIL)
-    v.k = VFALSE; /* `falses' are all equal here */
-  luaK_goiftrue(ls->fs, &v);
+    luaX_syntaxerror(
+        ls, "nil is not a conditional value"); /* strict: no literal nil */
+  luaK_goiftrue(ls->fs, &v, 1); /* strict=1 for control flow (if/while) */
   return v.f;
 }
 

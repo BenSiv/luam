@@ -483,12 +483,12 @@ static void invertjump(FuncState *fs, expdesc *e) {
   SETARG_A(*pc, !(GETARG_A(*pc)));
 }
 
-static int jumponcond(FuncState *fs, expdesc *e, int cond) {
+static int jumponcond(FuncState *fs, expdesc *e, int cond, int strict) {
   if (e->k == VRELOCABLE) {
     Instruction ie = getcode(fs, e);
     if (GET_OPCODE(ie) == OP_NOT) {
       fs->pc--; /* remove previous OP_NOT */
-      return condjump(fs, OP_TEST, GETARG_B(ie), 0, !cond);
+      return condjump(fs, OP_TEST, GETARG_B(ie), strict, !cond);
     }
     /* else go through */
   }
@@ -497,7 +497,7 @@ static int jumponcond(FuncState *fs, expdesc *e, int cond) {
   return condjump(fs, OP_TESTSET, NO_REG, e->u.s.info, cond);
 }
 
-void luaK_goiftrue(FuncState *fs, expdesc *e) {
+void luaK_goiftrue(FuncState *fs, expdesc *e, int strict) {
   int pc; /* pc of last jump */
   luaK_dischargevars(fs, e);
   switch (e->k) {
@@ -513,7 +513,7 @@ void luaK_goiftrue(FuncState *fs, expdesc *e) {
     break;
   }
   default: {
-    pc = jumponcond(fs, e, 0);
+    pc = jumponcond(fs, e, 0, strict);
     break;
   }
   }
@@ -522,7 +522,7 @@ void luaK_goiftrue(FuncState *fs, expdesc *e) {
   e->t = NO_JUMP;
 }
 
-static void luaK_goiffalse(FuncState *fs, expdesc *e) {
+static void luaK_goiffalse(FuncState *fs, expdesc *e, int strict) {
   int pc; /* pc of last jump */
   luaK_dischargevars(fs, e);
   switch (e->k) {
@@ -536,7 +536,7 @@ static void luaK_goiffalse(FuncState *fs, expdesc *e) {
     break;
   }
   default: {
-    pc = jumponcond(fs, e, 1);
+    pc = jumponcond(fs, e, 1, strict);
     break;
   }
   }
@@ -724,11 +724,11 @@ void luaK_prefix(FuncState *fs, UnOpr op, expdesc *e) {
 void luaK_infix(FuncState *fs, BinOpr op, expdesc *v) {
   switch (op) {
   case OPR_AND: {
-    luaK_goiftrue(fs, v);
+    luaK_goiftrue(fs, v, 0); /* non-strict for logical operators */
     break;
   }
   case OPR_OR: {
-    luaK_goiffalse(fs, v);
+    luaK_goiffalse(fs, v, 0); /* non-strict for logical operators */
     break;
   }
   case OPR_CONCAT: {

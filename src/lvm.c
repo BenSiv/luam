@@ -579,8 +579,9 @@ reentry: /* entry point */
       continue;
     }
     case OP_TEST: {
-      /* [ANTIGRAVITY] Strict conditionals: nil is not a valid boolean */
-      if (ttisnil(ra))
+      int strict = GETARG_B(i); /* B=1 for if/while, B=0 for and/or */
+      /* [ANTIGRAVITY] Strict conditionals: nil is not valid in control flow */
+      if (strict && ttisnil(ra))
         luaG_runerror(L, "nil is not a conditional value");
       if (l_isfalse(ra) != GETARG_C(i))
         dojump(L, pc, GETARG_sBx(*pc));
