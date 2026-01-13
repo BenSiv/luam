@@ -487,8 +487,11 @@ static int jumponcond(FuncState *fs, expdesc *e, int cond, int strict) {
   if (e->k == VRELOCABLE) {
     Instruction ie = getcode(fs, e);
     if (GET_OPCODE(ie) == OP_NOT) {
-      fs->pc--; /* remove previous OP_NOT */
+      /* [ANTIGRAVITY] Strict Check: Do not optimize away OP_NOT.
+         We need OP_NOT to execute so it can perform runtime type checking.
+      fs->pc--;
       return condjump(fs, OP_TEST, GETARG_B(ie), strict, !cond);
+      */
     }
     /* else go through */
   }

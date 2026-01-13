@@ -52,7 +52,9 @@ static lua_CFunction ll_sym(lua_State *L, void *lib, const char *sym);
 
 #include <dlfcn.h>
 
-static void ll_unloadlib(void *lib) { dlclose(lib); }
+static void ll_unloadlib(void *lib) {
+  dlclose(lib);
+}
 
 static void *ll_load(lua_State *L, const char *path) {
   void *lib = dlopen(path, RTLD_NOW);
@@ -105,7 +107,9 @@ static void pusherror(lua_State *L) {
     lua_pushfstring(L, "system error %d\n", error);
 }
 
-static void ll_unloadlib(void *lib) { FreeLibrary((HINSTANCE)lib); }
+static void ll_unloadlib(void *lib) {
+  FreeLibrary((HINSTANCE)lib);
+}
 
 static void *ll_load(lua_State *L, const char *path) {
   HINSTANCE lib = LoadLibraryA(path);
@@ -210,7 +214,9 @@ static lua_CFunction ll_sym(lua_State *L, void *lib, const char *sym) {
 
 #define DLMSG "dynamic libraries not enabled; check your Lua installation"
 
-static void ll_unloadlib(void *lib) { (void)lib; /* to avoid warnings */ }
+static void ll_unloadlib(void *lib) {
+  (void)lib; /* to avoid warnings */
+}
 
 static void *ll_load(lua_State *L, const char *path) {
   (void)path; /* to avoid warnings */

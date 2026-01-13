@@ -13,6 +13,7 @@
 
 #include "lua.h"
 
+#include "lauxlib.h"
 #include "ldebug.h"
 #include "ldo.h"
 #include "lfunc.h"
@@ -378,7 +379,9 @@ static void Arith(lua_State *L, StkId ra, const TValue *rb, const TValue *rc,
 #define Protect(x)                                                             \
   {                                                                            \
     L->savedpc = pc;                                                           \
-    { x; };                                                                    \
+    {                                                                          \
+      x;                                                                       \
+    };                                                                         \
     base = L->base;                                                            \
   }
 
@@ -526,7 +529,12 @@ reentry: /* entry point */
       continue;
     }
     case OP_NOT: {
-      int res = l_isfalse(RB(i)); /* next assignment may change this value */
+      TValue *rb = RB(i);
+      /* Runtime type check: 'not' only works on boolean values */
+      if (!ttisboolean(rb))
+        luaG_runerror(L, "'not' operator requires a boolean value, got %s",
+                      lua_typename(L, ttype(rb)));
+      int res = l_isfalse(rb); /* next assignment may change this value */
       setbvalue(ra, res);
       continue;
     }

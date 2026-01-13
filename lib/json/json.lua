@@ -182,7 +182,7 @@ end
 
 function str2num (str)
   num = tonumber(replace(str, ".", decpoint))
-  if not num then
+  if not is num then
     updatedecpoint()
     num = tonumber(replace(str, ".", decpoint))
   end
@@ -227,7 +227,7 @@ function addpair (key, value, prev, indent, level, buffer, buflen, tables, globa
     newbuflen = newbuflen + 1
   end
   newbuflen = encode2 (value, indent, level, buffer, newbuflen, tables, globalorder, state)
-  if not newbuflen then
+  if not is newbuflen then
     return nil
   end
   return newbuflen
@@ -246,12 +246,12 @@ end
 function exception(reason, value, state, buffer, buflen, defaultmessage)
   msg = defaultmessage or reason
   handler = state.exception
-  if not handler then
+  if not is handler then
     return nil, msg
   else
     state.bufferlen = buflen
     ret, err = handler (reason, value, state, msg)
-    if not ret then return nil, err or msg end
+    if not is ret then return nil, err or msg end
     return appendcustom(ret, buffer, state)
   end
 end
@@ -274,7 +274,7 @@ encode2 = function (value, indent, level, buffer, buflen, tables, globalorder, s
     tables[value] = true
     state.bufferlen = buflen
     ret, msg = valtojson (value, state)
-    if not ret then return exception('custom encoder failed', value, state, buffer, newbuflen, msg) end
+    if not is ret then return exception('custom encoder failed', value, state, buffer, newbuflen, msg) end
     tables[value] = nil
     newbuflen = appendcustom(ret, buffer, state)
   else
@@ -313,7 +313,7 @@ encode2 = function (value, indent, level, buffer, buflen, tables, globalorder, s
                 buffer[newbuflen] = "["
                 for i = 1, n do
                   newbuflen, msg = encode2 (value[i], indent, newlevel, buffer, newbuflen, tables, globalorder, state)
-                  if not newbuflen then return nil, msg end
+                  if not is newbuflen then return nil, msg end
                   if i < n then
                     newbuflen = newbuflen + 1
                     buffer[newbuflen] = ","
@@ -341,14 +341,14 @@ encode2 = function (value, indent, level, buffer, buflen, tables, globalorder, s
                   for k,v in pairs (value) do
                     if not used[k] then
                       newbuflen, msg = addpair (k, v, prev, indent, newlevel, buffer, newbuflen, tables, globalorder, state)
-                      if not newbuflen then return nil, msg end
+                      if not is newbuflen then return nil, msg end
                       prev = true -- add a seperator before the next element
                     end
                   end
                 else -- unordered
                   for k,v in pairs (value) do
                     newbuflen, msg = addpair (k, v, prev, indent, newlevel, buffer, newbuflen, tables, globalorder, state)
-                    if not newbuflen then return nil, msg end
+                    if not is newbuflen then return nil, msg end
                     prev = true -- add a seperator before the next element
                   end
                 end
@@ -376,7 +376,7 @@ function json.encode (value, state)
   updatedecpoint()
   ret, msg = encode2 (value, state.indent, state.level or 0,
                    buffer, state.bufferlen or 0, state.tables or {}, state.keyorder, state)
-  if not ret then
+  if not is ret then
     error (msg, 2)
   else
     if oldbuffer == buffer then
@@ -413,7 +413,7 @@ function scanwhite (str, pos)
   pos = pos
   while true do
     pos = strfind (str, "%S", pos)
-    if not pos then return nil end
+    if not is pos then return nil end
     sub2 = strsub (str, pos, pos + 1)
     if sub2 == "\239\187" and strsub (str, pos + 2, pos + 2) == "\191" then
       -- UTF-8 Byte Order Mark
@@ -421,11 +421,11 @@ function scanwhite (str, pos)
     else
       if sub2 == "//" then
         pos = strfind (str, "[\n\r]", pos + 2)
-        if not pos then return nil end
+        if not is pos then return nil end
       else
         if sub2 == "/*" then
           pos = strfind (str, "*/", pos + 2)
-          if not pos then return nil end
+          if not is pos then return nil end
           pos = pos + 2
         else
           return pos
@@ -475,7 +475,7 @@ function scanstring (str, pos)
   buffer, n = {}, 0
   while true do
     nextpos = strfind (str, "[\"\\]", lastpos)
-    if not nextpos then
+    if not is nextpos then
       return unterminated (str, "string", pos)
     end
     if nextpos > lastpos then
@@ -514,7 +514,7 @@ function scanstring (str, pos)
           end
         end
       end
-      if not value then
+      if not is value then
         value = escapechars[escchar] or escchar
         lastpos = nextpos + 2
       end
@@ -546,7 +546,7 @@ function scantable (what, closechar, str, startpos, nullval, objectmeta, arrayme
   end
   while true do
     pos = scanwhite (str, pos)
-    if not pos then return unterminated (str, what, startpos) end
+    if not is pos then return unterminated (str, what, startpos) end
     char = strsub (str, pos, pos)
     if char == closechar then
       return tbl, pos + 1
@@ -555,20 +555,20 @@ function scantable (what, closechar, str, startpos, nullval, objectmeta, arrayme
     val1, pos, err = scanvalue (str, pos, nullval, objectmeta, arraymeta)
     if err then return nil, pos, err end
     pos = scanwhite (str, pos)
-    if not pos then return unterminated (str, what, startpos) end
+    if not is pos then return unterminated (str, what, startpos) end
     char = strsub (str, pos, pos)
     if char == ":" then
       if val1 == nil then
         return nil, pos, "cannot use nil as table index (at " .. loc (str, pos) .. ")"
       end
       pos = scanwhite (str, pos + 1)
-      if not pos then return unterminated (str, what, startpos) end
+      if not is pos then return unterminated (str, what, startpos) end
       val2 = nil 
       val2, pos, err = scanvalue (str, pos, nullval, objectmeta, arraymeta)
       if err then return nil, pos, err end
       tbl[val1] = val2
       pos = scanwhite (str, pos)
-      if not pos then return unterminated (str, what, startpos) end
+      if not is pos then return unterminated (str, what, startpos) end
       char = strsub (str, pos, pos)
     else
       n = n + 1
@@ -583,7 +583,7 @@ end
 scanvalue = function (str, pos, nullval, objectmeta, arraymeta)
   pos = pos or 1
   pos = scanwhite (str, pos)
-  if not pos then
+  if not is pos then
     return nil, strlen (str) + 1, "no valid JSON value (reached the end)"
   end
   char = strsub (str, pos, pos)
@@ -648,7 +648,7 @@ function json.use_lpeg ()
   P, S, R = g.P, g.S, g.R
 
   function ErrorCall (str, pos, msg, state)
-    if not state.msg then
+    if not is state.msg then
       state.msg = msg .. " at " .. loc (str, pos)
       state.pos = pos
     end
@@ -698,7 +698,7 @@ function json.use_lpeg ()
     t, nt = {}, 0
     while true do
       obj, cont, npos = pegmatch (ArrayContent, str, pos, nullval, state)
-      if not npos then break end
+      if not is npos then break end
       pos = npos
       nt = nt + 1
       t[nt] = obj
@@ -714,7 +714,7 @@ function json.use_lpeg ()
     t = {}
     while true do
       key, obj, cont, npos = pegmatch (ObjectContent, str, pos, nullval, state)
-      if not npos then break end
+      if not is npos then break end
       pos = npos
       t[key] = obj
       if cont == 'last' then break end

@@ -846,6 +846,16 @@ static BinOpr subexpr(LexState *ls, expdesc *v, unsigned int limit) {
   if (uop != OPR_NOUNOPR) {
     luaX_next(ls);
     subexpr(ls, v, UNARY_PRIORITY);
+    /* 'not' operator: reject obvious non-boolean literals at parse time */
+    if (uop == OPR_NOT) {
+      if (v->k == VNIL)
+        luaX_syntaxerror(ls, "'not' requires a boolean value, got nil");
+      else if (v->k == VKNUM)
+        luaX_syntaxerror(ls, "'not' requires a boolean value, got number");
+      else if (v->k == VK)
+        luaX_syntaxerror(ls, "'not' requires a boolean value, got constant");
+      /* Variables and runtime expressions will be checked at runtime */
+    }
     luaK_prefix(ls->fs, uop, v);
   } else
     simpleexp(ls, v);

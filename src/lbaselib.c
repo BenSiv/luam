@@ -510,7 +510,9 @@ static int luaB_cowrap(lua_State *L) {
   return 1;
 }
 
-static int luaB_yield(lua_State *L) { return lua_yield(L, lua_gettop(L)); }
+static int luaB_yield(lua_State *L) {
+  return lua_yield(L, lua_gettop(L));
+}
 
 static int luaB_corunning(lua_State *L) {
   if (lua_pushthread(L))

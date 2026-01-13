@@ -10,11 +10,11 @@ if not ok_json then json = nil end
 
 -- Function to merge one module into another
 function merge_module(target, source)
-	env = getfenv(1)  -- Get the current function's environment (i.e., the module scope)
-  	for k, v in pairs(source) do
-    	target[k] = v
-    	env[k] = v
-  	end
+    -- env = getfenv(1)  -- Deprecated/Removed
+    for k, v in pairs(source) do
+        target[k] = v
+        _G[k] = v -- Put into global scope as fallback
+    end
 end
 
 string_utils = require("string_utils")
@@ -357,7 +357,7 @@ function read_yaml(file_path)
     if not yaml then error("yaml library not loaded") end
     file = io.open(file_path, "r")
     data = nil 
-    if not file then
+    if not is file then
         error("Failed to read file: " .. file_path)
     else
         content = io.read(file, "*all")
@@ -372,7 +372,7 @@ function read_json(file_path)
     if not json then error("json library not loaded") end
     file = io.open(file_path, "r")
     data = nil 
-    if not file then
+    if not is file then
         error("Failed to read file: " .. file_path)
     else
         content = io.read(file, "*all")
@@ -387,7 +387,7 @@ function write_json(file_path, lua_table)
     if not json then error("json library not loaded") end
     content = json.encode(lua_table, { indent = true })  -- pretty-print with indentation
     file, err = io.open(file_path, "w")
-    if not file then
+    if not is file then
         error("Failed to write to file: " .. file_path .. " (" .. err .. ")")
     end
     io.write(file, content)
@@ -790,7 +790,7 @@ function write_log_file(log_dir, filename, header, entries)
 
     file_path = joinpath(log_dir, filename)
     file = io.open(file_path, "w")
-    if not file then
+    if not is file then
         print("Failed to open " .. file_path)
         return nil
     end

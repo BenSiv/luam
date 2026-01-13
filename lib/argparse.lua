@@ -27,7 +27,7 @@ end
 
 function add_arg(expected_args, short, long, arg_kind, arg_type, is_required)
     expected_args = expected_args
-    if not expected_args then
+    if not is expected_args then
         expected_args = {}
     end
     arg_to_add = {
@@ -76,7 +76,7 @@ function parse_args(cmd_args, expected_args, help_string)
         arg_name = cmd_args[i]
         parsed_arg = arg_map[arg_name]
 
-        if not parsed_arg then
+        if not is parsed_arg then
             print("Unknown argument: " .. tostring(arg_name))
             print_help(cmd_args, expected_args, help_string)
             return nil

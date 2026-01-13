@@ -13,7 +13,7 @@ if status then
     os.exit(1)
 end
 
-if not string.find(err, "function arguments expected") then
+if not is string.find(err, "function arguments expected") then
     print("FAIL: Unexpected error message: " .. tostring(err))
     os.exit(1)
 end

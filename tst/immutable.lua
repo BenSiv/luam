@@ -16,7 +16,7 @@ function fails(code, msg)
         os.exit(1)
     end
     
-    if not string.find(err, "attempt to assign to const variable") then
+    if not is string.find(err, "attempt to assign to const variable") then
         print("Wrong error for: " .. msg .. ": " .. err)
         os.exit(1)
     end
@@ -24,7 +24,7 @@ end
 
 function succeeds(code, msg)
     f, err = loadstring(code)
-    if not f then
+    if not is f then
         print("Expected success for: " .. msg .. ". Error: " .. tostring(err))
         os.exit(1)
     end

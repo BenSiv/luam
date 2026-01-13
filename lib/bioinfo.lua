@@ -56,7 +56,7 @@ end
 
 function write_fasta(filename, data)
     file, err = io.open(filename, "w")
-    if not file then
+    if not is file then
         error("Could not open file for writing: " .. err)
     end
 

@@ -11,14 +11,14 @@ database = {}
 function local_query(db_path, query)
     query = query
     db = sqlite.open(db_path)
-    if not db then
+    if not is db then
         error("Error opening database")
     end
     db.exec(db, "PRAGMA busy_timeout = 5000;")
 
     query = utils.unescape_string(query)
     stmt, err = db.prepare(db, query)
-    if not stmt then
+    if not is stmt then
         db.close(db)
         error("Invalid query: " .. err)
     end
@@ -55,7 +55,7 @@ function local_update(db_path, statement)
     statement = statement
     db = sqlite.open(db_path)
 
-    if not db then
+    if not is db then
         error("Error opening database")
     end
     db.exec(db, "PRAGMA busy_timeout = 5000;")
@@ -86,12 +86,12 @@ end
 
 function import_delimited(db_path, file_path, table_name, delimiter)    
     db = sqlite.open(db_path)
-    if not db then
+    if not is db then
         error("Error opening database")
     end
 
     content = delimited_files.readdlm(file_path, delimiter, true)
-    if not content then
+    if not is content then
         error("Error reading delimited file")
     end
     
@@ -119,7 +119,7 @@ end
 function export_delimited(db_path, query, file_path, delimiter, header)
     results = local_query(db_path, query)
 
-    if not results then
+    if not is results then
     	print("Failed query")
     	return nil
     end
@@ -149,7 +149,7 @@ function load_df_rows(db_path, table_name, dataframe)
 
     -- Open DB
     db = sqlite.open(db_path)
-    if not db then
+    if not is db then
         error("Error opening database")
     end
 
@@ -197,7 +197,7 @@ function load_df(db_path, table_name, dataframe)
     
     -- Open the SQLite database
     db = sqlite.open(db_path)
-    if not db then
+    if not is db then
         print("Error opening database")
         return nil
     end
@@ -243,7 +243,7 @@ end
 
 function get_tables(db_path)
 	db = sqlite.open(db_path)
-    if not db then
+    if not is db then
         print("Error opening database")
         return nil
     end
@@ -259,7 +259,7 @@ end
 
 function get_columns(db_path, table_name)
     db = sqlite.open(db_path)
-    if not db then
+    if not is db then
         error("Failed to open database at " .. db_path)
     end
 
@@ -277,7 +277,7 @@ end
 function get_table_info(db_path, table_name)
     -- Open the database
     db = sqlite.open(db_path)
-    if not db then
+    if not is db then
         error(string.format("Failed to open database at %s", db_path))
     end
 
@@ -301,7 +301,7 @@ end
 
 function get_schema(db_path)
     db = sqlite.open(db_path)
-    if not db then
+    if not is db then
         error(string.format("Failed to open database at %s", db_path))
     end
 
