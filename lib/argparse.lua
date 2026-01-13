@@ -6,7 +6,7 @@ argparse = {}
 
 function print_help(cmd_args, expected_args, help_string)
     print("Usage: ", cmd_args[0])
-    if is help_string then
+    if help_string != nil then
         print(help_string)
     else
         print("Available arguments:")
@@ -27,7 +27,7 @@ end
 
 function add_arg(expected_args, short, long, arg_kind, arg_type, is_required)
     expected_args = expected_args
-    if not is expected_args then
+    if expected_args == nil then
         expected_args = {}
     end
     arg_to_add = {
@@ -51,7 +51,7 @@ function def_args(arg_string)
                 error("short h and long help are reserved arguments")
             end
         	is_required = is_required == "true"
-        	if is short and is long and is arg_kind and is arg_type then
+        	if short != nil and long != nil and arg_kind != nil and is arg_type then
         		expected_args = add_arg(expected_args, short, long, arg_kind, arg_type, is_required)
         	end
         end
@@ -76,7 +76,7 @@ function parse_args(cmd_args, expected_args, help_string)
         arg_name = cmd_args[i]
         parsed_arg = arg_map[arg_name]
 
-        if not is parsed_arg then
+        if parsed_arg == nil then
             print("Unknown argument: " .. tostring(arg_name))
             print_help(cmd_args, expected_args, help_string)
             return nil

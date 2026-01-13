@@ -35,10 +35,10 @@ end
 function read(path)
     file = io.open(path, "r")
     content = nil
-    if is file then
+    if file != nil then
         io.input(file)
         content = io.read("*all")
-        if is content then
+        if content != nil then
             content = escape_string(content)
         end
         io.close(file)
@@ -51,13 +51,13 @@ end
 -- write content to file
 function write(path, content, append)
     file = nil 
-    if is append and append then
+    if append != nil and append then
         file = io.open(path, "a")
     else
         file = io.open(path, "w")
     end
 
-    if is file then
+    if file != nil then
         io.write(file, content)
         io.close(file)
     else
@@ -189,7 +189,7 @@ end
 
 function isempty(source)
     answer = false
-    if is source and source and (type(source) == "table" or type(source) == "string") then
+    if source != nil and source and (type(source) == "table" or type(source) == "string") then
         if length(source) == 0 then
             answer = true
         end
@@ -286,7 +286,7 @@ end
 function slice_table(source, start_index, end_index)
     result = {}
     for i = start_index, end_index do
-        if is source[i] then
+        if source[i] != nil then
             table.insert(result, source[i])
         else
             error("ERROR: index is out of range")
@@ -336,7 +336,7 @@ function reverse(input)
 end
 
 function readdir(directory)
-    if not is lfs then error("luafilesystem (lfs) not loaded") end
+    if lfs == nil then error("luafilesystem (lfs) not loaded") end
     directory = directory or "."
     files = {}
     for file in lfs.dir(directory) do
@@ -354,10 +354,10 @@ function sleep(n)
 end
 
 function read_yaml(file_path)
-    if not is yaml then error("yaml library not loaded") end
+    if yaml == nil then error("yaml library not loaded") end
     file = io.open(file_path, "r")
     data = nil 
-    if not is file then
+    if file == nil then
         error("Failed to read file: " .. file_path)
     else
         content = io.read(file, "*all")
@@ -369,10 +369,10 @@ function read_yaml(file_path)
 end
 
 function read_json(file_path)
-    if not is json then error("json library not loaded") end
+    if json == nil then error("json library not loaded") end
     file = io.open(file_path, "r")
     data = nil 
-    if not is file then
+    if file == nil then
         error("Failed to read file: " .. file_path)
     else
         content = io.read(file, "*all")
@@ -384,10 +384,10 @@ function read_json(file_path)
 end
 
 function write_json(file_path, lua_table)
-    if not is json then error("json library not loaded") end
+    if json == nil then error("json library not loaded") end
     content = json.encode(lua_table, { indent = true })  -- pretty-print with indentation
     file, err = io.open(file_path, "w")
-    if not is file then
+    if file == nil then
         error("Failed to write to file: " .. file_path .. " (" .. err .. ")")
     end
     io.write(file, content)
@@ -562,7 +562,7 @@ function apply(func, tbl, level, key, _current_level)
             table.insert(result, apply(func, tbl[k], level, key, _current_level+1))
         end
     else
-        if not is key then
+        if key == nil then
             for k,v in pairs(tbl) do
                 result[k] = func(v)
             end
@@ -653,7 +653,7 @@ end
 -- Get the terminal line length
 function get_line_length()
     handle = io.popen("stty size 2>/dev/null | awk '{print $2}'")
-    if is handle then
+    if handle != nil then
         result = io.read(handle, "*a")
         io.close(handle)
         return tonumber(result) or 80 -- Default to 80 if unable to fetch
@@ -790,7 +790,7 @@ function write_log_file(log_dir, filename, header, entries)
 
     file_path = joinpath(log_dir, filename)
     file = io.open(file_path, "w")
-    if not is file then
+    if file == nil then
         print("Failed to open " .. file_path)
         return nil
     end

@@ -11,14 +11,14 @@ database = {}
 function local_query(db_path, query)
     query = query
     db = sqlite.open(db_path)
-    if not is db then
+    if db == nil then
         error("Error opening database")
     end
     sqlite.exec(db, "PRAGMA busy_timeout = 5000;")
 
     query = utils.unescape_string(query)
     stmt, err = sqlite.prepare(db, query)
-    if not is stmt then
+    if stmt == nil then
         sqlite.close(db)
         error("Invalid query: " .. err)
     end
@@ -55,14 +55,14 @@ function local_update(db_path, statement)
     statement = statement
     db = sqlite.open(db_path)
 
-    if not is db then
+    if db == nil then
         error("Error opening database")
     end
     sqlite.exec(db, "PRAGMA busy_timeout = 5000;")
     
     statement = utils.unescape_string(statement)
     _, err = sqlite.exec(db, statement)
-    if is err then
+    if err != nil then
         error("Error: " .. tostring(err))
     end
 
@@ -86,12 +86,12 @@ end
 
 function import_delimited(db_path, file_path, table_name, delimiter)    
     db = sqlite.open(db_path)
-    if not is db then
+    if db == nil then
         error("Error opening database")
     end
 
     content = delimited_files.readdlm(file_path, delimiter, true)
-    if not is content then
+    if content == nil then
         error("Error reading delimited file")
     end
     
@@ -108,7 +108,7 @@ function import_delimited(db_path, file_path, table_name, delimiter)
     insert_statement = insert_statement .. table.concat(value_rows, ", ") .. ";"
 
     _, err = sqlite.exec(db, insert_statement)
-    if is err then
+    if err != nil then
         error("Error: " .. err)
     end
 
@@ -119,7 +119,7 @@ end
 function export_delimited(db_path, query, file_path, delimiter, header)
     results = local_query(db_path, query)
 
-    if not is results then
+    if results == nil then
     	print("Failed query")
     	return nil
     end
@@ -149,7 +149,7 @@ function load_df_rows(db_path, table_name, dataframe)
 
     -- Open DB
     db = sqlite.open(db_path)
-    if not is db then
+    if db == nil then
         error("Error opening database")
     end
 
@@ -197,7 +197,7 @@ function load_df(db_path, table_name, dataframe)
     
     -- Open the SQLite database
     db = sqlite.open(db_path)
-    if not is db then
+    if db == nil then
         print("Error opening database")
         return nil
     end
@@ -229,7 +229,7 @@ function load_df(db_path, table_name, dataframe)
 
     -- Execute the insert statement
     _, err = sqlite.exec(db, insert_statement)
-    if is err then
+    if err != nil then
         print("Error: " .. err)
         print("Insert Statement: " .. insert_statement)
         sqlite.close(db)
@@ -243,7 +243,7 @@ end
 
 function get_tables(db_path)
 	db = sqlite.open(db_path)
-    if not is db then
+    if db == nil then
         print("Error opening database")
         return nil
     end
@@ -259,7 +259,7 @@ end
 
 function get_columns(db_path, table_name)
     db = sqlite.open(db_path)
-    if not is db then
+    if db == nil then
         error("Failed to open database at " .. db_path)
     end
 
@@ -277,7 +277,7 @@ end
 function get_table_info(db_path, table_name)
     -- Open the database
     db = sqlite.open(db_path)
-    if not is db then
+    if db == nil then
         error(string.format("Failed to open database at %s", db_path))
     end
 
@@ -301,7 +301,7 @@ end
 
 function get_schema(db_path)
     db = sqlite.open(db_path)
-    if not is db then
+    if db == nil then
         error(string.format("Failed to open database at %s", db_path))
     end
 
@@ -360,7 +360,7 @@ function compare_schemas(old_schema, new_schema, migration_config)
         if not is new_schema[new_tname] then
             table.insert(changes.tables_dropped, old_tname)
         else
-            if is mapped_new_tname then
+            if mapped_new_tname != nil then
                 changes.tables_renamed[old_tname] = mapped_new_tname
             end
 
@@ -390,7 +390,7 @@ function compare_schemas(old_schema, new_schema, migration_config)
                 mapped_new_colname = column_renames[old_colname]
                 newcol = new_col_map[old_colname] or (mapped_new_colname and new_col_map[mapped_new_colname])
 
-                if not is newcol then
+                if newcol == nil then
                     table.insert(diff.columns_dropped, old_colname)
                 else
                     if mapped_new_colname and old_colname != mapped_new_colname then

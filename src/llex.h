@@ -32,7 +32,6 @@ enum RESERVED {
   TK_FUNCTION,
   TK_IF,
   TK_IN,
-  TK_IS,
   TK_CONST,
   TK_NIL,
   TK_NOT,

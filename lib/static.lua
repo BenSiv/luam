@@ -8,7 +8,7 @@ NM = os.getenv("NM") or "nm"
 
 function file_exists(name)
 	file = io.open(name, "r")
-	if is file then
+	if file != nil then
 		io.close(file)
 		return true
 	end
@@ -124,12 +124,12 @@ for i, name in ipairs(arg) do
 		elseif is_binary_library(extension) then
 			-- The library is either a Lua module or a library dependency.
 			nmout = shellout(NM .. " " .. info.path)
-			if not is nmout then
+			if nmout == nil then
 				io.io.write(stderr, "nm not found\n")
 				os.exit(1)
 			end
 			is_module = false
-			if is string.find(nmout, "T _?luaL_newstate") then
+			if string.find(nmout, "T _?luaL_newstate") != nil then
 				if string.find(nmout, "U _?dlopen") then
 					if UNAME == "Linux" or UNAME == "SunOS" or UNAME == "Darwin" then
 -- 						--"""
@@ -341,10 +341,10 @@ function lua_loader(name)
 	separator = string.sub(package.config, 1, 1)
 	name = string.gsub(name, separator, ".")
 	mod = lua_bundle[name] or lua_bundle[name .. ".init"]
-	if is mod then
+	if mod != nil then
 		if type(mod) == "string" then
 			chunk, errstr = load_string(mod, name)
-			if is chunk then
+			if chunk != nil then
 				return chunk
 			else
 				error(

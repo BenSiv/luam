@@ -710,31 +710,6 @@ void luaK_prefix(FuncState *fs, UnOpr op, expdesc *e) {
     codearith(fs, OP_LEN, e, &e2);
     break;
   }
-  case OPR_IS: {
-    /* [ANTIGRAVITY] is operator: check if value is not nil */
-    expdesc nil_const;
-    luaK_dischargevars(fs, e);
-
-    /* Optimize constant cases */
-    if (e->k == VNIL) {
-      e->k = VFALSE;
-    } else if (e->k == VK || e->k == VKNUM || e->k == VTRUE || e->k == VFALSE) {
-      e->k = VTRUE;
-    } else {
-      /* Runtime check: e != nil */
-      int o_e, o_nil;
-      /* Manually initialize nil constant expression */
-      nil_const.k = VNIL;
-      nil_const.t = nil_const.f = NO_JUMP;
-      o_e = luaK_exp2RK(fs, e);
-      o_nil = luaK_exp2RK(fs, &nil_const);
-      freeexp(fs, e);
-      /* Generate != nil comparison (OP_EQ with cond=0) */
-      e->u.s.info = condjump(fs, OP_EQ, 0, o_e, o_nil);
-      e->k = VJMP;
-    }
-    break;
-  }
   default:
     lua_assert(0);
   }

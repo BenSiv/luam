@@ -29,7 +29,7 @@ end
 -- Reads a delimited file into a table, assumes correct format, loads all data as string
 function readdlm(filename, delimiter, header)
     file = io.open(filename, "r")
-    if not is file then
+    if file == nil then
         print("Error opening file: " .. filename)
         return
     end
@@ -46,7 +46,7 @@ function readdlm(filename, delimiter, header)
 
         fields = dlm_split(line, delimiter)
 
-        if is header and header and line_count == 1 then
+        if header != nil and header and line_count == 1 then
             -- Use the first line as keys
             for i, v in ipairs(fields) do cols[i] = v end
             num_cols = #cols
@@ -54,7 +54,7 @@ function readdlm(filename, delimiter, header)
             -- Create a new table for each row
             entry = {}
 
-            if is header and header then
+            if header != nil and header then
                 -- Initialize all keys with empty strings
                 for _, col in ipairs(cols) do
                     entry[col] = ""
@@ -87,26 +87,26 @@ end
 function writedlm(data, filename, delimiter, header, append, column_order)
     file = nil 
 
-    if is append and append then
+    if append != nil and append then
         file = io.open(filename, "a")
     else
         file = io.open(filename, "w")
     end
 
-    if not is file then
+    if file == nil then
         print("Error opening file for writing: " .. filename)
         return
     end
 
     -- Determine the column order (use the first row's keys if not provided)
-    if not is column_order then
+    if column_order == nil then
         -- Get the keys from the first row to determine the column order
         column_order = {}
         for k, v in pairs(data[1]) do table.insert(column_order, k) end
     end
 
     -- Write header line if header is true
-    if is header and header then
+    if header != nil and header then
         header_line = table.concat(column_order, delimiter)
         io.write(file, header_line .. "\n")
     end
