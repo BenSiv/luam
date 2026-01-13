@@ -585,22 +585,32 @@ reentry: /* entry point */
       continue;
     }
     case OP_TEST: {
-      int strict = GETARG_B(i); /* B=1 for if/while, B=0 for and/or */
-      /* [ANTIGRAVITY] Strict conditionals: nil is not valid in control flow */
-      if (strict && ttisnil(ra))
-        luaG_runerror(L, "nil is not a conditional value");
-      if (l_isfalse(ra) != GETARG_C(i))
+      /* [ANTIGRAVITY] Strict conditionals: encoded in C operand */
+      int c_op = GETARG_C(i);
+      int strict = c_op & 2; /* Bit 1 is strict flag */
+      int cond = c_op & 1;   /* Bit 0 is condition */
+
+      if (strict && !ttisboolean(ra))
+        luaG_runerror(L, "conditional requires a boolean value, got %s",
+                      lua_typename(L, ttype(ra)));
+
+      if (l_isfalse(ra) != cond)
         dojump(L, pc, GETARG_sBx(*pc));
       pc++;
       continue;
     }
     case OP_TESTSET: {
       TValue *rb = RB(i);
-      /* OP_TESTSET used for and/or - allow nil for fallback patterns like 'x or
-       * default' */
-      /* Strict nil check removed here - only OP_TEST (if statements) errors on
-       * nil */
-      if (l_isfalse(rb) != GETARG_C(i)) {
+      /* [ANTIGRAVITY] Strict conditionals: encoded in C operand */
+      int c_op = GETARG_C(i);
+      int strict = c_op & 2; /* Bit 1 is strict flag */
+      int cond = c_op & 1;   /* Bit 0 is condition */
+
+      if (strict && !ttisboolean(rb))
+        luaG_runerror(L, "conditional requires a boolean value, got %s",
+                      lua_typename(L, ttype(rb)));
+
+      if (l_isfalse(rb) != cond) {
         setobjs2s(L, ra, rb);
         dojump(L, pc, GETARG_sBx(*pc));
       }

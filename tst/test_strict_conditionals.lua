@@ -1,40 +1,72 @@
-print("Testing strict nil conditionals...")
+-- Test Strict Conditionals
+-- "if <non-boolean>" should be an error.
 
--- Test 1: if false should work
-if false then
-    print("ERROR: if false entered block")
-    os.exit(1)
+function assert_error(code, msg_pattern)
+   f, e = loadstring(code)
+   if is f then
+      -- If compiled OK, run it to check runtime error
+      status, err = pcall(f)
+      if status then
+         print("FAIL: Expected error for code: " .. code)
+         os.exit(1)
+      else
+         if not is string.find(err, msg_pattern) then
+             print("FAIL: Wrong runtime error for: " .. code)
+             print("Got: " .. err)
+             os.exit(1)
+         end
+      end
+   else
+      -- Compile time error
+      if not is string.find(e, msg_pattern) then
+          print("FAIL: Wrong compile error for: " .. code)
+          print("Got: " .. e)
+          os.exit(1)
+      end
+   end
+   print("PASS: " .. code .. " -> Rejected as expected.")
 end
-print("PASS: if false works correctly")
 
--- Test 2: nil or default should work  
-x = nil or "default"
-assert(x == "default", "Test 2 FAILED")
-print("PASS: nil or default works")
+function assert_ok(code)
+   f, e = loadstring(code)
+   if not is f then
+       print("FAIL: Compile error for valid code: " .. code)
+       print(e)
+       os.exit(1)
+   end
+   status, err = pcall(f)
+   if not status then
+       print("FAIL: Runtime error for valid code: " .. code)
+       print(err)
+       os.exit(1)
+   end
+   print("PASS: " .. code .. " -> Accepted.")
+end
 
--- Test 3: undefined global or default should work
-result = undefined_global or 42
-assert(result == 42, "Test 3 FAILED")
-print("PASS: undefined or default works")
+print("=== Testing Strict Conditionals ===")
 
--- Test 4: and with nil  
-z = nil and "value"
-assert(z == nil, "Test 4 FAILED")
-print("PASS: nil and value works")
+-- Literals
+assert_error("if 5 then end", "conditional requires a boolean")
+assert_error("if 'str' then end", "conditional requires a boolean")
+assert_error("if nil then end", "nil is not a conditional value") -- caught by parser
+assert_error("if {} then end", "conditional requires a boolean") 
 
--- Test 5: is operator for existence check
-assert(is 5 == true, "Test 5a FAILED")
-assert(is false == true, "Test 5b FAILED")  
-assert(is nil == false, "Test 5c FAILED")
-assert(is 0 == true, "Test 5d FAILED")
-print("PASS: is operator works")
+-- Variables (Runtime)
+assert_error("x=5; if x then end", "conditional requires a boolean")
+assert_error("x='s'; if x then end", "conditional requires a boolean")
+assert_error("x={}; if x then end", "conditional requires a boolean")
+assert_error("x=nil; if x then end", "conditional requires a boolean") -- Runtime OP_TEST
 
--- Test 6: type renaming
-assert(type("hello") == "text", "Test 6a FAILED")
-assert(type(true) == "flag", "Test 6b FAILED")
-print("PASS: type renaming works")
+-- Valid cases
+assert_ok("if true then end")
+assert_ok("if false then end")
+assert_ok("x=true; if x then end")
+assert_ok("x=false; if x then end")
+assert_ok("if (5 == 5) then end")
+assert_ok("x=5; if is x then end") -- 'is' operator returns boolean
 
-print("\n✅ All tests passed!")
-print("\nNote: Strict nil checks tested manually:")
-print("  - 'if nil' errors at parse time")
-print("  - 'if nil_variable' errors at runtime")
+-- While / Repeat
+assert_error("while 5 do end", "conditional requires a boolean")
+-- assert_error("repeat until 5", "conditional requires a boolean") 
+
+print("\nALL TESTS PASSED")

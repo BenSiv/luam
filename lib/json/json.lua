@@ -131,7 +131,7 @@ function fsub (str, pattern, repl)
   -- (and finds no matches or many finds), and repl function definition
   -- exists. First using find should be more efficient when most strings
   -- don't contain the pattern.
-  if strfind (str, pattern) then
+  if is strfind (str, pattern) then
     result, n = gsub (str, pattern, repl)
     return result
   else
@@ -142,7 +142,7 @@ end
 function quotestring (value)
   -- based on the regexp "escapable" in https://github.com/douglascrockford/JSON-js
   result = fsub (value, "[%z\1-\31\"\\\127]", escapeutf8)
-  if strfind (result, "[\194\216\220\225\226\239]") then
+  if is strfind (result, "[\\194\\216\\220\\225\\226\\239]") then
     result = fsub (result, "\194[\128-\159\173]", escapeutf8)
     result = fsub (result, "\216[\128-\132]", escapeutf8)
     result = fsub (result, "\220\143", escapeutf8)
@@ -197,7 +197,7 @@ function addnewline2 (level, buffer, buflen)
 end
 
 function json.addnewline (state)
-  if state.indent then
+  if is state.indent then
     state.bufferlen = addnewline2 (state.level or 0,
                            state.buffer, state.bufferlen or #(state.buffer))
   end
@@ -215,14 +215,14 @@ function addpair (key, value, prev, indent, level, buffer, buflen, tables, globa
     newbuflen = newbuflen + 1
     buffer[newbuflen] = ","
   end
-  if indent then
+  if is indent then
     newbuflen = addnewline2 (level, buffer, newbuflen)
   end
   buffer[newbuflen+1] = "\""
   buffer[newbuflen+2] = tostring (key)
   buffer[newbuflen+3] = "\":"
   newbuflen = newbuflen + 3
-  if indent then
+  if is indent then
     buffer[newbuflen+1] = " "
     newbuflen = newbuflen + 1
   end
@@ -268,7 +268,7 @@ encode2 = function (value, indent, level, buffer, buflen, tables, globalorder, s
   valmeta = type (valmeta) == 'table' and valmeta -- only tables
   valtojson = valmeta and valmeta.__tojson
   if valtojson then
-    if tables[value] then
+    if is tables[value] then
       return exception('reference cycle', value, state, buffer, buflen)
     end
     tables[value] = true
@@ -298,7 +298,7 @@ encode2 = function (value, indent, level, buffer, buflen, tables, globalorder, s
             newbuflen = buflen + 1
             buffer[newbuflen] = quotestring (value)
           elseif valtype == 'table' then
-              if tables[value] then
+              if is tables[value] then
                 return exception('reference cycle', value, state, buffer, buflen)
               end
               tables[value] = true
@@ -352,7 +352,7 @@ encode2 = function (value, indent, level, buffer, buflen, tables, globalorder, s
                     prev = true -- add a seperator before the next element
                   end
                 end
-                if indent then
+                if is indent then
                   newbuflen = addnewline2 (level - 1, buffer, newbuflen)
                 end
                 newbuflen = newbuflen + 1

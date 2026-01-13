@@ -490,14 +490,15 @@ static int jumponcond(FuncState *fs, expdesc *e, int cond, int strict) {
       /* [ANTIGRAVITY] Strict Check: Do not optimize away OP_NOT.
          We need OP_NOT to execute so it can perform runtime type checking.
       fs->pc--;
-      return condjump(fs, OP_TEST, GETARG_B(ie), strict, !cond);
+      return condjump(fs, OP_TEST, GETARG_B(ie), NO_REG, (!cond) + (strict ? 2 :
+      0));
       */
     }
     /* else go through */
   }
   discharge2anyreg(fs, e);
   freeexp(fs, e);
-  return condjump(fs, OP_TESTSET, NO_REG, e->u.s.info, cond);
+  return condjump(fs, OP_TESTSET, NO_REG, e->u.s.info, cond + (strict ? 2 : 0));
 }
 
 void luaK_goiftrue(FuncState *fs, expdesc *e, int strict) {
@@ -506,6 +507,11 @@ void luaK_goiftrue(FuncState *fs, expdesc *e, int strict) {
   switch (e->k) {
   case VK:
   case VKNUM:
+    if (strict) {
+      luaX_syntaxerror(fs->ls,
+                       "conditional requires a boolean value, got constant");
+    }
+    /* fallthrough */
   case VTRUE: {
     pc = NO_JUMP; /* always true; do nothing */
     break;
@@ -529,6 +535,13 @@ static void luaK_goiffalse(FuncState *fs, expdesc *e, int strict) {
   int pc; /* pc of last jump */
   luaK_dischargevars(fs, e);
   switch (e->k) {
+  case VK:
+  case VKNUM:
+    if (strict) {
+      luaX_syntaxerror(fs->ls,
+                       "conditional requires a boolean value, got constant");
+    }
+    /* fallthrough */
   case VNIL:
   case VFALSE: {
     pc = NO_JUMP; /* always false; do nothing */
