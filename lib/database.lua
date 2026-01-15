@@ -2,7 +2,7 @@ utils = require("utils")
 delimited_files = require("delimited_files")
 dataframes = require("dataframes")
 sqlite = require("sqlite3")
-_.sqlite3 = nil
+_G.sqlite3 = nil
 
 
 -- Define a module table
@@ -14,7 +14,7 @@ function local_query(db_path, query)
     if db == nil then
         error("Error opening database")
     end
-    sqlite.exec(db, "PM busy_timeout = 5000;")
+    sqlite.exec(db, "PRAGMA busy_timeout = 5000;")
 
     query = utils.unescape_string(query)
     stmt, err = sqlite.prepare(db, query)
@@ -58,7 +58,7 @@ function local_update(db_path, statement)
     if db == nil then
         error("Error opening database")
     end
-    sqlite.exec(db, "PM busy_timeout = 5000;")
+    sqlite.exec(db, "PRAGMA busy_timeout = 5000;")
     
     statement = utils.unescape_string(statement)
     _, err = sqlite.exec(db, statement)
@@ -357,7 +357,7 @@ function compare_schemas(old_schema, new_schema, migration_config)
         mapped_new_tname = migration_config.tables[old_tname]
         new_tname = mapped_new_tname or old_tname
 
-        if not is new_schema[new_tname] then
+        if not new_schema[new_tname] then
             table.insert(changes.tables_dropped, old_tname)
         else
             if mapped_new_tname != nil then
@@ -409,7 +409,7 @@ function compare_schemas(old_schema, new_schema, migration_config)
 
             -- detect added columns (not from rename)
             for _, newcol in ipairs(new_cols) do
-                if not is old_col_map[newcol.name] then
+                if not old_col_map[newcol.name] then
                     is_rename = false
                     for _, mapped in pairs(column_renames) do
                         if mapped == newcol.name then
@@ -442,7 +442,7 @@ function compare_schemas(old_schema, new_schema, migration_config)
             end
         end
 
-        if not is old_schema[new_tname] and not is_rename then
+        if not old_schema[new_tname] and not is_rename then
             table.insert(changes.tables_added, new_tname)
         end
     end

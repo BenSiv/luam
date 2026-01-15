@@ -17,7 +17,7 @@ function pad_to_length(input, total_length, pad_char)
 end
 
 function normalize_datetime(datetime_str)
-    if not is datetime_str or datetime_str == "" then
+    if datetime_str == nil or datetime_str == "" then
         return nil
     end
     
@@ -34,19 +34,19 @@ function normalize_datetime(datetime_str)
         n_month, n_day, n_hour, n_min, n_sec = "01", "01", "00", "00", "00"
     elseif str_len == 7 then
         n_year, n_month = string.match(datetime_str, "(%d%d%d%d)-(%d%d)")
-        if not (n_year and n_month) then return nil end
+        if n_year == nil or n_month == nil then return nil end
         n_day, n_hour, n_min, n_sec = "01", "00", "00", "00"
     elseif str_len == 10 then
         n_year, n_month, n_day = string.match(datetime_str, "(%d%d%d%d)-(%d%d)-(%d%d)")
-        if not (n_year and n_month and n_day) then return nil end
+        if n_year == nil or n_month == nil or n_day == nil then return nil end
         n_hour, n_min, n_sec = "00", "00", "00"
     elseif str_len == 16 then
         n_year, n_month, n_day, n_hour, n_min = string.match(datetime_str, "(%d%d%d%d)-(%d%d)-(%d%d) (%d%d):(%d%d)")
-        if not (n_year and n_month and n_day and n_hour and n_min) then return nil end
+        if n_year == nil or n_month == nil or n_day == nil or n_hour == nil or n_min == nil then return nil end
         n_sec = "00"
     elseif str_len == 19 then
         n_year, n_month, n_day, n_hour, n_min, n_sec = string.match(datetime_str, "(%d%d%d%d)-(%d%d)-(%d%d) (%d%d):(%d%d):(%d%d)")
-        if not (n_year and n_month and n_day and n_hour and n_min and n_sec) then return nil end
+        if n_year == nil or n_month == nil or n_day == nil or n_hour == nil or n_min == nil or n_sec == nil then return nil end
     else
         return nil
     end
@@ -79,7 +79,7 @@ function is_valid_timestamp(timestamp)
            string.sub(timestamp, 11, 11) == " " and string.sub(timestamp, 14, 14) == ":" and
            string.sub(timestamp, 17, 17) == ":" then
             
-            if ts_year and ts_month and ts_day and ts_hour and ts_minute and ts_second then
+            if ts_year != nil and ts_month != nil and ts_day != nil and ts_hour != nil and ts_minute != nil and ts_second != nil then
                 ts_is_leap_year = (ts_year % 4 == 0 and ts_year % 100 != 0) or (ts_year % 400 == 0)
                 ts_days_in_month = {
                     31, (ts_is_leap_year and 29 or 28), 31, 30, 31, 30, 31, 31, 30, 31, 30, 31

@@ -47,7 +47,7 @@ end
 
 -- robust strip for Lua 5.1: removes SC spaces plus common UF-8 invisible chars
 function strip(s)
-    if not s then return s end
+    if s == nil then return s end
     -- remove leading BOM if present
     s = string.gsub(s, "^\239\187\191", "")
     -- remove leading ascii whitespace, BSP (U+000), and ZWSP (U+200B)

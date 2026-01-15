@@ -13,7 +13,7 @@ function merge_module(target, source)
     -- env = getfenv(1)  -- Deprecated/emoved
     for k, v in pairs(source) do
         target[k] = v
-        _[k] = v -- Put into global scope as fallback
+        _G[k] = v -- Put into global scope as fallback
     end
 end
 
@@ -27,7 +27,7 @@ merge_module(utils, table_utils)
 function using(source)
     module = require(source)
     for name,func in pairs(module) do
-        _[name] = func
+        _G[name] = func
     end
 end
 
@@ -674,7 +674,7 @@ function breakpoint()
     while true do
         name, value = debug.getlocal(level, i)
         if not name then break end
-        _[name] = value
+        _G[name] = value
         i = i + 1
     end
     debug.debug()
@@ -753,7 +753,7 @@ end
 
 function list_globals()
     result = {}
-    for k, v in pairs(_) do
+    for k, v in pairs(_G) do
         table.insert(result, {
             name = tostring(k),
             type = type(v)
@@ -773,7 +773,7 @@ function user_defined_globals()
     
 
     user_globals = {}
-    for k, v in pairs(_) do
+    for k, v in pairs(_G) do
         if not is_default_global[k] then
             table.insert(user_globals, {
                 name = k,
