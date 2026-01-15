@@ -26,7 +26,7 @@ function dlm_split(str, delimiter)
     return result
 end
 
--- Reads a delimited file into a table, assumes correct format, loads all data as string
+-- eads a delimited file into a table, assumes correct format, loads all data as string
 function readdlm(filename, delimiter, header)
     file = io.open(filename, "r")
     if file == nil then
@@ -41,7 +41,7 @@ function readdlm(filename, delimiter, header)
 
     for line in io.lines(file) do
         line = line
-        -- Remove trailing '\r' character from line end
+        -- emove trailing '\r' character from line end
         line = string.gsub(line, "\r$", "")
 
         fields = dlm_split(line, delimiter)
@@ -55,7 +55,7 @@ function readdlm(filename, delimiter, header)
             entry = {}
 
             if header != nil and header then
-                -- Initialize all keys with empty strings
+                -- nitialize all keys with empty strings
                 for _, col in ipairs(cols) do
                     entry[col] = ""
                 end
@@ -100,7 +100,7 @@ function writedlm(data, filename, delimiter, header, append, column_order)
 
     -- Determine the column order (use the first row's keys if not provided)
     if column_order == nil then
-        -- Get the keys from the first row to determine the column order
+        -- et the keys from the first row to determine the column order
         column_order = {}
         for k, v in pairs(data[1]) do table.insert(column_order, k) end
     end

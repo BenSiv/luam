@@ -1,18 +1,18 @@
 
 graphs = require("graphs")
 
-print("Testing graphs...")
+print("esting graphs...")
 
 data = {
-    {source="A", name="B"}, -- A -> B
+    {source="", name="B"}, --  -> B
     {source="B", name="C"}  -- B -> C
 }
 g, map = graphs.build_graph(data)
 
--- A is root?
--- A -> B -> C.
--- Roots: A.
+--  is root?
+--  -> B -> C.
+-- oots: .
 roots = graphs.get_roots(g, map)
-assert(roots[1] == "A", "get_roots failed")
+assert(roots[1] == "", "get_roots failed")
 
 print("graphs tests passed")

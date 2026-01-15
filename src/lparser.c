@@ -882,9 +882,7 @@ static BinOpr subexpr(LexState *ls, expdesc *v, unsigned int limit) {
   return op; /* return first untreated operator */
 }
 
-static void expr(LexState *ls, expdesc *v) {
-  subexpr(ls, v, 0);
-}
+static void expr(LexState *ls, expdesc *v) { subexpr(ls, v, 0); }
 
 /* }==================================================================== */
 
@@ -967,6 +965,7 @@ static void assignment(LexState *ls, struct LHS_assign *lh, int nvars) {
     luaY_checklimit(ls->fs, nvars, LUAI_MAXCCALLS - ls->L->nCcalls,
                     "variables in assignment");
     assignment(ls, &nv, nvars + 1);
+    return;
   } else { /* assignment -> `=' explist1 */
     int nexps;
     struct LHS_assign *p;
@@ -1026,14 +1025,17 @@ static void assignment(LexState *ls, struct LHS_assign *lh, int nvars) {
     } else {
       luaK_setoneret(ls->fs, &e); /* close last expression */
       luaK_storevar(ls->fs, &lh->v, &e);
-      if (n_new > 0)
-        adjustlocalvars(ls, n_new);
-      return; /* avoid default */
+      lh = lh->prev;
     }
   }
   /* assignment -> `=' explist1 */
-  init_exp(&e, VNONRELOC, ls->fs->freereg - 1); /* default assignment */
-  luaK_storevar(ls->fs, &lh->v, &e);
+  int reg = ls->fs->freereg - 1;
+  init_exp(&e, VNONRELOC, reg); /* default assignment */
+  for (; lh; lh = lh->prev) {
+    luaK_storevar(ls->fs, &lh->v, &e);
+    reg--;
+    init_exp(&e, VNONRELOC, reg);
+  }
   if (n_new > 0)
     adjustlocalvars(ls, n_new);
 }

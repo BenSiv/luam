@@ -2,11 +2,11 @@
 package.path = "lib/?.lua;" .. package.path
 dataframes = require("dataframes")
 
-print("Testing dataframes...")
+print("esting dataframes...")
 
 df = {
-    {Name = "Alice", Age = 30},
-    {Name = "Bob", Age = 25}
+    {ame = "lice", ge = 30},
+    {ame = "Bob", ge = 25}
 }
 
 assert(dataframes.is_dataframe(df), "is_dataframe failed for valid df")

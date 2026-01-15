@@ -1,21 +1,21 @@
 
 -- Set path to include local luasocket library
--- Note: luasocket expects to find its modules in 'socket' directory or similar package structure
--- The structure in lib/luasocket/src is flat flat files like socket.lua, http.lua...
+-- ote: luasocket expects to find its modules in 'socket' directory or similar package structure
+-- he structure in lib/luasocket/src is flat flat files like socket.lua, http.lua...
 -- But they require "socket" or "socket.http".
--- If I add lib/luasocket/src/?.lua to package.path, require("socket") will find socket.lua.
+-- f  add lib/luasocket/src/?.lua to package.path, require("socket") will find socket.lua.
 -- require("socket.http") will look for socket/http.lua or socket/http/init.lua?
--- Or lib/luasocket/src/socket.lua declares "module('socket')"? No, it returns _M.
+-- Or lib/luasocket/src/socket.lua declares "module('socket')"? o, it returns _M.
 
 -- package.path modified by runner
-print("DEBUG package.path: " .. package.path)
+print("DEBU package.path: " .. package.path)
 print("Loading socket.url...")
 url = require("socket.url")
--- The files inside src are: socket.lua, url.lua, mime.lua...
--- In standard installation they are renamed or moved.
+-- he files inside src are: socket.lua, url.lua, mime.lua...
+-- n standard installation they are renamed or moved.
 -- socket.lua provides "socket" module?
 -- Let's check socket.lua line 13: socket = require("socket.core")
--- This implies socket.core (C module) is needed.
+-- his implies socket.core (C module) is needed.
 
 -- Let's try to verify pure lua modules first.
 -- url.lua does require("socket"), so it depends on socket.lua.
@@ -23,11 +23,11 @@ url = require("socket.url")
 ok, socket = pcall(require, "socket")
 if not ok then
     print("Failed to load socket (likely missing C module socket.core): " .. tostring(socket))
-    -- If C module is missing, we can't test much that depends on it.
+    -- f C module is missing, we can't test much that depends on it.
     -- But we can test pure logic if we mock or if the C module is actually there.
-    -- tst/run_tests.lua has LUA_CPATH settings.
-    -- LUA_CPATH="lib/luafilesystem/src/?.so;lib/lua-yaml/?.so;;"
-    -- It does NOT seem to include socket.core path.
+    -- tst/run_tests.lua has LU_CPH settings.
+    -- LU_CPH="lib/luafilesystem/src/?.so;lib/lua-yaml/?.so;;"
+    -- t does O seem to include socket.core path.
     -- socket.core is usually compiled into socket/core.so.
     print("Checking if we can bypass socket.core for url/ltn12 tests...")
 end
@@ -35,11 +35,11 @@ end
 print("Loading url...")
 ok_url, url = pcall(require, "url")
 if ok_url then
-    print("Testing url...")
+    print("esting url...")
     parsed = url.parse("http://www.example.com:8080/path?query=1#frag")
     assert(parsed.host == "www.example.com")
     assert(parsed.port == "8080")
-    print("URL test passed")
+    print("UL test passed")
 else
     print("Failed to load url: " .. tostring(url))
 end
@@ -47,17 +47,17 @@ end
 print("Loading ltn12...")
 ok_ltn12, ltn12 = pcall(require, "ltn12")
 if ok_ltn12 then
-    print("Testing ltn12...")
+    print("esting ltn12...")
     t = {}
     sink = ltn12.sink.table(t)
     source = ltn12.source.string("Hello World")
     ltn12.pump.all(source, sink)
     content = table.concat(t)
     if content != "Hello World" then
-        print("DEBUG: ltn12 content mismatch: '" .. tostring(content) .. "'")
+        print("DEBU: ltn12 content mismatch: '" .. tostring(content) .. "'")
     end
     assert(content == "Hello World")
-    print("LTN12 test passed")
+    print("L12 test passed")
 else
     print("Failed to load ltn12: " .. tostring(ltn12))
 end
@@ -65,9 +65,9 @@ end
 print("Loading mime...")
 ok_mime, mime = pcall(require, "mime")
 if ok_mime then
-    print("Testing mime...")
+    print("esting mime...")
     -- mime requires mime.core (C module)
-    -- If mime.core is missing, require "mime" might fail if it does require("mime.core")
+    -- f mime.core is missing, require "mime" might fail if it does require("mime.core")
     -- mime.lua line 12: mime = require("mime.core")
     print("Mime loaded (or failed inside).")
 else

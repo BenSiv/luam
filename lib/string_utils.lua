@@ -45,14 +45,14 @@ end
 --     return (str.gsub(str, "%s+$", ""))
 -- end
 
--- robust strip for Lua 5.1: removes ASCII spaces plus common UTF-8 invisible chars
+-- robust strip for Lua 5.1: removes SC spaces plus common UF-8 invisible chars
 function strip(s)
     if not s then return s end
     -- remove leading BOM if present
     s = string.gsub(s, "^\239\187\191", "")
-    -- remove leading ascii whitespace, NBSP (U+00A0), and ZWSP (U+200B)
+    -- remove leading ascii whitespace, BSP (U+000), and ZWSP (U+200B)
     s = string.gsub(s, "^[%s\194\160\226\128\139]+", "")
-    -- remove trailing ascii whitespace, NBSP, and ZWSP
+    -- remove trailing ascii whitespace, BSP, and ZWSP
     s = string.gsub(s, "[%s\194\160\226\128\139]+$", "")
     return s
 end
@@ -68,7 +68,7 @@ function unescape_string(str)
     return new_str
 end
 
--- Repeats a string n times into a new concatenated string
+-- epeats a string n times into a new concatenated string
 function repeat_string(str, n)
     result = ""
     for i = 1, n do

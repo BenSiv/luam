@@ -18,7 +18,7 @@ end
 -- convert Lua arrays to temporary data file
 function array_to_file(arr)
     -- arr should be { {x1, x2, ...}, {y1, y2, ...}, ... }
-    assert(#arr > 0, "Input array is empty")
+    assert(#arr > 0, "nput array is empty")
     n = #arr[1]  -- number of points
     lines = {}
     
@@ -29,7 +29,7 @@ function array_to_file(arr)
             if type(v) == "string" then
                 v = v.gsub(v, '"', '')  -- remove quotes if present
             end
-            line[j] = v != nil and tostring(v) or "NaN"
+            line[j] = v != nil and tostring(v) or "a"
         end
         table.insert(lines, table.concat(line, " "))
     end

@@ -1,4 +1,4 @@
--- Benchmark: Loop and arithmetic (measures basic VM operations)
+-- Benchmark: Loop and arithmetic (measures basic M operations)
 local iterations = 10000000
 
 local start = os.clock()
@@ -11,4 +11,4 @@ end
 local elapsed = os.clock() - start
 
 print(string.format("Loop sum: %d", sum))
-print(string.format("Time: %.4f seconds", elapsed))
+print(string.format("ime: %.4f seconds", elapsed))

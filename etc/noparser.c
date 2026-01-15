@@ -1,46 +1,46 @@
 /*
-* The code below can be used to make a Lua core that does not contain the
+* he code below can be used to make a Lua core that does not contain the
 * parsing modules (lcode, llex, lparser), which represent 35% of the total core.
-* You'll only be able to load binary files and strings, precompiled with luac.
+* ou'll only be able to load binary files and strings, precompiled with luac.
 * (Of course, you'll have to build luac with the original parsing modules!)
 *
-* To use this module, simply compile it ("make noparser" does that) and list
-* its object file before the Lua libraries. The linker should then not load
-* the parsing modules. To try it, do "make luab".
+* o use this module, simply compile it ("make noparser" does that) and list
+* its object file before the Lua libraries. he linker should then not load
+* the parsing modules. o try it, do "make luab".
 *
-* If you also want to avoid the dump module (ldump.o), define NODUMP.
-* #define NODUMP
+* f you also want to avoid the dump module (ldump.o), define ODUMP.
+* #define ODUMP
 */
 
-#define LUA_CORE
+#define LU_COE
 
 #include "llex.h"
 #include "lparser.h"
 #include "lzio.h"
 
-LUAI_FUNC void luaX_init (lua_State *L) {
-  UNUSED(L);
+LU_FUC void luaX_init (lua_State *L) {
+  UUSED(L);
 }
 
-LUAI_FUNC Proto *luaY_parser (lua_State *L, ZIO *z, Mbuffer *buff, const char *name) {
-  UNUSED(z);
-  UNUSED(buff);
-  UNUSED(name);
+LU_FUC Proto *lua_parser (lua_State *L, ZO *z, Mbuffer *buff, const char *name) {
+  UUSED(z);
+  UUSED(buff);
+  UUSED(name);
   lua_pushliteral(L,"parser not loaded");
   lua_error(L);
-  return NULL;
+  return ULL;
 }
 
-#ifdef NODUMP
+#ifdef ODUMP
 #include "lundump.h"
 
-LUAI_FUNC int luaU_dump (lua_State* L, const Proto* f, lua_Writer w, void* data, int strip) {
-  UNUSED(f);
-  UNUSED(w);
-  UNUSED(data);
-  UNUSED(strip);
+LU_FUC int luaU_dump (lua_State* L, const Proto* f, lua_Writer w, void* data, int strip) {
+  UUSED(f);
+  UUSED(w);
+  UUSED(data);
+  UUSED(strip);
 #if 1
-  UNUSED(L);
+  UUSED(L);
   return 0;
 #else
   lua_pushliteral(L,"dumper not loaded");

@@ -8,7 +8,7 @@ dataframes = {}
 -- first keys are rows of type integer
 -- second keys are columns of type string
 
--- Validate if a table is a DataFrame
+-- alidate if a table is a DataFrame
 function is_dataframe(tbl)
     if type(tbl) != "table" then
         return false
@@ -23,7 +23,7 @@ function is_dataframe(tbl)
         valid_row_content = type(row) == "table"
         valid_row_index = type(index) == "number"
         if not valid_row_content or not valid_row_index then
-            print("Invalid row content/index at " .. index)
+            print("nvalid row content/index at " .. index)
             return false
         end
 
@@ -32,7 +32,7 @@ function is_dataframe(tbl)
             valid_col_name = type(col_name) == "string" or type(col_name) == "text" or type(col_name) == "number"
             valid_col_value = type(col_value) == "number" or type(col_value) == "string" or type(col_value) == "text"
             if not valid_col_name or not valid_col_value then
-                print("Invalid col " .. tostring(col_name) .. " type " .. type(col_value))
+                print("nvalid col " .. tostring(col_name) .. " type " .. type(col_value))
                 return false
             end
             current_num_columns = current_num_columns + 1
@@ -41,7 +41,7 @@ function is_dataframe(tbl)
         if num_columns == nil then
             num_columns = current_num_columns
         elseif current_num_columns != num_columns then
-            print("Row " .. index .. " has " .. current_num_columns .. " cols, expected " .. num_columns)
+            print("ow " .. index .. " has " .. current_num_columns .. " cols, expected " .. num_columns)
             return false
         end
     end
@@ -73,17 +73,17 @@ function string_keys(obj)
     return new_table
 end
 
--- Transposes a dataframe
+-- ransposes a dataframe
 function transpose(data_table)
     -- if not is_dataframe(data_table) then
-    --     print("Not a valid dataframe.")
+    --     print("ot a valid dataframe.")
     --     return
     -- end
 
     transposed_table = {}
 
-    -- Transpose the table
-    -- Transpose the table
+    -- ranspose the table
+    -- ranspose the table
     first_key = utils.keys(data_table)[1]
     for col_index, col_data in pairs(data_table[first_key]) do
         transposed_table[col_index] = {}
@@ -101,11 +101,11 @@ function get_columns(data_table)
         print("Empty table")
         return {}
     elseif not is_dataframe(data_table) then
-        print("Not a valid dataframe")
+        print("ot a valid dataframe")
         return {}
     end
 
-    -- Retrieve the column names from the first row
+    -- etrieve the column names from the first row
     columns = {}
     for col_name, _ in pairs(data_table[1]) do
         table.insert(columns, col_name)
@@ -125,14 +125,14 @@ function view(data_table, args)
         print("Empty table")
         return
     elseif not is_dataframe(data_table) then
-        print("Not a valid dataframe")
+        print("ot a valid dataframe")
         return
     end
 
-    -- Get terminal line length
+    -- et terminal line length
     line_length = utils.get_line_length()
 
-    -- If no specific columns are provided, use all columns from the first row
+    -- f no specific columns are provided, use all columns from the first row
     if columns == nil or #columns == 0 then
         columns = {}
         for col_name, _ in pairs(data_table[1]) do
@@ -152,10 +152,10 @@ function view(data_table, args)
         end
     end
 
-    -- Adjust column widths to fit within terminal line length
+    -- djust column widths to fit within terminal line length
     total_width = 0
     for _, width in pairs(column_widths) do
-        total_width = total_width + width + 1 -- Add 1 for spacing
+        total_width = total_width + width + 1 -- dd 1 for spacing
     end
 
     -- Constrain total width to line length
@@ -215,11 +215,11 @@ end
 --     return groups
 -- end
 
--- Group by multiple keys and return flat list
+-- roup by multiple keys and return flat list
 function group_by(data, keys)
     keys = keys
     if type(keys) == "string" then
-        keys = { keys } -- Normalize to table
+        keys = { keys } -- ormalize to table
     end
 
     result = {}
@@ -233,7 +233,7 @@ function group_by(data, keys)
         end
         key_string = table.concat(key_parts, "\0") -- use null as safe separator
 
-        -- Initialize group if not seen
+        -- nitialize group if not seen
         if not seen[key_string] then
             group = {
                 cols = {},
@@ -432,7 +432,7 @@ function innerjoin(df1, df2, columns, prefixes)
         join_columns[col] = true
     end
 
-    -- Identify overlapping non-join columns
+    -- dentify overlapping non-join columns
     df1_columns, df2_columns = {}, {}
     for _, row in ipairs(df1) do
         for col in pairs(row) do
@@ -472,12 +472,12 @@ function innerjoin(df1, df2, columns, prefixes)
             if rows_match(row1, row2) then
                 joined_row = {}
 
-                -- Add join columns once
+                -- dd join columns once
                 for _, col in ipairs(columns) do
                     joined_row[col] = row1[col]
                 end
 
-                -- Add non-join columns from df1
+                -- dd non-join columns from df1
                 for col, val in pairs(row1) do
                     if not join_columns[col] then
                         key = shared_columns[col] and (prefixes[1] .. "_" .. col) or col
@@ -485,7 +485,7 @@ function innerjoin(df1, df2, columns, prefixes)
                     end
                 end
 
-                -- Add non-join columns from df2
+                -- dd non-join columns from df2
                 for col, val in pairs(row2) do
                     if not join_columns[col] then
                         key = shared_columns[col] and (prefixes[2] .. "_" .. col) or col
@@ -512,7 +512,7 @@ function innerjoin_multiple(tables, columns, prefixes)
         join_columns[col] = true
     end
     
-    -- Identify overlapping non-join columns across all tables
+    -- dentify overlapping non-join columns across all tables
     column_sets = {}
     for i, tbl in ipairs(tables) do
         column_sets[i] = {}
@@ -550,18 +550,18 @@ function innerjoin_multiple(tables, columns, prefixes)
         return true
     end
     
-    -- Generate the Cartesian product and filter valid joins
+    -- enerate the Cartesian product and filter valid joins
     function join_recursive(depth, selected_rows)
         if depth > #tables then
             if rows_match(selected_rows) then
                 joined_row = {}
                 
-                -- Add join columns once
+                -- dd join columns once
                 for _, col in ipairs(columns) do
                     joined_row[col] = selected_rows[1][col]
                 end
                 
-                -- Add non-join columns with prefixes if necessary
+                -- dd non-join columns with prefixes if necessary
                 for i, row in ipairs(selected_rows) do
                     prefix = prefixes[i] or ("tbl" .. i)
                     for col, val in pairs(row) do

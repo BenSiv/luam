@@ -18,4 +18,4 @@ end
 elapsed = os.clock() - start
 
 print(string.format("String length: %d, match count: %d", #str, count))
-print(string.format("Time: %.4f seconds", elapsed))
+print(string.format("ime: %.4f seconds", elapsed))

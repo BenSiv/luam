@@ -1,1 +1,1 @@
-print("Hello Static Tool")
+print("Hello Static ool")

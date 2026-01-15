@@ -1,5 +1,5 @@
--- Async I/O utility for concurrent operations using lua-lanes
--- Provides a simple map_concurrent function for parallel I/O-bound tasks
+-- sync /O utility for concurrent operations using lua-lanes
+-- Provides a simple map_concurrent function for parallel /O-bound tasks
 
 async = {}
 
@@ -58,7 +58,7 @@ function async.map_concurrent(items, worker_fn, max_workers, progress_fn)
             status = lane_obj.status
             
             if status == "done" then
-                -- Get result
+                -- et result
                 ok, result = pcall(function() return lane_obj[1] end)
                 if ok then
                     results[active[i].idx] = result

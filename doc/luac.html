@@ -1,28 +1,28 @@
-<!-- $Id: luac.man,v 1.28 2006/01/06 16:03:34 lhf Exp $ -->
-<HTML>
-<HEAD>
-<TITLE>LUAC man page</TITLE>
-<LINK REL="stylesheet" TYPE="text/css" HREF="lua.css">
-</HEAD>
+<!-- $d: luac.man,v 1.28 2006/01/06 16:03:34 lhf Exp $ -->
+<HML>
+<HED>
+<LE>LUC man page</LE>
+<LK EL="stylesheet" PE="text/css" HEF="lua.css">
+</HED>
 
-<BODY BGCOLOR="#FFFFFF">
+<BOD BCOLO="#FFFFFF">
 
-<H2>NAME</H2>
+<H2>ME</H2>
 luac - Lua compiler
-<H2>SYNOPSIS</H2>
+<H2>SOPSS</H2>
 <B>luac</B>
 [
-<I>options</I>
+<>options</>
 ] [
-<I>filenames</I>
+<>filenames</>
 ]
-<H2>DESCRIPTION</H2>
+<H2>DESCPO</H2>
 <B>luac</B>
 is the Lua compiler.
-It translates programs written in the Lua programming language
+t translates programs written in the Lua programming language
 into binary files that can be later loaded and executed.
 <P>
-The main advantages of precompiling chunks are:
+he main advantages of precompiling chunks are:
 faster loading,
 protecting source code from accidental user changes,
 and
@@ -34,9 +34,9 @@ because in Lua chunks are always compiled into bytecodes before being executed.
 simply allows those bytecodes to be saved in a file for later execution.
 <P>
 Precompiled chunks are not necessarily smaller than the corresponding source.
-The main goal in precompiling is faster loading.
+he main goal in precompiling is faster loading.
 <P>
-The binary files created by
+he binary files created by
 <B>luac</B>
 are portable only among architectures with the same word size and byte order.
 <P>
@@ -50,15 +50,15 @@ but you can change this with the
 <B>-o</B>
 option.
 <P>
-In the command line,
+n the command line,
 you can mix
 text files containing Lua source and
 binary files containing precompiled chunks.
-This is useful because several precompiled chunks,
+his is useful because several precompiled chunks,
 even from different (but compatible) platforms,
 can be combined into a single precompiled chunk.
 <P>
-You can use
+ou can use
 <B>'-'</B>
 to indicate the standard input as a source file
 and
@@ -68,34 +68,34 @@ to signal the end of options
 all remaining arguments will be treated as files even if they start with
 <B>'-'</B>).
 <P>
-The internal format of the binary files produced by
+he internal format of the binary files produced by
 <B>luac</B>
 is likely to change when a new version of Lua is released.
 So,
 save the source files of all Lua programs that you precompile.
 <P>
-<H2>OPTIONS</H2>
+<H2>OPOS</H2>
 Options must be separate.
 <P>
 <B>-l</B>
 produce a listing of the compiled bytecode for Lua's virtual machine.
 Listing bytecodes is useful to learn about Lua's virtual machine.
-If no files are given, then
+f no files are given, then
 <B>luac</B>
 loads
 <B>luac.out</B>
 and lists its contents.
 <P>
-<B>-o </B><I>file</I>
+<B>-o </B><>file</>
 output to
-<I>file</I>,
+<>file</>,
 instead of the default
 <B>luac.out</B>.
-(You can use
+(ou can use
 <B>'-'</B>
 for standard output,
 but not on platforms that open standard output in text mode.)
-The output file may be a source file because
+he output file may be a source file because
 all files are loaded before the output file is written.
 Be careful not to overwrite precious files.
 <P>
@@ -108,17 +108,17 @@ Bytecode that passes this test is completely safe,
 in the sense that it will not break the interpreter.
 However,
 there is no guarantee that such code does anything sensible.
-(None can be given, because the halting problem is unsolvable.)
-If no files are given, then
+(one can be given, because the halting problem is unsolvable.)
+f no files are given, then
 <B>luac</B>
 loads
 <B>luac.out</B>
 and tests its contents.
-No messages are displayed if the file passes the integrity test.
+o messages are displayed if the file passes the integrity test.
 <P>
 <B>-s</B>
 strip debug information before writing the output file.
-This saves some space in very large chunks,
+his saves some space in very large chunks,
 but if errors occur when running a stripped chunk,
 then the error messages may not contain the full information they usually do.
 For instance,
@@ -126,20 +126,20 @@ line numbers and names of local variables are lost.
 <P>
 <B>-v</B>
 show version information.
-<H2>FILES</H2>
+<H2>FLES</H2>
 <P>
 <B>luac.out</B>
 default output file
-<H2>SEE ALSO</H2>
+<H2>SEE LSO</H2>
 <B>lua</B>(1)
-<BR>
-<A HREF="http://www.lua.org/">http://www.lua.org/</A>
-<H2>DIAGNOSTICS</H2>
+<B>
+< HEF="http://www.lua.org/">http://www.lua.org/</>
+<H2>DOSCS</H2>
 Error messages should be self explanatory.
-<H2>AUTHORS</H2>
+<H2>UHOS</H2>
 L. H. de Figueiredo,
-R. Ierusalimschy and
+. erusalimschy and
 W. Celes
 <!-- EOF -->
-</BODY>
-</HTML>
+</BOD>
+</HML>

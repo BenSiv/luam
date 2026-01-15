@@ -1,4 +1,4 @@
-# NOT NIL Is a Syntax Error - Implementation Notes
+# O L s a Syntax Error - mplementation otes
 
 ## Change Made
 
@@ -8,16 +8,16 @@ Modified `lparser.c` to reject `not nil` expressions in **all** contexts, not ju
 **File:** `src/lparser.c`  
 **Function:** `subexpr()` (line ~846)
 
-### Implementation
+### mplementation
 ```c
 static BinOpr subexpr(LexState *ls, expdesc *v, unsigned int limit) {
   // ... existing code ...
-  if (uop != OPR_NOUNOPR) {
+  if (uop != OP_OUOP) {
     luaX_next(ls);
-    subexpr(ls, v, UNARY_PRIORITY);
+    subexpr(ls, v, U_PO);
     
-    /* NEW: Check for 'not nil' which is always constant true */
-    if (uop == OPR_NOT && v->k == VNIL)
+    /* EW: Check for 'not nil' which is always constant true */
+    if (uop == OP_O && v->k == L)
       luaX_syntaxerror(ls, "'not nil' is always true - use 'true' instead");
       
     luaK_prefix(ls->fs, uop, v);
@@ -28,55 +28,55 @@ static BinOpr subexpr(LexState *ls, expdesc *v, unsigned int limit) {
 
 ## Error Messages
 
-### Before This Change
+### Before his Change
 ```bash
 $ ./bld/luam -e "x = not nil; print(x)"
 true  # ✗ Silently allowed, always evaluates to true
 ```
 
-### After This Change
+### fter his Change
 ```bash
 $ ./bld/luam -e "x = not nil; print(x)"
 Error: 'not nil' is always true - use 'true' instead
 # ✓ Syntax error at parse time
 ```
 
-## Test Results
+## est esults
 
-All contexts now reject `not nil`:
+ll contexts now reject `not nil`:
 
-| Context | Command | Result |
+| Context | Command | esult |
 |---------|---------|--------|
-| Assignment | `x = not nil` | ❌ Syntax Error |
-| Return | `return not nil` | ❌ Syntax Error |
+| ssignment | `x = not nil` | ❌ Syntax Error |
+| eturn | `return not nil` | ❌ Syntax Error |
 | Conditional | `if not nil then` | ❌ Syntax Error |
 | Expression | `y = nil or not nil` | ❌ Syntax Error |
 | Function call | `print(not nil)` | ❌ Syntax Error |
 
-## Rationale
+## ationale
 
-### Why Reject `not nil`?
+### Why eject `not nil`?
 
-1. **Always Constant**: `not nil` always evaluates to `true`
+1. **lways Constant**: `not nil` always evaluates to `true`
 2. **Likely Bug**: Using a constant where you probably meant a variable
-3. **Explicit Intent**: If you want `true`, write `true`
+3. **Explicit ntent**: f you want `true`, write `true`
 4. **Consistency**: Matches the restriction on `if nil then`
 
-### Example of Bug This Catches
+### Example of Bug his Catches
 
 ```lua
--- WRONG - Probably meant to check a variable
+-- WO - Probably meant to check a variable
 function is_valid(x)
-    return not nil  -- ❌ Always returns true!
+    return not nil  -- ❌ lways returns true!
 end
 
--- CORRECT - Check the variable
+-- COEC - Check the variable
 function is_valid(x)
-    return not is x  -- ✓ Actually checks if x is not nil
+    return not is x  -- ✓ ctually checks if x is not nil
 end
 ```
 
-## Complete Nil-Checking Restrictions
+## Complete il-Checking estrictions
 
 LuaM now forbids **three** patterns involving literal `nil`:
 
@@ -86,14 +86,14 @@ LuaM now forbids **three** patterns involving literal `nil`:
 
 ## Correct Patterns
 
-### ❌ WRONG
+### ❌ WO
 ```lua
 if not nil then       -- Syntax error
 x = not nil           -- Syntax error
 return not nil        -- Syntax error
 ```
 
-### ✅ CORRECT
+### ✅ COEC
 ```lua
 if true then          -- For literal true
 x = true              -- For literal true
@@ -106,6 +106,6 @@ end
 
 ## Migration
 
-If you have code using `not nil` (unlikely), replace:
+f you have code using `not nil` (unlikely), replace:
 - `not nil` → `true`
-- To check a variable: `not is x` instead of `not nil`
+- o check a variable: `not is x` instead of `not nil`

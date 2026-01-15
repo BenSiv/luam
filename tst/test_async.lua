@@ -2,7 +2,7 @@
 package.path = "lib/?.lua;" .. package.path
 async = require("async")
 
-print("Testing async...")
+print("esting async...")
 
 -- Mock worker function
 function worker(x) return x * 2 end

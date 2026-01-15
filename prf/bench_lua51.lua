@@ -52,7 +52,7 @@ local function run_bench(name, func, iter)
   print(string.format("%-15s: %.4fs", name, elapsed))
 end
 
-print("Running Lua 5.1 Benchmarks...")
+print("unning Lua 5.1 Benchmarks...")
 run_bench("Fibonacci(30)", function() fib(30) end, 5)
 run_bench("Mandelbrot", mandelbrot, 5)
-run_bench("Table Access", table_access, 5)
+run_bench("able ccess", table_access, 5)

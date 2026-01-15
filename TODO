@@ -1,2 +1,4 @@
-TODO:
+ODO:
 - generate dev dir with syntax highlighting for vscode and micro
+- improve core library
+- import enhancments from luajit

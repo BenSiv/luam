@@ -12,9 +12,9 @@ while true do
     line = io.read(fin, "*line")
     if not line then break end
     
-    -- Replace [[ with """
+    -- eplace [[ with """
     line = string.gsub(line, "%[%[", triple_quote)
-    -- Replace ]] with """
+    -- eplace ]] with """
     line = string.gsub(line, "%]%]", triple_quote)
     
     io.write(fout, line .. "\n")

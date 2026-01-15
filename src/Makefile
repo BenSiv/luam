@@ -30,7 +30,7 @@ CORE_O=	$(OBJ_DIR)/lapi.o $(OBJ_DIR)/lcode.o $(OBJ_DIR)/ldebug.o $(OBJ_DIR)/ldo.
 	$(OBJ_DIR)/lobject.o $(OBJ_DIR)/lopcodes.o $(OBJ_DIR)/lparser.o $(OBJ_DIR)/lstate.o $(OBJ_DIR)/lstring.o $(OBJ_DIR)/ltable.o $(OBJ_DIR)/ltm.o  \
 	$(OBJ_DIR)/lundump.o $(OBJ_DIR)/lvm.o $(OBJ_DIR)/lzio.o
 LIB_O=	$(OBJ_DIR)/lauxlib.o $(OBJ_DIR)/lbaselib.o $(OBJ_DIR)/ldblib.o $(OBJ_DIR)/liolib.o $(OBJ_DIR)/lmathlib.o $(OBJ_DIR)/loslib.o $(OBJ_DIR)/ltablib.o \
-	$(OBJ_DIR)/lstrlib.o $(OBJ_DIR)/loadlib.o $(OBJ_DIR)/linit.o
+	$(OBJ_DIR)/lstrlib.o $(OBJ_DIR)/loadlib.o $(OBJ_DIR)/linit.o $(OBJ_DIR)/bit.o $(OBJ_DIR)/struct.o
 
 BIN_DIR= ../bld
 LUA_T=	$(BIN_DIR)/luam
@@ -66,15 +66,30 @@ $(LUAC_T): $(LUAC_O) $(LUA_A)
 	@$(MKDIR) $(BIN_DIR)
 	@$(CC) -o $@ $(MYLDFLAGS) $(LUAC_O) $(LUA_A) $(LIBS) >> ../build.log 2>&1
 
-$(OBJ_DIR)/sqlite3.o: sqlite3.c sqlite3.h
+$(OBJ_DIR)/sqlite3.o: ../lib/sqlite/sqlite3.c ../lib/sqlite/sqlite3.h
 	@echo "  CC    $@"
 	@$(MKDIR) $(OBJ_DIR)
 	@$(CC) $(CFLAGS) -DSQLITE_ENABLE_FTS3 -DSQLITE_ENABLE_RTREE -fPIC -c -o $@ $< >> ../build.log 2>&1
+
+$(OBJ_DIR)/libluasqlite3.o: ../lib/sqlite/lsqlite3.c
+	@echo "  CC    $@"
+	@$(MKDIR) $(OBJ_DIR)
+	@$(CC) $(CFLAGS) -I../lib/sqlite -I. -fPIC -c -o $@ $< >> ../build.log 2>&1
 
 $(BIN_DIR)/sqlite3.so: $(OBJ_DIR)/libluasqlite3.o $(OBJ_DIR)/sqlite3.o
 	@echo "  LINK  $@"
 	@$(MKDIR) $(BIN_DIR)
 	@$(CC) -shared -o $@ $^ -lpthread -ldl >> ../build.log 2>&1
+
+$(OBJ_DIR)/bit.o: ../lib/bit/bit.c
+	@echo "  CC    $@"
+	@$(MKDIR) $(OBJ_DIR)
+	@$(CC) $(CFLAGS) -I. -fPIC -c -o $@ $< >> ../build.log 2>&1
+
+$(OBJ_DIR)/struct.o: ../lib/struct/struct.c
+	@echo "  CC    $@"
+	@$(MKDIR) $(OBJ_DIR)
+	@$(CC) $(CFLAGS) -I. -fPIC -c -o $@ $< >> ../build.log 2>&1
 
 $(OBJ_DIR)/%.o: %.c
 	@echo "  CC    $@"

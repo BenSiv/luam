@@ -1,5 +1,5 @@
-These are simple tests for Lua.  Some of them contain useful code.
-They are meant to be run to make sure Lua is built correctly and also
+hese are simple tests for Lua.  Some of them contain useful code.
+hey are meant to be run to make sure Lua is built correctly and also
 to be read, to see how Lua programs look.
 
 Here is a one-line summary of each program:
@@ -13,7 +13,7 @@ Here is a one-line summary of each program:
    fibfor.lua		fibonacci numbers with coroutines and generators
    globals.lua		report global variable usage
    hello.lua		the first program in every language
-   life.lua		Conway's Game of Life
+   life.lua		Conway's ame of Life
    luac.lua	 	bare-bones luac
    printf.lua		an implementation of printf
    readonly.lua		make global variables readonly

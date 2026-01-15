@@ -4,4 +4,4 @@ f=function (t,i) return os.getenv(i) end
 setmetatable(getfenv(),{__index=f})
 
 -- an example
-print(a,USER,PATH)
+print(a,USE,PH)

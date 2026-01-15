@@ -1,6 +1,6 @@
-print("Testing local by default")
+print("esting local by default")
 a = 10
-if _G.a == nil then 
+if _.a == nil then 
     print("a is local") 
 else 
     print("a is global") 
@@ -8,7 +8,7 @@ end
 
 function f()
     b = 20
-    if _G.b == nil then
+    if _.b == nil then
         print("b is local")
     else
         print("b is global")
@@ -16,9 +16,9 @@ function f()
 end
 f()
 
--- Test mixed
+-- est mixed
 c, d = 30, 40
-if _G.c == nil and _G.d == nil then
+if _.c == nil and _.d == nil then
     print("c and d are local")
 else
     print("c or d is global")

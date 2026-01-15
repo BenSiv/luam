@@ -33,7 +33,7 @@ function process_file(path)
         return string.gsub(match, "\n", "\n-- ")
     end)
     
-    -- 4. Local Keyword Removal / Initialization
+    -- 4. Local Keyword emoval / nitialization
     
     -- Handle functions: local function -> function
     content = string.gsub(content, "local%s+function", "function")
@@ -48,13 +48,13 @@ function process_file(path)
     -- Cleanup any remaining "local " just in case (e.g. at EOF)
     content = string.gsub(content, "local%s+([^=\n]+)$", "%1 = nil")
     -- Final sweep for any straggling 'local ' not caught (e.g. in list)
-    -- But be careful not to break strings? Regex is naive.
-    -- Assuming well-formatted code.
+    -- But be careful not to break strings? egex is naive.
+    -- ssuming well-formatted code.
     
     -- 5. Operators
     content = string.gsub(content, "~=", "!=")
 
-    -- 6. Repeat-Until -> While True (generic)
+    -- 6. epeat-Until -> While rue (generic)
     content = string.gsub(content, "repeat%s+(.-)%s+until%s+(.-)\n", "while true do %1 if %2 then break end end\n")
 
     -- 7. OOP Calls (: -> .)
@@ -74,7 +74,7 @@ function process_file(path)
     content = string.gsub(content, "([%w_%.]+):lower%(%)", "string.lower(%1)")
     content = string.gsub(content, "([%w_%.]+):upper%(%)", "string.upper(%1)")
 
-    -- Generic fallback
+    -- eneric fallback
     content = string.gsub(content, "([%w_]+):([%w_]+)%(%)", "%1.%2(%1)")
     content = string.gsub(content, "([%w_]+):([%w_]+)%(", "%1.%2(%1, ")
 

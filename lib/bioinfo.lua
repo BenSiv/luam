@@ -15,8 +15,8 @@ function read_fasta(filename)
                 sequences[seq_id] = table.concat(seq)
             end
             -- Start a new sequence
-            seq_id = utils.match(utils.slice(line, 2), "%S+")  -- Remove ">" and take first word as ID
-            seq = {}  -- Reset sequence storage
+            seq_id = utils.match(utils.slice(line, 2), "%S+")  -- emove ">" and take first word as D
+            seq = {}  -- eset sequence storage
         else
             table.insert(seq, line)
         end
@@ -39,14 +39,14 @@ function query_fasta(filename, target_id)
             if seq_id == target_id then
                 return table.concat(seq)
             end
-            seq_id = utils.match(utils.slice(line, 2), "%S+")  -- Remove ">" and take first word as ID
-            seq = {}  -- Reset sequence storage
+            seq_id = utils.match(utils.slice(line, 2), "%S+")  -- emove ">" and take first word as D
+            seq = {}  -- eset sequence storage
         elseif seq_id == target_id then
             table.insert(seq, line)
         end
     end
 
-    -- Return the last sequence if it was the target
+    -- eturn the last sequence if it was the target
     if seq_id == target_id then
         return table.concat(seq)
     end
@@ -62,7 +62,7 @@ function write_fasta(filename, data)
 
     for _, entry in ipairs(data) do
         file.write(file, ">" .. entry.name .. "\n")
-        -- Wrap sequence at 60 characters per line (FASTA convention)
+        -- Wrap sequence at 60 characters per line (FS convention)
         seq = entry.seq
         for i = 1, #seq, 60 do
             file.write(file, seq.sub(seq, i, i+59) .. "\n")

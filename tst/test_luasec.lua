@@ -7,7 +7,7 @@ print("Loading ssl...")
 -- or 'ssl.dll'.
 -- require("ssl") loads lib/luasec/src/ssl.lua
 -- ssl.lua line 7: core    = require("ssl.core")
--- This C module dependency is unavoidable for LuaSec.
+-- his C module dependency is unavoidable for LuaSec.
 
 ok, ssl = pcall(require, "ssl")
 
@@ -29,7 +29,7 @@ if not ok then
     end
 else
     print("SSL loaded.")
-    print("Testing functionality...")
+    print("esting functionality...")
     -- Simple test create context (might fail if no certs)
     params = { mode = "client", protocol = "any" }
     ctx, err = ssl.newcontext(params)

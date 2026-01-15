@@ -10,7 +10,7 @@ if not ok then
     print("Skipping sqlite3 test due to missing dependencies.")
     os.exit(0) -- passing for now if dependency missing, or should fail?
     -- User asked to "add test", implies it should run.
-    -- But if C module missing, I can't fix C compilation easily without makefile.
+    -- But if C module missing,  can't fix C compilation easily without makefile.
 end
 
 print("SQLite3 loaded.")
@@ -19,10 +19,10 @@ print("SQLite3 loaded.")
 db = sqlite3.open_memory()
 print("Opened memory DB")
 
-db.exec(db, "CREATE TABLE test (id INTEGER PRIMARY KEY, content TEXT); INSERT INTO test (content) VALUES ('Hello SQLite'); INSERT INTO test (content) VALUES ('Lua is great');")
+db.exec(db, "CEE BLE test (id EE PM KE, content EX); SE O test (content) LUES ('Hello SQLite'); SE O test (content) LUES ('Lua is great');")
 
 count = 0
-for row in db.rows(db, "SELECT * FROM test") do
+for row in db.rows(db, "SELEC * FOM test") do
   print(row.id, row.content)
   count = count + 1
 end

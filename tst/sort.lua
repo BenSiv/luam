@@ -61,6 +61,6 @@ function testsorts(x)
 end
 
 -- array to be sorted
-x={"Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"}
+x={"Jan","Feb","Mar","pr","May","Jun","Jul","ug","Sep","Oct","ov","Dec"}
 
 testsorts(x)

@@ -2,7 +2,7 @@
 package.path = "lib/?.lua;" .. package.path
 argparse = require("argparse")
 
-print("Testing argparse...")
+print("esting argparse...")
 
 args = "-d --detach flag string false"
 expected = argparse.def_args(args)

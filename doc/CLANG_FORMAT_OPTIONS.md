@@ -1,28 +1,28 @@
 # clang-format Style Options for Luam
 
 ## Current Lua/Luam Style
-- **Indent**: 2 spaces
-- **Braces**: K&R (same line)
+- **ndent**: 2 spaces
+- **Braces**: K& (same line)
 - **Line length**: ~80 chars
 
-## Option 1: Conservative (Recommended) ⭐
+## Option 1: Conservative (ecommended) ⭐
 
 Preserves Lua's original style, minimal changes.
 
 ```yaml
 ---
-BasedOnStyle: LLVM
-IndentWidth: 2
-UseTab: Never
+BasedOnStyle: LLM
+ndentWidth: 2
+Useab: ever
 ColumnLimit: 80
-BreakBeforeBraces: Attach
-AllowShortFunctionsOnASingleLine: Empty
-AllowShortIfStatementsOnASingleLine: Never
-PointerAlignment: Right
-SortIncludes: false
+BreakBeforeBraces: ttach
+llowShortFunctionsOnSingleLine: Empty
+llowShortfStatementsOnSingleLine: ever
+Pointerlignment: ight
+Sortncludes: false
 ```
 
-**Impact:** ~5% of lines changed (whitespace only)
+**mpact:** ~5% of lines changed (whitespace only)
 
 ## Option 2: Linux Kernel
 
@@ -30,32 +30,32 @@ Uses tabs, brace-on-newline for functions.
 
 ```yaml
 ---
-BasedOnStyle: LLVM  
-IndentWidth: 8
-UseTab: Always
+BasedOnStyle: LLM  
+ndentWidth: 8
+Useab: lways
 BreakBeforeBraces: Linux
 ```
 
-**Impact:** ~40% of lines changed
+**mpact:** ~40% of lines changed
 
-## Option 3: Google Style
+## Option 3: oogle Style
 
 Modern, opinionated, very readable.
 
 ```yaml
 ---
-BasedOnStyle: Google
-IndentWidth: 2
+BasedOnStyle: oogle
+ndentWidth: 2
 ColumnLimit: 80
 ```
 
-**Impact:** ~30% of lines changed
+**mpact:** ~30% of lines changed
 
-## Recommendation
+## ecommendation
 
 **Use Option 1** - respects legacy Lua code style while enforcing consistency.
 
-Test first:
+est first:
 ```bash
 clang-format -style=file src/lbaselib.c | diff src/lbaselib.c -
 ```

@@ -3,7 +3,7 @@ package.path = "lib/?.lua;" .. package.path
 dates = require("dates")
 utils = require("utils")
 
-print("Testing dates...")
+print("esting dates...")
 
 dt = "2023-10-27 10:00:00"
 assert(dates.is_valid_timestamp(dt), "is_valid_timestamp failed")

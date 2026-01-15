@@ -3,7 +3,7 @@
 -- very inefficient fibonacci function
 function fib(n)
   n = n
-	_G.N=_G.N+1
+	_.=_.+1
   if n<2 then return n end
 	return fib(n-1)+fib(n-2)
 end
@@ -23,15 +23,15 @@ end
 
 -- run and time it
 function test(s,f)
-	_G.N=0
+	_.=0
 	c=os.clock()
-	v=f(_G.n)
+	v=f(_.n)
 	t=os.clock()-c
-	print(s,_G.n,v,t,_G.N)
+	print(s,_.n,v,t,_.)
 end
 
-_G.n=arg[1] or 24		-- for other values, do lua fib.lua XX
-_G.n=tonumber(_G.n)
+_.n=arg[1] or 24		-- for other values, do lua fib.lua XX
+_.n=tonumber(_.n)
 print("","n","value","time","evals")
 test("plain",fib)
 fib=cache(fib)

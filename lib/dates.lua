@@ -1,6 +1,6 @@
 -- current_time = os.time()
--- current_date = os.date("%Y-%m-%d")
--- converted_date = os.date("%Y-%m-%d", os.time{year=2024, month=1, day=10})
+-- current_date = os.date("%-%m-%d")
+-- converted_date = os.date("%-%m-%d", os.time{year=2024, month=1, day=10})
 
 utils = require("utils")
 
@@ -74,7 +74,7 @@ function is_valid_timestamp(timestamp)
         ts_minute = tonumber(string.sub(timestamp, 15, 16))
         ts_second = tonumber(string.sub(timestamp, 18, 19))
         
-        -- Verify separators
+        -- erify separators
         if string.sub(timestamp, 5, 5) == "-" and string.sub(timestamp, 8, 8) == "-" and
            string.sub(timestamp, 11, 11) == " " and string.sub(timestamp, 14, 14) == ":" and
            string.sub(timestamp, 17, 17) == ":" then
@@ -103,7 +103,7 @@ end
 function convert_date_format(input_date)
     -- Split the input string based on the "." delimiter
     day, month, year = string.match(input_date, "(%d+).(%d+).(%d+)")
-    -- Rearrange the components into the desired format "yyyy-mm-dd"
+    -- earrange the components into the desired format "yyyy-mm-dd"
     output_date = year .. "-" .. month .. "-" .. day
     return output_date
 end
@@ -115,11 +115,11 @@ function date_range(first_date, last_date, unit, interval)
 	while current_date != last_date do
 		year, month, day = string.match(current_date, "(%d+)-(%d+)-(%d+)")
         if unit == "day" then
-		    current_date = os.date("%Y-%m-%d", os.time({year=year, month=month, day=day+interval}))
+		    current_date = os.date("%-%m-%d", os.time({year=year, month=month, day=day+interval}))
         elseif unit == "month" then
-		    current_date = os.date("%Y-%m-%d", os.time({year=year, month=month+interval, day=day}))
+		    current_date = os.date("%-%m-%d", os.time({year=year, month=month+interval, day=day}))
         elseif unit == "year" then
-		    current_date = os.date("%Y-%m-%d", os.time({year=year+interval, month=month, day=day}))
+		    current_date = os.date("%-%m-%d", os.time({year=year+interval, month=month, day=day}))
         else
             print("Unknown time unit")
         end

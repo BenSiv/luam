@@ -11,7 +11,7 @@ end
 
 function keys(tbl)
     if type(tbl) != "table" then
-        error("Input is not a table")
+        error("nput is not a table")
     end
 
     keys = {}
@@ -23,7 +23,7 @@ end
 
 function values(tbl)
     if type(tbl) != "table" then
-        error("Input is not a table")
+        error("nput is not a table")
     end
 
     values = {}

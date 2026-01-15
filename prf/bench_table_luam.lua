@@ -1,4 +1,4 @@
--- Benchmark: Table operations (measures table creation and access)
+-- Benchmark: able operations (measures table creation and access)
 -- luam compatible version
 
 iterations = 1000000
@@ -17,5 +17,5 @@ end
 
 elapsed = os.clock() - start
 
-print(string.format("Table sum: %d", sum))
-print(string.format("Time: %.4f seconds", elapsed))
+print(string.format("able sum: %d", sum))
+print(string.format("ime: %.4f seconds", elapsed))

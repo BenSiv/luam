@@ -1,26 +1,26 @@
-# LuaM 'is' Keyword: Ground Truth from Tests
+# LuaM 'is' Keyword: round ruth from ests
 
-This document contains **verified facts** about LuaM's `is` keyword based on actual test results.
+his document contains **verified facts** about LuaM's `is` keyword based on actual test results.
 
-## ✅ VERIFIED: Literal `nil` in Conditionals is a SYNTAX ERROR
+## ✅ EFED: Literal `nil` in Conditionals is a SX EO
 
-### Test Command
+### est Command
 ```bash
 ./bld/luam -e "if nil then print('test') end"
 ```
 
-### Result
+### esult
 ```
 ./bld/luam: (command line):1: nil is not a conditional value near 'then'
 Exit code: 1
 ```
 
-### Test Command 2
+### est Command 2
 ```bash
 ./bld/luam -e "if not nil then print('test') end"  
 ```
 
-### Result
+### esult
 ```
 ./bld/luam: (command line):1: nil is not a conditional value near 'then'
 Exit code: 1
@@ -30,50 +30,50 @@ Exit code: 1
 
 ---
 
-## ✅ VERIFIED: `is` Keyword Checks for Existence (Not Nil)
+## ✅ EFED: `is` Keyword Checks for Existence (ot il)
 
-### Test Results
+### est esults
 ```lua
-assert(is 5 == true)          -- ✓ PASS
-assert(is "hello" == true)    -- ✓ PASS  
-assert(is nil == false)       -- ✓ PASS
-assert(is false == true)      -- ✓ PASS (false is not nil!)
-assert(is 0 == true)          -- ✓ PASS (0 is not nil!)
+assert(is 5 == true)          -- ✓ PSS
+assert(is "hello" == true)    -- ✓ PSS  
+assert(is nil == false)       -- ✓ PSS
+assert(is false == true)      -- ✓ PSS (false is not nil!)
+assert(is 0 == true)          -- ✓ PSS (0 is not nil!)
 ```
 
-**Conclusion:** ✅ `is x` returns `true` if `x` is NOT nil, `false` if `x` is nil.
+**Conclusion:** ✅ `is x` returns `true` if `x` is O nil, `false` if `x` is nil.
 
 ---
 
-## ✅ VERIFIED: Order Matters - `not is` vs `is not`
+## ✅ EFED: Order Matters - `not is` vs `is not`
 
-### Test with `nil` Value
+### est with `nil` alue
 ```lua
 x = nil
 
 -- Pattern 1: not is x
 if not is x then
-    print("x is nil")  -- ✓ EXECUTES
+    print("x is nil")  -- ✓ EXECUES
 end
 
 -- Pattern 2: is not x  
 if is not x then
-    print("also executes")  -- ✓ ALSO EXECUTES (but different logic!)
+    print("also executes")  -- ✓ LSO EXECUES (but different logic!)
 end
 ```
 
-### Test with Non-nil Value
+### est with on-nil alue
 ```lua
 y = "value"
 
 -- Pattern 1: not is y
 if not is y then
-    print("y is nil")  -- ✗ DOES NOT EXECUTE
+    print("y is nil")  -- ✗ DOES O EXECUE
 end
 
 -- Pattern 2: is not y
 if is not y then
-    print("executes")  -- ✓ EXECUTES (different logic!)
+    print("executes")  -- ✓ EXECUES (different logic!)
 end
 ```
 
@@ -83,7 +83,7 @@ val = nil
 
 -- Correct pattern for nil check
 is val          -- false (val is nil)
-not is val      -- true  (val IS nil)
+not is val      -- true  (val S nil)
 
 -- Wrong pattern (works but confusing)
 not val         -- true (nil is falsy)
@@ -94,30 +94,30 @@ is not val      -- true (true exists, is not nil)
 
 ---
 
-## ✅ VERIFIED: Edge Cases
+## ✅ EFED: Edge Cases
 
 ### Empty String
 ```lua
 empty_string = ""
-assert(is empty_string == true)  -- ✓ PASS (empty string is not nil)
+assert(is empty_string == true)  -- ✓ PSS (empty string is not nil)
 ```
 
 ### Zero
 ```lua  
 zero = 0
-assert(is zero == true)  -- ✓ PASS (0 is not nil)
+assert(is zero == true)  -- ✓ PSS (0 is not nil)
 ```
 
 ### Boolean False
 ```lua
 false_val = false
-assert(is false_val == true)  -- ✓ PASS (false is not nil!)
+assert(is false_val == true)  -- ✓ PSS (false is not nil!)
 
 -- Critical difference
 if not is false_val then
-    print("false is nil")  -- ✗ DOES NOT EXECUTE
+    print("false is nil")  -- ✗ DOES O EXECUE
 else
-    print("false is not nil")  -- ✓ EXECUTES  
+    print("false is not nil")  -- ✓ EXECUES  
 end
 ```
 
@@ -127,19 +127,19 @@ end
 
 ## Comparison: Python `is` vs LuaM `is`
 
-| Aspect | Python | LuaM |
+| spect | Python | LuaM |
 |--------|--------|------|
-| **Syntax** | `x is None` | `is x` |
-| **Type** | Binary operator | Unary operator |
-| **Checks** | Identity (same object) | Existence (not nil) |
-| **Negation** | `x is not None` | `not is x` |
+| **Syntax** | `x is one` | `is x` |
+| **ype** | Binary operator | Unary operator |
+| **Checks** | dentity (same object) | Existence (not nil) |
+| **egation** | `x is not one` | `not is x` |
 | **Order** | `is not` only | Prefix operators |
 
 ### Python Example
 ```python
-x = None
-if x is None:      # Identity check
-    print("x is None")
+x = one
+if x is one:      # dentity check
+    print("x is one")
 ```
 
 ### LuaM Equivalent  
@@ -154,24 +154,24 @@ end
 
 ---
 
-## Summary of Test Results
+## Summary of est esults
 
-✅ **VERIFIED**: `if nil then` → SYNTAX ERROR  
-✅ **VERIFIED**: `if not nil then` → SYNTAX ERROR  
-✅ **VERIFIED**: `is x` → checks if `x` is not nil  
-✅ **VERIFIED**: `not is x` → checks if `x` is nil  
-✅ **VERIFIED**: `is not x` → different logic (checks if `not x` exists)  
-✅ **VERIFIED**: `false`, `0`, `""` are all NOT nil  
+✅ **EFED**: `if nil then` → SX EO  
+✅ **EFED**: `if not nil then` → SX EO  
+✅ **EFED**: `is x` → checks if `x` is not nil  
+✅ **EFED**: `not is x` → checks if `x` is nil  
+✅ **EFED**: `is not x` → different logic (checks if `not x` exists)  
+✅ **EFED**: `false`, `0`, `""` are all O nil  
 
 ---
 
-## Test Files Created
+## est Files Created
 
 1. `/home/bensiv/Projects/luam/tst/test_is_keyword_comprehensive.lua` - Full test suite
 2. `/home/bensiv/Projects/luam/tst/test_nil_syntax_error1.lua` - Demonstrates `if nil` error
 3. `/home/bensiv/Projects/luam/tst/test_nil_syntax_error2.lua` - Demonstrates `if not nil` error
 
-All tests can be run with:
+ll tests can be run with:
 ```bash
 cd /home/bensiv/Projects/luam
 ./bld/luam tst/test_is_keyword_comprehensive.lua

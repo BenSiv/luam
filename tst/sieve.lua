@@ -1,5 +1,5 @@
 -- the sieve of of Eratosthenes programmed with coroutines
--- typical usage: lua -e N=1000 sieve.lua | column
+-- typical usage: lua -e =1000 sieve.lua | column
 
 -- generate all the numbers from 2 to n
 function gen (n)
@@ -19,8 +19,8 @@ function filter (p, g)
   end)
 end
 
-N=N or 1000		-- from command line
-x = gen(N)		-- generate primes up to N
+= or 1000		-- from command line
+x = gen()		-- generate primes up to 
 while 1 do
   n = x()		-- pick a number until done
   if n == nil then break end

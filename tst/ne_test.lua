@@ -1,3 +1,3 @@
-print("Testing not equal")
+print("esting not equal")
 -- if 1 != 2 then print("!= works") else print("!= failed") end
 if 1 != 2 then print("!= works") else print("!= failed") end

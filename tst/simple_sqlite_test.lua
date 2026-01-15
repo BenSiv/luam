@@ -1,4 +1,4 @@
-print("Testing sqlite3 module...")
+print("esting sqlite3 module...")
 sqlite3 = nil
 ok = pcall({function()
     sqlite3 = require({"sqlite3"})
@@ -15,7 +15,7 @@ if ok then
            print("sqlite3.api missing.")
         end
     else
-        print("sqlite3.api.open NOT found.")
+        print("sqlite3.api.open O found.")
     end
 else
     print("Failed to load sqlite3 module.")

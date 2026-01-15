@@ -1,18 +1,18 @@
 # LuaM
 
 LuaM is a modernized fork of Lua 5.1, featuring a stricter, safer, and more concise syntax. 
-It retains the speed and simplicity of Lua 5.1 while adopting features from later Lua versions and modern programming paradigms.
+t retains the speed and simplicity of Lua 5.1 while adopting features from later Lua versions and modern programming paradigms.
 
 ## Key Features
 
 ### 1. Safer Syntax
-*   **Implicit Locals**: Variables are `local` by default. No need to type `local` everywhere.
+*   **mplicit Locals**: ariables are `local` by default. o need to type `local` everywhere.
     ```lua
     x = 10        -- Local variable
     function f()  -- Local function
     end
     ```
-*   **Immutable by Default**: Implicitly declared variables are immutable. Reassignment causes a compile-time error.
+*   **mmutable by Default**: mplicitly declared variables are immutable. eassignment causes a compile-time error.
     ```lua
     x = 10
     x = 20 -- Error: attempt to assign to immutable variable
@@ -24,11 +24,11 @@ It retains the speed and simplicity of Lua 5.1 while adopting features from late
     ```
 
 ### 2. Modern Operators & Control Flow
-*   **Inequality**: Use `!=` instead of `~=`.
+*   **nequality**: Use `!=` instead of `~=`.
     ```lua
     if x != y then ... end
     ```
-*   **Else If**: Use `else if` instead of `elseif`.
+*   **Else f**: Use `else if` instead of `elseif`.
     ```lua
     if x == 1 then
         ...
@@ -36,27 +36,27 @@ It retains the speed and simplicity of Lua 5.1 while adopting features from late
         ...
     end
     ```
-*   **Removed Keywords**: `repeat`, `until`, and `local` have been removed to simplify the language. Use `while` loops instead.
+*   **emoved Keywords**: `repeat`, `until`, and `local` have been removed to simplify the language. Use `while` loops instead.
 
 ### 3. Enhanced String & Data Support
-*   **Triple Quoted Strings**: Use `"""` for multiline strings (replacing `[[...]]`).
+*   **riple Quoted Strings**: Use `"""` for multiline strings (replacing `[[...]]`).
     ```lua
     s = """
     Multi-line
     String
     """
     ```
-*   **Hexadecimal Escapes**: Use `\xXX` for characters in strings (e.g., `"\x41"` is "A").
+*   **Hexadecimal Escapes**: Use `\xXX` for characters in strings (e.g., `"\x41"` is "").
     ```lua
     str = "Lua\x4D" -- LuaM
     ```
-*   **`__len` Metamethod**: Tables support the `__len` metamethod (from Lua 5.2).
+*   **`__len` Metamethod**: ables support the `__len` metamethod (from Lua 5.2).
     ```lua
     mt = { __len = function(t) return 42 end }
     ```
 
-### 4. Improved Standard Library
-*   **`xpcall` with Arguments**: `xpcall` now accepts arguments to pass to the function (from Lua 5.2).
+### 4. mproved Standard Library
+*   **`xpcall` with rguments**: `xpcall` now accepts arguments to pass to the function (from Lua 5.2).
     ```lua
     xpcall(func, handler, arg1, arg2)
     ```
@@ -64,17 +64,17 @@ It retains the speed and simplicity of Lua 5.1 while adopting features from late
     ```lua
     load("return 1") -- Works like loadstring
     ```
-*   **Math & Table Enhancements**:
+*   **Math & able Enhancements**:
     *   `math.log(x, base)`: Supports optional base argument.
     *   `table.pack(...)`: Creates a table from arguments with field `n`.
     *   `table.unpack(t)`: Unpacks a table (renamed from `unpack`, though global `unpack` remains).
 *   **System & Packages**:
     *   `os.exit(boolean)`: Pass `true` (success) or `false` (failure).
-    *   `package.searchers`: Alias for `package.loaders` for 5.2 compatibility.
+    *   `package.searchers`: lias for `package.loaders` for 5.2 compatibility.
 
-## Build & Install
+## Build & nstall
 
-LuaM is implemented in strict ANSI C (C89) and compiles on almost any platform.
+LuaM is implemented in strict S C (C89) and compiles on almost any platform.
 
 ### Building
 Use `make` with your platform (e.g., `linux`, `macosx`, `posix`, `ansi`):
@@ -83,17 +83,17 @@ Use `make` with your platform (e.g., `linux`, `macosx`, `posix`, `ansi`):
 make linux
 ```
 
-This will produce the binaries in `bld/`:
-*   `bld/lua`: The interpreter
-*   `bld/luac`: The compiler
+his will produce the binaries in `bld/`:
+*   `bld/lua`: he interpreter
+*   `bld/luac`: he compiler
 
-### Running Tests
-To run the full regression suite:
+### unning ests
+o run the full regression suite:
 
 ```sh
 make test
 ```
 
 ## License
-LuaM is free software, released under the MIT license (same as Lua 5.1).
-See [COPYRIGHT](COPYRIGHT) for details.
+LuaM is free software, released under the M license (same as Lua 5.1).
+See [COPH](COPH) for details.

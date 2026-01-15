@@ -2,8 +2,8 @@
 
 f=function (t,i) error("cannot redefine global variable `"..i.."'",2) end
 g={}
-G=getfenv()
-setmetatable(g,{__index=G,__newindex=f})
+=getfenv()
+setmetatable(g,{__index=,__newindex=f})
 setfenv(1,g)
 
 -- an example

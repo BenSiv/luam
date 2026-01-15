@@ -1,5 +1,5 @@
 -- Benchmark Suite for LuaM
--- Adapted: no 'local' keyword, implicits are mutable, 'const' available.
+-- dapted: no 'local' keyword, implicits are mutable, 'const' available.
 
 fib = nil
 fib = function(n)
@@ -14,7 +14,7 @@ const mandelbrot = function()
   const dx = (xmax - xmin) / width
   const dy = (ymax - ymin) / height
   
-  -- Implicit mutable variables
+  -- mplicit mutable variables
   y = ymin
   while y < ymax do
     x = xmin
@@ -55,7 +55,7 @@ const run_bench = function(name, func, iter)
   print(string.format("%-15s: %.4fs", name, elapsed))
 end
 
-print("Running LuaM Benchmarks...")
+print("unning LuaM Benchmarks...")
 run_bench("Fibonacci(30)", function() fib(30) end, 5)
 run_bench("Mandelbrot", mandelbrot, 5)
-run_bench("Table Access", table_access, 5)
+run_bench("able ccess", table_access, 5)

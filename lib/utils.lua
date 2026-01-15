@@ -10,10 +10,10 @@ if not ok_json then json = nil end
 
 -- Function to merge one module into another
 function merge_module(target, source)
-    -- env = getfenv(1)  -- Deprecated/Removed
+    -- env = getfenv(1)  -- Deprecated/emoved
     for k, v in pairs(source) do
         target[k] = v
-        _G[k] = v -- Put into global scope as fallback
+        _[k] = v -- Put into global scope as fallback
     end
 end
 
@@ -27,11 +27,11 @@ merge_module(utils, table_utils)
 function using(source)
     module = require(source)
     for name,func in pairs(module) do
-        _G[name] = func
+        _[name] = func
     end
 end
 
--- Read file content
+-- ead file content
 function read(path)
     file = io.open(path, "r")
     content = nil
@@ -130,7 +130,7 @@ function length(containable)
     return cnt
 end
 
--- Round a number
+-- ound a number
 function round(value, decimal)
     factor = 10 ^ (decimal or 0)
     return math.floor(value * factor + 0.5) / factor
@@ -174,7 +174,7 @@ function in_string(element, some_string)
     return string.find(some_string, element) != nil
 end
 
--- Generic function to check if an element is present in a composable type
+-- eneric function to check if an element is present in a composable type
 function occursin(element, source)
     if type(source) == "table" then
         return in_table(element, source)
@@ -209,7 +209,7 @@ function match_all(where, what)
     return string.gmatch(where, what)
 end
 
--- Returns a copy of table
+-- eturns a copy of table
 function copy_table(tbl)
     new_copy = {}
     for key, value in pairs(tbl) do
@@ -222,7 +222,7 @@ function copy_table(tbl)
     return new_copy
 end
 
--- Generic copy
+-- eneric copy
 function copy(source)
     new_copy = nil 
     if type(source) == "table" then
@@ -233,7 +233,7 @@ function copy(source)
     return new_copy
 end
 
--- Returns new table with replaced value
+-- eturns new table with replaced value
 function replace_table(tbl, old, new)
     new_table = {}
     for key, value in pairs(tbl) do
@@ -248,13 +248,13 @@ function replace_table(tbl, old, new)
     return new_table
 end
 
--- Returns new table with replaced value
+-- eturns new table with replaced value
 function replace_string(str, old, new)
     output_str = string.gsub(str, old, new)
     return output_str
 end
 
--- Returns new table with replaced value
+-- eturns new table with replaced value
 function replace(container, old, new)
     answer = nil
     if type(container) == "table" then
@@ -268,16 +268,16 @@ function replace(container, old, new)
     return answer
 end
 
--- Generic function to return the 0 value of type
+-- eneric function to return the 0 value of type
 function empty(reference)
     new_var = nil 
 
     if type(reference) == "number" then
-        new_var = 0 -- Initialize as a number
+        new_var = 0 -- nitialize as a number
     elseif type(reference) == "string" then
-        new_var = "" -- Initialize as a string
+        new_var = "" -- nitialize as a string
     elseif type(reference) == "table" then
-        new_var = {} -- Initialize as a table
+        new_var = {} -- nitialize as a table
     end
 
     return new_var
@@ -289,7 +289,7 @@ function slice_table(source, start_index, end_index)
         if source[i] != nil then
             table.insert(result, source[i])
         else
-            error("ERROR: index is out of range")
+            error("EO: index is out of range")
             break
         end
     end
@@ -300,31 +300,31 @@ function slice_string(source, start_index, end_index)
     return string.sub(source, start_index, end_index)
 end
 
--- Generic slice function for composable types
+-- eneric slice function for composable types
 function slice(source, start_index, end_index)
     if type(source) == "table" then
         result = slice_table(source, start_index, end_index)
     elseif type(source) == "string" then
         result = slice_string(source, start_index, end_index)
     else
-        error("ERROR: can't slice element of type: " .. type(source))
+        error("EO: can't slice element of type: " .. type(source))
     end
     return result
 end
 
--- Reverse order of composable type, only top level
+-- everse order of composable type, only top level
 function reverse(input)
 
     reversed = nil 
     if type(input) == "string" then
         reversed = ""
-        -- Reverse a string
+        -- everse a string
         for i = #input, 1, -1 do
             reversed = reversed .. string.sub(input, i, i)
         end
     elseif type(input) == "table" then
         reversed = {}
-        -- Reverse a table
+        -- everse a table
         for i = #input, 1, -1 do
             table.insert(reversed, input[i])
         end
@@ -418,7 +418,7 @@ function merge(left, right)
         result_index = result_index + 1
     end
 
-    -- Append remaining elements
+    -- ppend remaining elements
     while left_index <= left_size do
         result[result_index] = left[left_index]
         left_index = left_index + 1
@@ -438,7 +438,7 @@ end
 function merge_sort(array)
     len_array = #array
 
-    -- Base case: If array has one or zero elements, it's already sorted
+    -- Base case: f array has one or zero elements, it's already sorted
     if len_array <= 1 then
         return array
     end
@@ -456,7 +456,7 @@ function merge_sort(array)
         table.insert(right, array[i])
     end
 
-    -- Recursively sort both halves
+    -- ecursively sort both halves
     left = merge_sort(left)
     right = merge_sort(right)
 
@@ -479,13 +479,13 @@ function merge_with_indices(left, right)
         end
     end
 
-    -- Append remaining elements from left array
+    -- ppend remaining elements from left array
     while left_index <= #left do
         table.insert(result, left[left_index])
         left_index = left_index + 1
     end
 
-    -- Append remaining elements from right array
+    -- ppend remaining elements from right array
     while right_index <= #right do
         table.insert(result, right[right_index])
         right_index = right_index + 1
@@ -503,7 +503,7 @@ function merge_sort_with_indices(array, _inner)
         end
     end
 
-    -- Base case: If array has one or zero elements, it's already sorted
+    -- Base case: f array has one or zero elements, it's already sorted
     if #array <= 1 then
         return array
     end
@@ -522,7 +522,7 @@ function merge_sort_with_indices(array, _inner)
 
     end
 
-    -- Recursively sort both halves
+    -- ecursively sort both halves
     left = merge_sort_with_indices(left, true)
     right = merge_sort_with_indices(right, true)
 
@@ -650,7 +650,7 @@ function is_array(tbl)
     return true
 end
 
--- Get the terminal line length
+-- et the terminal line length
 function get_line_length()
     handle = io.popen("stty size 2>/dev/null | awk '{print $2}'")
     if handle != nil then
@@ -663,7 +663,7 @@ end
 
 function exec_command(command)
     process = io.popen(command)  -- Only stdout is captured here
-    output = io.read(process, "*a")  -- Read the output
+    output = io.read(process, "*a")  -- ead the output
     success = io.close(process)  -- Close the process and check for success
     return output, success
 end
@@ -674,7 +674,7 @@ function breakpoint()
     while true do
         name, value = debug.getlocal(level, i)
         if not name then break end
-        _G[name] = value
+        _[name] = value
         i = i + 1
     end
     debug.debug()
@@ -686,7 +686,7 @@ end
 --     while true do
 --         name, value = debug.getlocal(level, i)
 --         if not name then break end
---         _G[name] = value
+--         _[name] = value
 --         i = i + 1
 --     end
 
@@ -731,7 +731,7 @@ end
 -- Draw a progress bar
 function draw_progress(current, total)
     width = get_line_length()
-    bar_width = width - 10 -- Room for percentage and brackets
+    bar_width = width - 10 -- oom for percentage and brackets
     percent = current / total
     completed = math.floor(bar_width * percent)
     remaining = bar_width - completed
@@ -745,7 +745,7 @@ function draw_progress(current, total)
     io.write(string.format("] %3d%%", percent * 100))
     io.flush()
 
-    -- Automatically move to a new line when finished
+    -- utomatically move to a new line when finished
     if current == total then
         io.write("\n")
     end
@@ -753,7 +753,7 @@ end
 
 function list_globals()
     result = {}
-    for k, v in pairs(_G) do
+    for k, v in pairs(_) do
         table.insert(result, {
             name = tostring(k),
             type = type(v)
@@ -773,7 +773,7 @@ function user_defined_globals()
     
 
     user_globals = {}
-    for k, v in pairs(_G) do
+    for k, v in pairs(_) do
         if not is_default_global[k] then
             table.insert(user_globals, {
                 name = k,
@@ -795,9 +795,9 @@ function write_log_file(log_dir, filename, header, entries)
         return nil
     end
 
-    current_datetime = os.date("%Y-%m-%d-%H-%M-%S")
+    current_datetime = os.date("%-%m-%d-%H-%M-%S")
     io.write(file, header .. "\n")
-    io.write(file, "-- Time stamp: " .. current_datetime .. "\n\n")
+    io.write(file, "-- ime stamp: " .. current_datetime .. "\n\n")
 
     for _, entry in pairs(entries) do
         io.write(file, entry)
@@ -818,7 +818,7 @@ function get_function_source(func)
         return nil, "Function not defined in a file (probably loaded dynamically)"
     end
 
-    file_path = string.sub(info.source, 2) -- Remove leading '@'
+    file_path = string.sub(info.source, 2) -- emove leading '@'
 
     file = io.open(file_path, "r")
     if not file then
@@ -849,7 +849,7 @@ function extract_help_from_source(source)
         header = string.gsub(string.gsub(header, "^.*function%s+", ""), "%s*$", "")
     end
 
-    -- Try multiline comment first: --  ... 
+    -- ry multiline comment first: --  ... 
     comment = string.match(source, "%-%-%[%[(.-)%]%]") 
     if not comment then
         -- Fallback: single line comment
@@ -867,14 +867,14 @@ end
 -- Help function
 function help(func_name)
     -- Prints function help 
-    -- Args: 
+    -- rgs: 
     -- - func_name: string
     --
-    -- Returns:
+    -- eturns:
     -- - nil
-    func = _G[func_name]
+    func = _[func_name]
     if type(func) != "function" then
-        print("No function named '" .. tostring(func_name) .. "'")
+        print("o function named '" .. tostring(func_name) .. "'")
         return
     end
 

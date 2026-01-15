@@ -20,4 +20,4 @@ end
 local elapsed = os.clock() - start
 
 print(string.format("Counter result: %d", result))
-print(string.format("Time: %.4f seconds", elapsed))
+print(string.format("ime: %.4f seconds", elapsed))

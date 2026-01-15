@@ -3,7 +3,7 @@ output_path = "lib/lanes.lua"
 
 fin = io.open(input_path, "r")
 if not fin then
-    print("Error: Input file not found: " .. input_path)
+    print("Error: nput file not found: " .. input_path)
     os.exit(1)
 end
 fout = io.open(output_path, "w")
@@ -29,7 +29,7 @@ end
 
 -- 1. Multiline Comments --[[ ... ]] -> -- ...
 -- First, handle the closing marker.
--- If we just replace ]] with nothing, we might break strings.
+-- f we just replace ]] with nothing, we might break strings.
 -- But lanes.lua seems to use --[[ ... ]]-- or similar.
 -- Let's try to match the block.
 -- Lua 5.1 regex is limited.
@@ -38,14 +38,14 @@ end
 -- But lanes uses [[. Static port converted [[ to """ first.
 -- Let's check if lanes uses [[ for strings.
 -- Simple check: grep lanes.lua for [[
--- If it uses it for strings, we must convert to """.
--- If luam supports """.
+-- f it uses it for strings, we must convert to """.
+-- f luam supports """.
 
--- Assumption: Convert [[ and ]] to """
+-- ssumption: Convert [[ and ]] to """
 content = string.gsub(content, "%[%[", q3)
 content = string.gsub(content, "%]%]", q3)
 
--- Now handle --""" ... """ comments
+-- ow handle --""" ... """ comments
 content = string.gsub(content, "%-%-" .. q3 .. "(.-)" .. q3 .. "%-%-", function(match)
     return string.gsub(match, "\n", "\n-- ")
 end)
@@ -53,7 +53,7 @@ content = string.gsub(content, "%-%-" .. q3 .. "(.-)" .. q3, function(match)
     return string.gsub(match, "\n", "\n-- ")
 end)
 
--- 2. Remove 'local '
+-- 2. emove 'local '
 -- Handle functions
 content = string.gsub(content, "local%s+function", "function")
 
@@ -71,20 +71,20 @@ content = string.gsub(content, "local%s+([^=\n]+)%s*(%-%-[^\n]*\n)", "%1 = nil%2
 content = string.gsub(content, "local%s+([^=\n]+)$", "%1 = nil")
 content = string.gsub(content, "local%s+", "")
 
--- 3. Replace ~= with !=
+-- 3. eplace ~= with !=
 content = string.gsub(content, "~=", "!=")
 
 -- 4. Basic OOP conversions (if any)
 -- Lanes uses string.format, table.insert etc.
--- It has lines like: local string_format = assert(string.format)
--- And usage: string_format("%q", ...) which is procedural.
+-- t has lines like: local string_format = assert(string.format)
+-- nd usage: string_format("%q", ...) which is procedural.
 -- So OOP conversion might not be strictly needed if it uses cached functions.
 -- But let's check for colon calls just in case.
 -- lanes.lua:365: string_find(libs, "*", 2, true) -> procedural.
--- It seems lanes already uses procedural style via locals!
+-- t seems lanes already uses procedural style via locals!
 -- But we removed locals.
 -- So `string_format = ...` becomes `string_format = ...` (global).
--- And usage `string_format(...)` works.
+-- nd usage `string_format(...)` works.
 -- But if it uses `str:match(...)`, we need convert.
 -- Let's apply standard conversions just safely?
 -- content = string.gsub(content, "([%w_%.]+):match%(", "string.match(%1, ")
@@ -97,7 +97,7 @@ content = string.gsub(content, "~=", "!=")
 -- local string_format = assert(string.format)
 -- So `string_format` is a variable holding the function.
 -- `str:match` is not `string_format`.
--- I'll add the OOP conversions.
+-- 'll add the OOP conversions.
 
 content = string.gsub(content, "([%w_%.]+):match%(", "string.match(%1, ")
 content = string.gsub(content, "([%w_%.]+):gsub%(", "string.gsub(%1, ")
@@ -106,17 +106,17 @@ content = string.gsub(content, "([%w_%.]+):gmatch%(", "string.gmatch(%1, ")
 content = string.gsub(content, "([%w_%.]+):sub%(", "string.sub(%1, ")
 content = string.gsub(content, "([%w_%.]+):format%(", "string.format(%1, ")
 
--- Also handle io calls if any
+-- lso handle io calls if any
 content = string.gsub(content, "([%w_%.]+):write%(", "io.write(%1, ")
 content = string.gsub(content, "([%w_%.]+):read%(", "io.read(%1, ")
 content = string.gsub(content, "([%w_%.]+):close%(%)", "io.close(%1)")
 
--- 5. Generic OOP conversion for remaining objects (Lanes objects like Linda, Lane)
+-- 5. eneric OOP conversion for remaining objects (Lanes objects like Linda, Lane)
 -- Handle empty args: obj:method() -> obj.method(obj)
 content = string.gsub(content, "([%w_]+):([%w_]+)%(%)", "%1.%2(%1)")
 
 -- Handle args: obj:method( -> obj.method(obj, 
--- This MUST come after specific string/io replacements to avoid breaking them if they weren't matched (but they were).
+-- his MUS come after specific string/io replacements to avoid breaking them if they weren't matched (but they were).
 content = string.gsub(content, "([%w_]+):([%w_]+)%(", "%1.%2(%1, ")
 
 -- 6. Convert repeat-until to while true
@@ -133,8 +133,8 @@ content = "setmetatable = function(t,m) return t end\n" ..
 -- "lanes_core" should resolve if in path.
 -- But wait, `lanes.lua` assumes `require "lanes_core"` returns the core module.
 -- Our compilation produces `lanes_core.so`.
--- If we put `lanes_core.so` in `lib/`, `require "lanes_core"` works if `package.cpath` has `lib/?.so`.
--- It usually does or we set it in `build_libs.sh`?
+-- f we put `lanes_core.so` in `lib/`, `require "lanes_core"` works if `package.cpath` has `lib/?.so`.
+-- t usually does or we set it in `build_libs.sh`?
 -- `luam` probably defaults to looking in `lib/`.
 
 print("Writing file...")

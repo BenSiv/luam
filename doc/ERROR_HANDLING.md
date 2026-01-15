@@ -1,10 +1,10 @@
 # Luam Error Handling Strategy
 
-## Error Handling with Explicit Nil Checks
+## Error Handling with Explicit il Checks
 
 Luam requires explicit nil checks using `!= nil` for clear, maintainable code.
 
-## Recommended Error Handling Patterns
+## ecommended Error Handling Patterns
 
 ### 1. **Checking for Presence**
 
@@ -17,7 +17,7 @@ if result != nil then
 end
 ```
 
-### 2. **Early Return Pattern**
+### 2. **Early eturn Pattern**
 
 ```lua
 function process_data(input)
@@ -30,7 +30,7 @@ function process_data(input)
 end
 ```
 
-### 3. **Multiple Nil Checks**
+### 3. **Multiple il Checks**
 
 ```lua
 -- Check multiple optional values
@@ -44,9 +44,9 @@ else
 end
 ```
 
-### 4. **Return Value Patterns**
+### 4. **eturn alue Patterns**
 
-#### Nil-or-Value Pattern
+#### il-or-alue Pattern
 ```lua
 function find_item(list, predicate)
   for i = 1, #list do
@@ -54,7 +54,7 @@ function find_item(list, predicate)
       return list[i]  -- Found
     end
   end
-  return nil  -- Not found
+  return nil  -- ot found
 end
 
 -- Usage
@@ -66,7 +66,7 @@ else
 end
 ```
 
-#### Boolean-Result Pattern (for APIs)
+#### Boolean-esult Pattern (for Ps)
 ```lua
 function api_operation(params)
   if validate(params) != true then
@@ -90,7 +90,7 @@ else
 end
 ```
 
-#### Nil-with-Error Pattern
+#### il-with-Error Pattern
 ```lua
 function parse_data(raw)
   if raw == nil then
@@ -106,7 +106,7 @@ function parse_data(raw)
 end
 ```
 
-### 5. **Default Value Pattern**
+### 5. **Default alue Pattern**
 
 ```lua
 -- Provide default when value might be nil
@@ -148,19 +148,19 @@ function process_pipeline(input)
 end
 ```
 
-## Pattern Selection Guide
+## Pattern Selection uide
 
 | Context | Pattern | Example |
 |---------|---------|---------|
-| **General code** | Return nil or value | `find_user(id)` → `user` or `nil` |
-| **APIs** | Return `true, result` / `false, err` | `api_call()` → `true, data` or `false, "error"` |
-| **Error-sensitive** | Return `nil, err` | `parse_json(str)` → `obj` or `nil, "parse error"` |
+| **eneral code** | eturn nil or value | `find_user(id)` → `user` or `nil` |
+| **Ps** | eturn `true, result` / `false, err` | `api_call()` → `true, data` or `false, "error"` |
+| **Error-sensitive** | eturn `nil, err` | `parse_json(str)` → `obj` or `nil, "parse error"` |
 
-## Anti-Patterns to Avoid
+## nti-Patterns to void
 
 ### ❌ Don't use truthy/falsy in conditionals
 ```lua
-if value then  -- ERROR: conditional requires boolean
+if value then  -- EO: conditional requires boolean
   use(value)
 end
 ```

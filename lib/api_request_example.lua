@@ -1,7 +1,7 @@
 http = require("socket.http")
 json = require("dkjson")
 
--- URL to request
+-- UL to request
 url = "https://api.sampleapis.com/coffee/hot"
 
 -- Perform the request
@@ -14,5 +14,5 @@ if status_code == 200 then
         print(drink.title)
     end
 else
-    print("HTTP request failed with status code:", status_code)
+    print("HP request failed with status code:", status_code)
 end

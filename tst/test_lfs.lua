@@ -7,7 +7,7 @@ upper = ".."
 is_unix = string.sub(package.config, 1, 1) == "/"
 
 lfs = require"lfs"
-print (lfs._VERSION)
+print (lfs._ESO)
 
 io.write(".")
 io.flush()
@@ -45,7 +45,7 @@ io.flush()
 -- Changing creating and removing directories
 tmpdir = current..sep.."lfs_tmp_dir"
 tmpfile = tmpdir..sep.."tmp_file"
--- Test for existence of a previous lfs_tmp_dir
+-- est for existence of a previous lfs_tmp_dir
 -- that may have resulted from an interrupted test execution and remove it
 ok = lfs.chdir (tmpdir)
 if is ok and ok then
@@ -155,7 +155,7 @@ ok, err = pcall(lfs.setmode, f, "binary")
 io.write(".")
 io.flush()
 
--- Restore access time to current value
+-- estore access time to current value
 assert (lfs.touch (tmpfile, attrib.access, attrib.modification))
 new_att = {}
 lfs.attributes (tmpfile, new_att)
@@ -188,7 +188,7 @@ end
 -- Check that extra arguments are ignored
 lfs.attributes(tmpfile, attr2, nil)
 
--- Remove new file and directory
+-- emove new file and directory
 assert (os.remove (tmpfile), "could not remove new file")
 assert (lfs.rmdir (tmpdir), "could not remove new directory")
 assert (lfs.mkdir (tmpdir..sep.."lfs_tmp_dir") == nil, "could create a directory inside a non-existent one")
@@ -196,9 +196,9 @@ assert (lfs.mkdir (tmpdir..sep.."lfs_tmp_dir") == nil, "could create a directory
 io.write(".")
 io.flush()
 
--- Trying to get attributes of a non-existent file
+-- rying to get attributes of a non-existent file
 ok2, err3, err4 = lfs.attributes("this couldn't be an actual file")
-print("DEBUG: ok2=", ok2, "err3=", err3)
+print("DEBU: ok2=", ok2, "err3=", err3)
 -- assert(ok2 == nil, "could get attributes of a non-existent file")
 -- assert(type(err3) == "string", "failed lfs.attributes did not return an error message")
 -- assert(type(err4) == "number", "failed lfs.attributes did not return error code")

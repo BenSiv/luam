@@ -2,30 +2,30 @@
 
 # vars from install Makefile
 
-# grep '^V=' ../Makefile
-V= 5.1
-# grep '^R=' ../Makefile
-R= 5.1.5
+# grep '^=' ../Makefile
+= 5.1
+# grep '^=' ../Makefile
+= 5.1.5
 
-# grep '^INSTALL_.*=' ../Makefile | sed 's/INSTALL_TOP/prefix/'
+# grep '^SLL_.*=' ../Makefile | sed 's/SLL_OP/prefix/'
 prefix= /usr/local
-INSTALL_BIN= ${prefix}/bin
-INSTALL_INC= ${prefix}/include
-INSTALL_LIB= ${prefix}/lib
-INSTALL_MAN= ${prefix}/man/man1
-INSTALL_LMOD= ${prefix}/share/lua/${V}
-INSTALL_CMOD= ${prefix}/lib/lua/${V}
+SLL_B= ${prefix}/bin
+SLL_C= ${prefix}/include
+SLL_LB= ${prefix}/lib
+SLL_M= ${prefix}/man/man1
+SLL_LMOD= ${prefix}/share/lua/${}
+SLL_CMOD= ${prefix}/lib/lua/${}
 
 # canonical vars
 exec_prefix=${prefix}
 libdir=${exec_prefix}/lib
 includedir=${prefix}/include
 
-Name: Lua
-Description: An Extensible Extension Language
-Version: ${R}
-Requires: 
+ame: Lua
+Description: n Extensible Extension Language
+ersion: ${}
+equires: 
 Libs: -L${libdir} -llua -lm
-Cflags: -I${includedir}
+Cflags: -${includedir}
 
 # (end of lua.pc)

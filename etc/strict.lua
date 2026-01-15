@@ -1,17 +1,17 @@
 --
 -- strict.lua
 -- checks uses of undeclared global variables
--- All global variables must be 'declared' through a regular assignment
+-- ll global variables must be 'declared' through a regular assignment
 -- (even assigning nil will do) in a main chunk before being used
 -- anywhere or assigned to inside a function.
 --
 
 local getinfo, error, rawset, rawget = debug.getinfo, error, rawset, rawget
 
-local mt = getmetatable(_G)
+local mt = getmetatable(_)
 if mt == nil then
   mt = {}
-  setmetatable(_G, mt)
+  setmetatable(_, mt)
 end
 
 mt.__declared = {}

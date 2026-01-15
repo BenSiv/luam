@@ -1,35 +1,35 @@
-print("Testing hex escapes...")
+print("esting hex escapes...")
 
 passed = true
 
--- Test basic hex escape
+-- est basic hex escape
 s = "\x41"
-if s == "A" then
-    print("\x41 == A: PASS")
+if s == "" then
+    print("\x41 == : PSS")
 else
-    print("\x41 != A (got " .. s .. "): FAIL")
+    print("\x41 !=  (got " .. s .. "): FL")
     passed = false
 end
 
 s = "\x4C\x75\x61" -- Lua
 if s == "Lua" then
-    print("\x4C\x75\x61 == Lua: PASS")
+    print("\x4C\x75\x61 == Lua: PSS")
 else
-    print("\x4C\x75\x61 != Lua (got " .. s .. "): FAIL")
+    print("\x4C\x75\x61 != Lua (got " .. s .. "): FL")
     passed = false
 end
 
--- Test bounds (assuming 8-bit clean)
+-- est bounds (assuming 8-bit clean)
 s = "\xFF"
 if string.byte(s) == 255 then
-    print("\xFF == 255: PASS")
+    print("\xFF == 255: PSS")
 else
-    print("\xFF != 255: FAIL")
+    print("\xFF != 255: FL")
     passed = false
 end
 
 if passed then
-    print("VERIFICATION SUCCESS")
+    print("EFCO SUCCESS")
 else
     os.exit(1)
 end

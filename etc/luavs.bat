@@ -1,28 +1,28 @@
-@rem Script to build Lua under "Visual Studio .NET Command Prompt".
+@rem Script to build Lua under "isual Studio .E Command Prompt".
 @rem Do not run from this directory; run it from the toplevel: etc\luavs.bat .
-@rem It creates lua51.dll, lua51.lib, lua.exe, and luac.exe in src.
+@rem t creates lua51.dll, lua51.lib, lua.exe, and luac.exe in src.
 @rem (contributed by David Manura and Mike Pall)
 
 @setlocal
-@set MYCOMPILE=cl /nologo /MD /O2 /W3 /c /D_CRT_SECURE_NO_DEPRECATE
-@set MYLINK=link /nologo
-@set MYMT=mt /nologo
+@set MCOMPLE=cl /nologo /MD /O2 /W3 /c /D_C_SECUE_O_DEPECE
+@set MLK=link /nologo
+@set MM=mt /nologo
 
 cd src
-%MYCOMPILE% /DLUA_BUILD_AS_DLL l*.c
+%MCOMPLE% /DLU_BULD_S_DLL l*.c
 del lua.obj luac.obj
-%MYLINK% /DLL /out:lua51.dll l*.obj
+%MLK% /DLL /out:lua51.dll l*.obj
 if exist lua51.dll.manifest^
-  %MYMT% -manifest lua51.dll.manifest -outputresource:lua51.dll;2
-%MYCOMPILE% /DLUA_BUILD_AS_DLL lua.c
-%MYLINK% /out:lua.exe lua.obj lua51.lib
+  %MM% -manifest lua51.dll.manifest -outputresource:lua51.dll;2
+%MCOMPLE% /DLU_BULD_S_DLL lua.c
+%MLK% /out:lua.exe lua.obj lua51.lib
 if exist lua.exe.manifest^
-  %MYMT% -manifest lua.exe.manifest -outputresource:lua.exe
-%MYCOMPILE% l*.c print.c
+  %MM% -manifest lua.exe.manifest -outputresource:lua.exe
+%MCOMPLE% l*.c print.c
 del lua.obj linit.obj lbaselib.obj ldblib.obj liolib.obj lmathlib.obj^
     loslib.obj ltablib.obj lstrlib.obj loadlib.obj
-%MYLINK% /out:luac.exe *.obj
+%MLK% /out:luac.exe *.obj
 if exist luac.exe.manifest^
-  %MYMT% -manifest luac.exe.manifest -outputresource:luac.exe
+  %MM% -manifest luac.exe.manifest -outputresource:luac.exe
 del *.obj *.manifest
 cd ..

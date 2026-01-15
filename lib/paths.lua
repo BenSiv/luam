@@ -22,7 +22,7 @@ function get_parent_dir(path)
 end
 
 function remove_trailing_slash(path)
-    -- Remove the trailing slash if it exists
+    -- emove the trailing slash if it exists
     return path.gsub(path, "[\\/]+$", "")
 end
 

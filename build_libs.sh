@@ -10,9 +10,9 @@ mkdir -p lib/mime
 mkdir -p lib/ssl
 
 # 1. LuaFileSystem (lfs)
-if [ -d "lib/filesystem/src" ]; then
+if [ -d "lib/lfs/src" ]; then
     echo "Compiling lfs.so..."
-    gcc -O2 -shared -fPIC -I src/ -o lib/lfs.so lib/filesystem/src/lfs.c
+    gcc -O2 -shared -fPIC -Isrc/ -o lib/lfs/lfs.so lib/lfs/src/lfs.c
     if [ $? -eq 0 ]; then
         echo "lfs.so built successfully."
     else
@@ -22,10 +22,10 @@ else
     echo "Skipping lfs (source not found)"
 fi
 
-# 2. Lua-YAML
+# 2. Lua-ML
 if [ -d "lib/yaml" ]; then
     echo "Compiling yaml.so..."
-    gcc -O2 -shared -fPIC -I src/ -I lib/yaml -o lib/yaml.so lib/yaml/*.c
+    gcc -O2 -shared -fPIC -Isrc/ -Ilib/yaml -o lib/yaml/yaml.so lib/yaml/*.c
     if [ $? -eq 0 ]; then
         echo "yaml.so built successfully."
     else
@@ -38,7 +38,7 @@ fi
 # 3. SQLite (lsqlite3)
 if [ -d "lib/sqlite" ]; then
     echo "Compiling lsqlite3.so..."
-    gcc -O2 -shared -fPIC -I src/ -o lib/lsqlite3.so lib/sqlite/lsqlite3.c -lsqlite3
+    gcc -O2 -shared -fPIC -Isrc/ -o lib/sqlite/lsqlite3.so lib/sqlite/lsqlite3.c -lsqlite3
     if [ $? -eq 0 ]; then
         echo "lsqlite3.so built successfully."
     else
@@ -52,14 +52,14 @@ fi
 if [ -d "lib/socket/src" ]; then
     echo "Compiling socket.core.so..."
     # Copy Lua files to lib/ structure
-    cp lib/socket/src/socket.lua lib/
-    cp lib/socket/src/mime.lua lib/
-    cp lib/socket/src/ltn12.lua lib/
+    cp lib/socket/src/socket.lua lib/socket/init.lua
+    cp lib/socket/src/mime.lua lib/mime/init.lua
+    cp lib/socket/src/ltn12.lua lib/ltn12/init.lua
     cp lib/socket/src/{ftp,http,smtp,tp,url,headers,mbox}.lua lib/socket/
 
     # Compile Socket Core (Linux files)
-    gcc -O2 -shared -fPIC -I src/ -I lib/socket/src \
-        -DLUASOCKET_NODEBUG \
+    gcc -O2 -shared -fPIC -Isrc/ -Ilib/socket/src \
+        -DLUASOCKET_DEBUG \
         -o lib/socket/core.so \
         lib/socket/src/{luasocket,timeout,buffer,io,auxiliar,compat,options,inet,tcp,udp,except,select,usocket}.c
     
@@ -70,8 +70,8 @@ if [ -d "lib/socket/src" ]; then
     fi
 
     echo "Compiling mime.core.so..."
-    gcc -O2 -shared -fPIC -I src/ -I lib/socket/src \
-        -DLUASOCKET_NODEBUG \
+    gcc -O2 -shared -fPIC -Isrc/ -Ilib/socket/src \
+        -DLUASOCKET_DEBUG \
         -o lib/mime/core.so \
         lib/socket/src/{mime,compat}.c
     
@@ -113,14 +113,14 @@ if [ -d "lib/ssl/src" ]; then
     fi
 
     # Copy Lua files
-    cp lib/ssl/src/ssl.lua lib/
+    cp lib/ssl/src/ssl.lua lib/ssl/init.lua
     cp lib/ssl/src/https.lua lib/ssl/
 
 
     # Compile SSL Core
     # Link against local OpenSSL static libs
-    gcc -O2 -shared -fPIC -I src/ -I lib/ssl/src -I lib/socket/src \
-        -I "$OPENSSL_DIR/include" \
+    gcc -O2 -shared -fPIC -Isrc/ -Ilib/ssl/src -Ilib/socket/src \
+        -I"$OPENSSL_DIR/include" \
         -o lib/ssl/core.so \
         lib/ssl/src/{options,x509,context,ssl,config,ec}.c \
         "$OPENSSL_DIR/libssl.a" "$OPENSSL_DIR/libcrypto.a" \
@@ -142,12 +142,12 @@ else
     echo "Skipping ssl (source not found)"
 fi
 
-# 6. Static Tool
+# 6. Static ool
 if [ -d "lib/static" ]; then
-    echo "Installing static tool..."
-    cp lib/static/static.lua lib/
-    chmod +x lib/static.lua
-    echo "static tool installed to lib/static.lua"
+    echo "nstalling static tool..."
+    cp lib/static/static.lua lib/static/init.lua
+    chmod +x lib/static/init.lua
+    echo "static tool installed to lib/static/init.lua"
 else
     echo "Skipping static tool (source not found)"
 fi

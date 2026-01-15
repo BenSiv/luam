@@ -14,7 +14,7 @@ function reverse_kv(tbl)
     return reversed
 end
 
--- Get or create an index for a name
+-- et or create an index for a name
 function get_or_create_index(name, node_map)
     index_map = reverse_kv(node_map)
     node_index = index_map[name]
@@ -25,7 +25,7 @@ function get_or_create_index(name, node_map)
     return node_index
 end
 
--- Get index of a node name
+-- et index of a node name
 function get_node_index(node_map, node_name)
     for index, name in pairs(node_map) do
         if name == node_name then return index end
@@ -33,7 +33,7 @@ function get_node_index(node_map, node_name)
     return nil
 end
 
--- Build a DAG as adjacency list
+-- Build a D as adjacency list
 function build_graph(data)
     graph = {}
     node_map = {}
@@ -58,7 +58,7 @@ function build_reverse_graph(graph)
     return reversed
 end
 
--- Generic DFS traversal
+-- eneric DFS traversal
 function traverse_graph(graph, start_node, reverse)
     g = graph
     if reverse then g = build_reverse_graph(graph) end
@@ -82,7 +82,7 @@ function traverse_graph(graph, start_node, reverse)
     return result
 end
 
--- Get all children
+-- et all children
 function get_all_children(graph, node_map, node_name)
     idx = get_node_index(node_map, node_name)
     if not idx then return {} end
@@ -92,7 +92,7 @@ function get_all_children(graph, node_map, node_name)
     return children
 end
 
--- Get all parents
+-- et all parents
 function get_all_parents(graph, node_map, node_name)
     idx = get_node_index(node_map, node_name)
     if not idx then return {} end
@@ -102,7 +102,7 @@ function get_all_parents(graph, node_map, node_name)
     return parents
 end
 
--- Get leaves (nodes with no outgoing edges)
+-- et leaves (nodes with no outgoing edges)
 function get_leaves(graph, node_map)
     has_outgoing = {}
     for node, edges in pairs(graph) do
@@ -115,7 +115,7 @@ function get_leaves(graph, node_map)
     return leaves
 end
 
--- Get roots (nodes with no parents)
+-- et roots (nodes with no parents)
 function get_roots(graph, node_map)
     reversed = build_reverse_graph(graph)
     roots = {}
@@ -125,7 +125,7 @@ function get_roots(graph, node_map)
     return roots
 end
 
--- Get connected components
+-- et connected components
 function get_all_components(graph, node_map)
     visited = {}
     components = {}
@@ -147,7 +147,7 @@ function get_all_components(graph, node_map)
     return components
 end
 
--- Get lineage depth: root = 0, subcultures increment, invalid = -1
+-- et lineage depth: root = 0, subcultures increment, invalid = -1
 function get_lineage_depth(graph, node_map, sample_name)
     node_idx = get_node_index(node_map, sample_name)
     if not node_idx then return -1 end  -- invalid node

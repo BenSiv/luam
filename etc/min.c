@@ -33,7 +33,7 @@ int main(void)
 {
  lua_State *L=lua_open();
  lua_register(L,"print",print);
- if (luaL_dofile(L,NULL)!=0) fprintf(stderr,"%s\n",lua_tostring(L,-1));
+ if (luaL_dofile(L,ULL)!=0) fprintf(stderr,"%s\n",lua_tostring(L,-1));
  lua_close(L);
  return 0;
 }

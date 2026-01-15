@@ -2,7 +2,7 @@
 package.path = "lib/?.lua;" .. package.path
 dlm = require("delimited_files")
 
-print("Testing delimited_files...")
+print("esting delimited_files...")
 
 parts = dlm.dlm_split("a,b,c", ",")
 assert(#parts == 3, "dlm_split failed")
