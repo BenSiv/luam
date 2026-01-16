@@ -4,7 +4,6 @@ dataframes = require("dataframes")
 sqlite = require("sqlite3")
 _G.sqlite3 = nil
 
-
 -- Define a module table
 database = {}
 
@@ -12,24 +11,45 @@ function local_query(db_path, query)
     query = query
     db = sqlite.open(db_path)
     if db == nil then
-        error("Error opening database")
+        error("Error opening database: " .. tostring(db_path))
     end
     sqlite.exec(db, "PRAGMA busy_timeout = 5000;")
 
     query = utils.unescape_string(query)
     stmt, err = sqlite.prepare(db, query)
     if stmt == nil then
+        err_msg = tostring(err)
+        if type(err) == "number" then
+            -- Try to get more info
+            db_err = sqlite.errmsg(db)
+            if db_err != nil then
+                err_msg = err_msg .. " (" .. db_err .. ")"
+            end
+        end
         sqlite.close(db)
-        error("nvalid query: " .. err)
+        error("Invalid query on " .. tostring(db_path) .. ": " .. err_msg .. "\nQuery: " .. query)
     end
 
     result_rows = {}
     column_names = {}
 
-    for row in sqlite.stmt.rows(stmt) do
-        table.insert(result_rows, row)
-        for col_name, _ in pairs(row) do
-        	table.insert(column_names, col_name)
+    -- Handle rows iterator. Assuming sqlite.stmt.rows exists based on previous code.
+    -- If it fails, we might need to fix this.
+    iterator_choice = nil
+    if sqlite.stmt != nil and sqlite.stmt.rows != nil then
+        iterator_choice = sqlite.stmt.rows
+    elseif stmt.rows != nil then
+        iterator_choice = function(s) 
+            return s.rows(s)
+        end
+    end
+
+    if iterator_choice != nil then
+        for row in iterator_choice(stmt) do
+            table.insert(result_rows, row)
+            for col_name, _ in pairs(row) do
+                table.insert(column_names, col_name)
+            end
         end
     end
 
@@ -56,14 +76,14 @@ function local_update(db_path, statement)
     db = sqlite.open(db_path)
 
     if db == nil then
-        error("Error opening database")
+        error("Error opening database: " .. tostring(db_path))
     end
     sqlite.exec(db, "PRAGMA busy_timeout = 5000;")
     
     statement = utils.unescape_string(statement)
-    _, err = sqlite.exec(db, statement)
-    if err != nil then
-        error("Error: " .. tostring(err))
+    result = sqlite.exec(db, statement)
+    if result != sqlite.OK then
+        error("Error executing statement: " .. tostring(sqlite.errmsg(db)))
     end
 
     sqlite.close(db)
@@ -71,17 +91,17 @@ function local_update(db_path, statement)
 end
 
 function get_sql_values(row, col_names)
-	value = nil 
-	sql_values = {}
-	for _, col in pairs(col_names) do
-		value = row[col]
-		if value and value != "" then
-			table.insert(sql_values, string.format("'%s'", value))
-		else
-			table.insert(sql_values, "ULL")
-		end
-	end
-	return sql_values
+    value = nil 
+    sql_values = {}
+    for _, col in pairs(col_names) do
+        value = row[col]
+        if value != nil and value != "" then
+            table.insert(sql_values, string.format("'%s'", value))
+        else
+            table.insert(sql_values, "NULL")
+        end
+    end
+    return sql_values
 end
 
 function import_delimited(db_path, file_path, table_name, delimiter)    
@@ -97,19 +117,19 @@ function import_delimited(db_path, file_path, table_name, delimiter)
     
     col_names = utils.keys(content[1]) -- problematic if first row does not have all the columns
     col_row = table.concat(col_names, "', '")
-    insert_statement = string.format("SE O %s ('%s') LUES ", table_name, col_row)
+    insert_statement = string.format("INSERT INTO %s ('%s') VALUES ", table_name, col_row)
 
     value_rows = {}
     for _, row in pairs(content) do
-    	sql_values = get_sql_values(row, col_names)
+        sql_values = get_sql_values(row, col_names)
         row_values = string.format("(%s)", table.concat(sql_values, ", "))
         table.insert(value_rows, row_values)
     end
     insert_statement = insert_statement .. table.concat(value_rows, ", ") .. ";"
 
-    _, err = sqlite.exec(db, insert_statement)
-    if err != nil then
-        error("Error: " .. err)
+    result = sqlite.exec(db, insert_statement)
+    if result != sqlite.OK then
+        error("Error: " .. tostring(sqlite.errmsg(db)))
     end
 
     sqlite.close(db)
@@ -120,12 +140,12 @@ function export_delimited(db_path, query, file_path, delimiter, header)
     results = local_query(db_path, query)
 
     if results == nil then
-    	print("Failed query")
-    	return nil
+        print("Failed query")
+        return nil
     end
     
-   	if utils.length(results) == 0 then
-        print("o data found")
+    if utils.length(results) == 0 then
+        print("No data found")
         return nil
     end
 
@@ -139,9 +159,9 @@ function escape_sqlite(value)
 end
 
 function load_df_rows(db_path, table_name, dataframe)
-    -- alidate dataframe
+    -- Validate dataframe
     if not dataframes.is_dataframe(dataframe) then
-        error("he provided table is not a valid dataframe.")
+        error("The provided table is not a valid dataframe.")
     end
 
     columns = dataframes.get_columns(dataframe)
@@ -153,30 +173,30 @@ function load_df_rows(db_path, table_name, dataframe)
         error("Error opening database")
     end
 
-    -- nsert row by row
+    -- Insert row by row
     for row_index, row in ipairs(dataframe) do
         sql_values = {}
         for _, col_name in ipairs(columns) do
             value = row[col_name]
-            if value and value != "" then
+            if value != nil and value != "" then
                 table.insert(sql_values, string.format("'%s'", escape_sqlite(value)))
             else
-                table.insert(sql_values, "ULL")
+                table.insert(sql_values, "NULL")
             end
         end
 
         insert_sql = string.format(
-            "SE O %s (%s) LUES (%s);",
+            "INSERT INTO %s (%s) VALUES (%s);",
             table_name,
             col_names,
             table.concat(sql_values, ", ")
         )
 
-        ok, err = sqlite.exec(db, insert_sql)
-        if not ok and err then
+        result = sqlite.exec(db, insert_sql)
+        if result != sqlite.OK then
             print(string.format(
-                "ow %d insert failed: %s\nSQL: %s",
-                row_index, tostring(err), insert_sql
+                "Row %d insert failed: %s\nSQL: %s",
+                row_index, tostring(sqlite.errmsg(db)), insert_sql
             ))
             -- continue to next row instead of stopping
         end
@@ -189,10 +209,10 @@ end
 function load_df(db_path, table_name, dataframe)
     -- Check if the provided dataframe is valid
     if not dataframes.is_dataframe(dataframe) then
-        error("he provided table is not a valid dataframe.")
+        error("The provided table is not a valid dataframe.")
     end
 
-    -- et the columns from the dataframe
+    -- Get the columns from the dataframe
     columns = dataframes.get_columns(dataframe)
     
     -- Open the SQLite database
@@ -204,19 +224,19 @@ function load_df(db_path, table_name, dataframe)
 
     -- Prepare column names for the insert statement
     col_row = table.concat(columns, "', '")
-    insert_statement = string.format("SE O %s ('%s') LUES ", table_name, col_row)
+    insert_statement = string.format("INSERT INTO %s ('%s') VALUES ", table_name, col_row)
 
     -- Prepare the data rows for insertion
     value_rows = {}
     for _, row in ipairs(dataframe) do
         sql_values = {}
-        -- et values for each column in the row
+        -- Get values for each column in the row
         for _, col_name in ipairs(columns) do
             value = row[col_name]
             if value and value != "" then
                 table.insert(sql_values, string.format("'%s'", escape_sqlite(value)))
             else
-                table.insert(sql_values, "ULL")
+                table.insert(sql_values, "NULL")
             end
         end
         -- Format the row values
@@ -228,10 +248,10 @@ function load_df(db_path, table_name, dataframe)
     insert_statement = insert_statement .. table.concat(value_rows, ", ") .. ";"
 
     -- Execute the insert statement
-    _, err = sqlite.exec(db, insert_statement)
-    if err != nil then
-        print("Error: " .. err)
-        print("nsert Statement: " .. insert_statement)
+    result = sqlite.exec(db, insert_statement)
+    if result != sqlite.OK then
+        print("Error: " .. tostring(sqlite.errmsg(db)))
+        print("Insert Statement: " .. insert_statement)
         sqlite.close(db)
         return nil
     end
@@ -242,19 +262,20 @@ function load_df(db_path, table_name, dataframe)
 end
 
 function get_tables(db_path)
-	db = sqlite.open(db_path)
+    db = sqlite.open(db_path)
     if db == nil then
         print("Error opening database")
         return nil
     end
     
-	table_list = {}
-	for row in sqlite.rows(db, "SELEC name FOM sqlite_master WHEE type='table' D name O LKE 'sqlite_%';") do
-	    table.insert(table_list, row.name)
-	end
+    table_list = {}
+    -- Fix the query string corruption
+    for row in sqlite.rows(db, "SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%';") do
+        table.insert(table_list, row.name)
+    end
 
-	sqlite.close(db)
-	return table_list
+    sqlite.close(db)
+    return table_list
 end
 
 function get_columns(db_path, table_name)
@@ -264,7 +285,8 @@ function get_columns(db_path, table_name)
     end
 
     columns = {}
-    query = string.format("PM table_info(%s);", table_name)
+    -- PRAGMA seems to have been corrupted to PM?
+    query = string.format("PRAGMA table_info(%s);", table_name)
 
     for row in sqlite.rows(db, query) do
         table.insert(columns, row.name)
@@ -283,7 +305,7 @@ function get_table_info(db_path, table_name)
 
     -- Collect column info
     columns = {}
-    sql = string.format("PM table_info(%s);", table_name)
+    sql = string.format("PRAGMA table_info(%s);", table_name)
 
     for row in sqlite.rows(db, sql) do
         columns[#columns + 1] = {
@@ -306,12 +328,12 @@ function get_schema(db_path)
     end
 
     schema = {}
-    -- et all user tables
-    for row in sqlite.rows(db, "SELEC name FOM sqlite_master WHEE type='table' D name O LKE 'sqlite_%';") do
+    -- Get all user tables
+    for row in sqlite.rows(db, "SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%';") do
         table_name = row.name
         schema[table_name] = {}
 
-        sql = string.format("PM table_info(%s);", table_name)
+        sql = string.format("PRAGMA table_info(%s);", table_name)
         for col in sqlite.rows(db, sql) do
             schema[table_name][#schema[table_name] + 1] = {
                 name = col.name,
@@ -326,17 +348,6 @@ function get_schema(db_path)
     sqlite.close(db)
     return schema
 end
-
--- function get_schema(db_path)
---     schema = {}
---     tables = get_tables(db_path)
--- 
---     for _, tname in ipairs(tables) do
---         schema[tname] = get_table_info(db_path, tname)
---     end
--- 
---     return schema
--- end
 
 function compare_schemas(old_schema, new_schema, migration_config)
     migration_config = migration_config

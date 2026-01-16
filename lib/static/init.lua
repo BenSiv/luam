@@ -19,12 +19,29 @@ end
 -- Run a shell command, wait for it to finish, and return a string containing stdout.
 -- --"""
 function shellout(command)
-	file = io.popen(command)
-	stdout = io.read(file, "*all")
-	ok = io.close(file)
-	if ok then
-		return stdout
+	-- Try popen if available
+	if io.popen != nil then
+		ok, file = pcall(io.popen, command)
+		if ok and file != nil then
+			stdout = io.read(file, "*all")
+			io.close(file)
+			return stdout
+		end
 	end
+
+	-- Fallback to os.execute and temp file
+	tmpfile = os.tmpname()
+	cmd = command .. " > " .. tmpfile
+	if os.execute(cmd) == 0 then
+		file = io.open(tmpfile, "r")
+		if file != nil then
+			stdout = io.read(file, "*all")
+			io.close(file)
+			os.remove(tmpfile)
+			return stdout
+		end
+	end
+	os.remove(tmpfile)
 	return nil
 end
 -- 
