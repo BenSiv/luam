@@ -650,22 +650,71 @@ function is_array(tbl)
     return true
 end
 
--- et the terminal line length
+-- Get the terminal line length
 function get_line_length()
-    handle = io.popen("stty size 2>/dev/null | awk '{print $2}'")
-    if handle != nil then
-        result = io.read(handle, "*a")
-        io.close(handle)
-        return tonumber(result) or 80 -- Default to 80 if unable to fetch
+    -- Try popen
+    if io.popen != nil then
+        ok, handle = pcall(io.popen, "stty size 2>/dev/null | awk '{print $2}'")
+        if ok and handle != nil and type(handle) == 'userdata' then
+            curr = io.input()
+            io.input(handle)
+            result = io.read("*a")
+            io.input(curr)
+            io.close(handle)
+            return tonumber(result) or 80
+        end
     end
-    return 80 -- Fallback to default width
+    -- Fallback via temp file
+    tmpfile = os.tmpname()
+    if os.execute("stty size > " .. tmpfile .. " 2>/dev/null") == 0 then
+        file = io.open(tmpfile, "r")
+        if file != nil then
+             curr = io.input()
+             io.input(file)
+             result = io.read("*a")
+             io.input(curr)
+             io.close(file)
+             os.remove(tmpfile)
+             -- stty size output is "rows cols"
+             rows, cols = string.match(result or "", "(%d+)%s+(%d+)")
+             return tonumber(cols) or 80
+        end
+    end
+    os.remove(tmpfile)
+
+    return 80 
 end
 
 function exec_command(command)
-    process = io.popen(command)  -- Only stdout is captured here
-    output = io.read(process, "*a")  -- ead the output
-    success = io.close(process)  -- Close the process and check for success
-    return output, success
+    -- Try popen
+    if io.popen != nil then
+        ok, process = pcall(io.popen, command)
+        if ok and process != nil and type(process) == 'userdata' then
+            curr = io.input()
+            io.input(process)
+            output = io.read("*a")
+            io.input(curr)
+            success = io.close(process)
+            return output, success
+        end
+    end
+    
+    -- Fallback via temp file
+    tmpfile = os.tmpname()
+    if os.execute(command .. " > " .. tmpfile .. " 2>&1") == 0 then
+        file = io.open(tmpfile, "r")
+        if file != nil then
+             curr = io.input()
+             io.input(file)
+             output = io.read("*a")
+             io.input(curr)
+             io.close(file)
+             os.remove(tmpfile)
+             return output, true
+        end
+    end
+    os.remove(tmpfile)
+    return "", false -- Failed
 end
 
 function breakpoint()

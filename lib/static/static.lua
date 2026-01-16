@@ -14,32 +14,43 @@ function file_exists(name)
 	end
 	return false
 end
--- 
--- --"""
+
 -- Run a shell command, wait for it to finish, and return a string containing stdout.
--- --"""
 function shellout(command)
-	file = io.popen(command)
-	stdout = io.read(file, "*all")
-	ok = io.close(file)
-	if ok then
-		return stdout
+	-- Try popen if available
+	if io.popen != nil then
+		ok, file = pcall(io.popen, command)
+		if ok and file != nil then
+			stdout = io.read(file, "*all")
+			io.close(file)
+			return stdout
+		end
 	end
+
+	-- Fallback to os.execute and temp file
+	tmpfile = os.tmpname()
+	cmd = command .. " > " .. tmpfile
+	if os.execute(cmd) == 0 then
+		file = io.open(tmpfile, "r")
+		if file != nil then
+			stdout = io.read(file, "*all")
+			io.close(file)
+			os.remove(tmpfile)
+			return stdout
+		end
+	end
+	os.remove(tmpfile)
 	return nil
 end
--- 
--- --"""
+
 -- Use execute() when stdout isn't needed instead of shellout() because io.popen() does 
 -- not return the status code in Lua 5.1.
--- --"""
 function execute(cmd)
 	ok = os.execute(cmd)
 	return (ok == true or ok == 0)
 end
--- 
--- --"""
+
 -- Return a comma separated hex string suitable for a C array definition.
--- --"""
 function string_to_c_hex_literal(chars)
 	hex = {}
 	for character in string.gmatch(chars, ".") do
@@ -48,10 +59,8 @@ function string_to_c_hex_literal(chars)
 	return table.concat(hex, ", ")
 end
 assert(string_to_c_hex_literal("hello") == "0x68, 0x65, 0x6c, 0x6c, 0x6f")
--- 
--- --"""
+
 -- Strip the directory from a filename.
--- --"""
 function basename(path)
 	name = string.gsub(path, """(.*[\/])(.*)""", "%2")
 	return name
@@ -91,13 +100,10 @@ other_arguments = {}
 -- Get the operating system name.
 UNAME = string.match((shellout("uname -s") or "Unknown"), "%a+") or "Unknown"
 link_with_libdl = ""
--- 
--- --"""
 -- Parse command line arguments. main.lua must be the first argument. Static libraries are 
 -- passed to the compiler in the order they appear and may be interspersed with arguments to 
 -- the compiler. Arguments to the compiler are passed to the compiler in the order they 
 -- appear.
--- --"""
 for i, name in ipairs(arg) do
 	extension = string.match(name, "%.(%a+)$")
 	if i == 1 or (is_source_file(extension) or is_binary_library(extension)) then
@@ -110,10 +116,8 @@ for i, name in ipairs(arg) do
 		info.path = name
 		info.basename = basename(info.path)
 		info.basename_noextension = string.match(info.basename, "(.+)%.") or info.basename
--- 		--"""
--- 		Handle the common case of "./path/to/file.lua".
--- 		This won't work in all cases.
--- 		--"""
+		-- Handle the common case of "./path/to/file.lua".
+		-- This won't work in all cases.
 		info.dotpath = string.gsub(info.path, "^%.%/", "")
 		info.dotpath = string.gsub(info.dotpath, "[\\/]", ".")
 		info.dotpath_noextension = string.match(info.dotpath, "(.+)%.") or info.dotpath
@@ -132,10 +136,8 @@ for i, name in ipairs(arg) do
 			if string.find(nmout, "T _?luaL_newstate") != nil then
 				if string.find(nmout, "U _?dlopen") != nil then
 					if UNAME == "Linux" or UNAME == "SunOS" or UNAME == "Darwin" then
--- 						--"""
--- 						Link with libdl because liblua was built with support loading 
--- 						shared objects and the operating system depends on it.
--- 						--"""
+						-- Link with libdl because liblua was built with support loading 
+						-- shared objects and the operating system depends on it.
 						link_with_libdl = "-ldl"
 					end
 				end
@@ -178,10 +180,8 @@ end
 
 -- The entry point to the Lua program.
 mainlua = lua_source_files[1]
--- --"""
 -- Generate a C program containing the Lua source files that uses the Lua C API to 
 -- initialize any Lua libraries and run the program.
--- --"""
 outfilename = mainlua.basename_noextension .. ".static.c"
 outfile = io.open(outfilename, "w+")
 function out(...)
@@ -190,10 +190,7 @@ end
 function outhex(str)
 	io.write(outfile, string_to_c_hex_literal(str), ", ")
 end
--- 
--- --"""
 -- Embed Lua program source code.
--- --"""
 function out_lua_source(file)
 	f = io.open(file.path, "r")
 	prefix = io.read(f, 4)

@@ -186,7 +186,11 @@ function view(data_table, args)
             -- Support both named and numeric column access
             cell_value = row[col_name] or row[col_idx] or ""
             value = tostring(cell_value)
-            value = value .. string.rep(" ", column_widths[col_name] - #value)
+            width = column_widths[col_name]
+            if #value > width then
+                value = string.sub(value, 1, width - 3) .. "..."
+            end
+            value = value .. string.rep(" ", width - #value)
             io.write(value .. "\t")
         end
         io.write("\n")
