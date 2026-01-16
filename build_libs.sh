@@ -90,19 +90,19 @@ if [ -d "lib/ssl/src" ]; then
 
     # Vendor OpenSSL
     OPENSSL_VER="1.1.1w"
-    OPENSSL_DIR="$(pwd)/deps/openssl-${OPENSSL_VER}"
+    OPENSSL_DIR="$(pwd)/dep/openssl-${OPENSSL_VER}"
     OPENSSL_TAR="openssl-${OPENSSL_VER}.tar.gz"
     
-    mkdir -p deps
+    mkdir -p dep
     if [ ! -d "$OPENSSL_DIR" ]; then
         echo "Downloading OpenSSL ${OPENSSL_VER}..."
-        if [ ! -f "deps/$OPENSSL_TAR" ]; then
-            cd deps
+        if [ ! -f "dep/$OPENSSL_TAR" ]; then
+            cd dep
             wget "https://www.openssl.org/source/$OPENSSL_TAR" || curl -O "https://www.openssl.org/source/$OPENSSL_TAR"
             cd ..
         fi
         echo "Extracting OpenSSL..."
-        cd deps
+        cd dep
         tar -xzf "$OPENSSL_TAR"
         cd "openssl-${OPENSSL_VER}"
         echo "Configuring OpenSSL (static)..."
