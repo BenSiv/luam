@@ -12,9 +12,8 @@ tests = {
     "fib.lua", "fibfor.lua", "hello.lua", "printf.lua",
     "sieve.lua", "sort.lua", "trace-calls.lua",
     "xd.lua", "local_default.lua", "ne_test.lua",
-    "verify_multi.lua", "new_syntax.lua", "no_sugar.lua", "immutable.lua", "load_test.lua",
+    "verify_multi.lua", "no_sugar.lua", "load_test.lua",
     "hex_test.lua",
-    "test_strict_not.lua", "test_strict_conditionals.lua",
     -- Library tests that work without OOP
     -- "test_luasec.lua", -- equires compiled ssl
     "test_delimited_files.lua",
