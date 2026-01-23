@@ -32,7 +32,7 @@ CORE_O=	$(OBJ_DIR)/lapi.o $(OBJ_DIR)/lcode.o $(OBJ_DIR)/ldebug.o $(OBJ_DIR)/ldo.
 LIB_O=	$(OBJ_DIR)/lauxlib.o $(OBJ_DIR)/lbaselib.o $(OBJ_DIR)/ldblib.o $(OBJ_DIR)/liolib.o $(OBJ_DIR)/lmathlib.o $(OBJ_DIR)/loslib.o $(OBJ_DIR)/ltablib.o \
 	$(OBJ_DIR)/lstrlib.o $(OBJ_DIR)/loadlib.o $(OBJ_DIR)/linit.o $(OBJ_DIR)/bit.o $(OBJ_DIR)/struct.o
 
-BIN_DIR= ../bld
+BIN_DIR= ../bin
 LUA_T=	$(BIN_DIR)/luam
 LUA_O=	$(OBJ_DIR)/lua.o
 
