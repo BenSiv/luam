@@ -6,3 +6,4 @@ luac.out
 *.so
 *.alib/*.so
 dep/
+bin/
