@@ -1,9 +1,11 @@
-bld/
-obj/
-luac.out
-*.log
-*.o
-*.so
-*.alib/*.so
-dep/
+# Build outputs
 bin/
+obj/
+dep/
+
+# Compiled files
+*.o
+*.a
+*.so
+*.log
+luac.out
