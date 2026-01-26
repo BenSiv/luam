@@ -40,8 +40,14 @@ global_module_name = 'json'
 
 
 -- global dependencies:
-pairs, type, tostring, tonumber, getmetatable, setmetatable, rawset =
-      pairs, type, tostring, tonumber, getmetatable, setmetatable, rawset = nil
+if setmetatable == nil then
+  _G.setmetatable = function(t, m) return t end
+end
+if getmetatable == nil then
+  _G.getmetatable = function(t) return nil end
+end
+-- pairs, type, tostring, tonumber, getmetatable, setmetatable, rawset =
+--      pairs, type, tostring, tonumber, getmetatable, setmetatable, rawset = nil
 error, require, pcall, select = error, require, pcall, select
 floor, huge = math.floor, math.huge
 strrep, gsub, strsub, strbyte, strchar, strfind, strlen, strformat =
@@ -62,7 +68,7 @@ pcall (function()
   -- Enable access to blocked metatables.
   -- Don't worry, this module doesn't change anything in them.
   debmeta = require "debug".getmetatable
-  if debmeta then getmetatable = debmeta end
+  if debmeta != nil then getmetatable = debmeta end
 end)
 
 json.null = setmetatable ({}, {
@@ -97,7 +103,7 @@ escapecodes = {
 
 function escapeutf8 (uchar)
   value = escapecodes[uchar]
-  if value then
+  if value != nil then
     return value
   end
   a, b, c, d = strbyte (uchar, 1, 4)
@@ -158,7 +164,7 @@ json.quotestring = quotestring
 
 function replace(str, o, n)
   i, j = strfind (str, o, 1, true)
-  if i then
+  if i != nil then
     return strsub(str, 1, i-1) .. n .. strsub(str, j+1, -1)
   else
     return str
@@ -267,7 +273,7 @@ encode2 = function (value, indent, level, buffer, buflen, tables, globalorder, s
   valmeta = getmetatable (value)
   valmeta = type (valmeta) == 'table' and valmeta -- only tables
   valtojson = valmeta and valmeta.__tojson
-  if valtojson then
+  if valtojson != nil then
     if tables[value] != nil then
       return exception('reference cycle', value, state, buffer, buflen)
     end
@@ -332,14 +338,14 @@ encode2 = function (value, indent, level, buffer, buflen, tables, globalorder, s
                   for i = 1, n do
                     k = order[i]
                     v = value[k]
-                    if v then
+                    if v != nil then
                       used[k] = true
                       newbuflen, msg = addpair (k, v, prev, indent, newlevel, buffer, newbuflen, tables, globalorder, state)
                       prev = true -- add a seperator before the next element
                     end
                   end
                   for k,v in pairs (value) do
-                    if not used[k] then
+                    if used[k] == nil then
                       newbuflen, msg = addpair (k, v, prev, indent, newlevel, buffer, newbuflen, tables, globalorder, state)
                       if newbuflen == nil then return nil, msg end
                       prev = true -- add a seperator before the next element
@@ -490,14 +496,14 @@ function scanstring (str, pos)
       value = nil 
       if escchar == "u" then
         value = tonumber (strsub (str, nextpos + 2, nextpos + 5), 16)
-        if value then
+        if value != nil then
           value2 = nil 
           if 0xD800 <= value and value <= 0xDBff then
             -- we have the high surrogate of UTF-16. Check if there is a
             -- low surrogate escaped nearby to combine them.
             if strsub (str, nextpos + 6, nextpos + 7) == "\\u" then
               value2 = tonumber (strsub (str, nextpos + 8, nextpos + 11), 16)
-              if value2 and 0xDC00 <= value2 and value2 <= 0xDFFF then
+              if value2 != nil and 0xDC00 <= value2 and value2 <= 0xDFFF then
                 value = (value - 0xD800)  * 0x400 + (value2 - 0xDC00) + 0x10000
               else
                 value2 = nil -- in case it was out of range for a low surrogate
@@ -505,8 +511,8 @@ function scanstring (str, pos)
             end
           end
           value = value and unichar (value)
-          if value then
-            if value2 then
+          if value != nil then
+            if value2 != nil then
               lastpos = nextpos + 12
             else
               lastpos = nextpos + 6
@@ -553,7 +559,7 @@ function scantable (what, closechar, str, startpos, nullval, objectmeta, arrayme
     end
     val1, err = nil 
     val1, pos, err = scanvalue (str, pos, nullval, objectmeta, arraymeta)
-    if err then return nil, pos, err end
+    if err != nil then return nil, pos, err end
     pos = scanwhite (str, pos)
     if pos == nil then return unterminated (str, what, startpos) end
     char = strsub (str, pos, pos)
@@ -565,7 +571,7 @@ function scantable (what, closechar, str, startpos, nullval, objectmeta, arrayme
       if pos == nil then return unterminated (str, what, startpos) end
       val2 = nil 
       val2, pos, err = scanvalue (str, pos, nullval, objectmeta, arraymeta)
-      if err then return nil, pos, err end
+      if err != nil then return nil, pos, err end
       tbl[val1] = val2
       pos = scanwhite (str, pos)
       if pos == nil then return unterminated (str, what, startpos) end
@@ -597,14 +603,14 @@ scanvalue = function (str, pos, nullval, objectmeta, arraymeta)
         return scanstring (str, pos)
       else
         pstart, pend = strfind (str, "^%-?[%d%.]+[eE]?[%+%-]?%d*", pos)
-        if pstart then
+        if pstart != nil then
           number = str2num (strsub (str, pstart, pend))
-          if number then
+          if number != nil then
             return number, pend + 1
           end
         end
         pstart, pend = strfind (str, "^%a%w*", pos)
-        if pstart then
+        if pstart != nil then
           name = strsub (str, pstart, pend)
           if name == "true" then
             return true, pend + 1
@@ -735,7 +741,7 @@ function json.use_lpeg ()
     state = {}
     state.objectmeta, state.arraymeta = optionalmetatables(...)
     obj, retpos = pegmatch (DecodeValue, str, pos, nullval, state)
-    if state.msg then
+    if state.msg != nil then
       return nil, state.pos, state.msg
     else
       return obj, retpos
@@ -750,7 +756,7 @@ function json.use_lpeg ()
   return json -- so you can get the module using json = require "dkjson".use_lpeg()
 end
 
-if always_try_using_lpeg then
+if always_try_using_lpeg == true then
   pcall (json.use_lpeg)
 end
 
