@@ -271,7 +271,7 @@ encode2 = function (value, indent, level, buffer, buflen, tables, globalorder, s
   valtype = type (value)
   newbuflen = buflen
   valmeta = getmetatable (value)
-  valmeta = type (valmeta) == 'table' and valmeta -- only tables
+  if type(valmeta) != 'table' then valmeta = nil end -- only tables
   valtojson = valmeta and valmeta.__tojson
   if valtojson != nil then
     if tables[value] != nil then
@@ -331,8 +331,13 @@ encode2 = function (value, indent, level, buffer, buflen, tables, globalorder, s
                 prev = false
                 newbuflen = newbuflen + 1
                 buffer[newbuflen] = "{"
-                order = valmeta and valmeta.__jsonorder or globalorder
-                if order then
+                if valmeta != nil and valmeta.__jsonorder != nil then
+                  order = valmeta.__jsonorder
+                else
+                  order = globalorder
+                end
+                
+                if order != nil then
                   used = {}
                   n = #order
                   for i = 1, n do
