@@ -971,9 +971,17 @@ static void assignment(LexState *ls, struct LHS_assign *lh, int nvars) {
     struct LHS_assign *p;
 
     /* [ANTIGRAVITY] Count new locals (implicit declaration) */
-    for (p = lh; p; p = p->prev) {
-      if (p->v.k == VGLOBAL)
-        n_new++;
+    /* do not create implicit locals in interactive mode (stdin) */
+    TString *src = ls->source;
+    int is_interactive = (src && src->tsv.len > 0 &&
+                          (strcmp(getstr(src), "=stdin") == 0 ||
+                           strncmp(getstr(src), "=return", 7) == 0));
+
+    if (!is_interactive) {
+      for (p = lh; p; p = p->prev) {
+        if (p->v.k == VGLOBAL)
+          n_new++;
+      }
     }
 
     if (n_new > 0) {

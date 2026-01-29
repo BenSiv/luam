@@ -5,7 +5,7 @@
 # == CHE HE SES BELOW O SU OU EOME =======================
 
 # our platform. See PLS for possible values.
-PL= none
+PL= linux
 
 # Where to install. he installation starts in the src and doc directories,
 # so take care if SLL_OP is not an absolute path.

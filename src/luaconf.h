@@ -222,8 +222,8 @@
 ** CHANGE them if you want different prompts. (You can also change the
 ** prompts dynamically, assigning to globals _PROMPT/_PROMPT2.)
 */
-#define LUA_PROMPT "> "
-#define LUA_PROMPT2 ">> "
+#define LUA_PROMPT "\033[1;34m> \033[0m"
+#define LUA_PROMPT2 "\033[1;34m>> \033[0m"
 
 /*
 @@ LUA_PROGNAME is the default name for the stand-alone Lua program.
