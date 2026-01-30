@@ -966,6 +966,7 @@ utils.sort_with_indices = merge_sort_with_indices
 utils.get_sorted_indices = get_sorted_indices
 utils.deep_sort = deep_sort
 utils.deep_equal = deep_equal
+utils.in_table = in_table
 utils.apply = apply
 utils.save_table = save_table
 utils.load_table = load_table

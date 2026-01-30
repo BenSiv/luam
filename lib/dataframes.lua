@@ -312,7 +312,7 @@ function sort_by(tbl, col)
 end
 
 -- Function to select specific columns
-function select(tbl, cols)
+function select_cols(tbl, cols)
     result = {}
     for _, row in pairs(tbl) do
         selected = {}
@@ -599,7 +599,7 @@ dataframes.group_by = group_by
 dataframes.sum_values = sum_values
 dataframes.mean_values = mean_values
 dataframes.sort_by = sort_by
-dataframes.select = select
+dataframes.select = select_cols
 dataframes.filter_by_value = filter_by_value
 dataframes.filter_by_columns = filter_by_columns
 dataframes.filter_unique = filter_unique

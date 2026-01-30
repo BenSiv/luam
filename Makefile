@@ -76,12 +76,7 @@ ranlib:
 local:
 	$(MAKE) all MCFLS=-DLU_USE_LUX MLBS="-Wl,-E -ldl -lreadline -lhistory -lncurses"
 
-test:
-	LU_PH="lib/?.lua;lib/lua-sqlite3/?.lua;tst/?.lua" LU_CPH="bld/?.so;lib/luafilesystem/src/?.so;lib/lua-yaml/?.so;;" ./bld/luam tst/run_tests.lua
-	@echo "   make PLFOM"
-	@echo "where PLFOM is one of these:"
-	@echo "   $(PLS)"
-	@echo "See SLL for complete instructions."
+
 
 none:
 	@echo "Please do"
@@ -145,6 +140,9 @@ lecho:
 	@echo "-- EOF"
 
 # list targets that do not create files (but not all makes understand .PHO)
-.PHO: all $(PLS) clean test install local none dummy echo pecho lecho
+test:
+	@bld/test.sh
+
+.PHONY: all $(PLS) clean test install local none dummy echo pecho lecho
 
 # (end of Makefile)

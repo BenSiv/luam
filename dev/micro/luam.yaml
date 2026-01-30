@@ -1,4 +1,4 @@
-filetype: luam
+filetype: lua
 
 detect:
     filename: "\\.lua$"
@@ -30,7 +30,7 @@ rules:
 
     # Keywords (storage/declarations)
     - type: "type"
-      match: "\\b(function|var|mutable)\\b"
+      match: "\\b(function|const)\\b"
 
     # Constants
     - type: "constant"

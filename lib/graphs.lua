@@ -18,7 +18,7 @@ end
 function get_or_create_index(name, node_map)
     index_map = reverse_kv(node_map)
     node_index = index_map[name]
-    if not node_index then
+    if node_index == nil then
         node_index = #node_map + 1
         node_map[node_index] = name
     end
@@ -85,7 +85,7 @@ end
 -- et all children
 function get_all_children(graph, node_map, node_name)
     idx = get_node_index(node_map, node_name)
-    if not idx then return {} end
+    if idx == nil then return {} end
     indices = traverse_graph(graph, idx, false)
     children = {}
     for _, i in ipairs(indices) do table.insert(children, node_map[i]) end
@@ -95,7 +95,7 @@ end
 -- et all parents
 function get_all_parents(graph, node_map, node_name)
     idx = get_node_index(node_map, node_name)
-    if not idx then return {} end
+    if idx == nil then return {} end
     indices = traverse_graph(graph, idx, true)
     parents = {}
     for _, i in ipairs(indices) do table.insert(parents, node_map[i]) end
@@ -110,7 +110,7 @@ function get_leaves(graph, node_map)
     end
     leaves = {}
     for idx, name in pairs(node_map) do
-        if not has_outgoing[idx] then table.insert(leaves, name) end
+        if has_outgoing[idx] == nil then table.insert(leaves, name) end
     end
     return leaves
 end
@@ -120,7 +120,7 @@ function get_roots(graph, node_map)
     reversed = build_reverse_graph(graph)
     roots = {}
     for idx, name in pairs(node_map) do
-        if not reversed[idx] or #reversed[idx] == 0 then table.insert(roots, name) end
+        if reversed[idx] == nil or #reversed[idx] == 0 then table.insert(roots, name) end
     end
     return roots
 end
@@ -138,7 +138,7 @@ function get_all_components(graph, node_map)
         end
     end
     for idx, _ in pairs(node_map) do
-        if not visited[idx] then
+        if visited[idx] == nil then
             comp = {}
             dfs(idx, comp)
             table.insert(components, comp)
@@ -150,7 +150,7 @@ end
 -- et lineage depth: root = 0, subcultures increment, invalid = -1
 function get_lineage_depth(graph, node_map, sample_name)
     node_idx = get_node_index(node_map, sample_name)
-    if not node_idx then return -1 end  -- invalid node
+    if node_idx == nil then return -1 end  -- invalid node
 
     reversed = build_reverse_graph(graph)
 

@@ -271,7 +271,7 @@ function get_tables(db_path)
     table_list = {}
     -- Fix the query string corruption
     for row in sqlite.rows(db, "SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%';") do
-        table.insert(table_list, row.name)
+        table.insert(table_list, row[1])
     end
 
     sqlite.close(db)
@@ -289,7 +289,7 @@ function get_columns(db_path, table_name)
     query = string.format("PRAGMA table_info(%s);", table_name)
 
     for row in sqlite.rows(db, query) do
-        table.insert(columns, row.name)
+        table.insert(columns, row[2])
     end
 
     sqlite.close(db)
@@ -309,11 +309,11 @@ function get_table_info(db_path, table_name)
 
     for row in sqlite.rows(db, sql) do
         columns[#columns + 1] = {
-            name = row.name,
-            type = row.type,
-            notnull = row.notnull == 1,
-            default = row.dflt_value,
-            pk = row.pk == 1
+            name = row[2],
+            type = row[3],
+            notnull = row[4] == 1,
+            default = row[5],
+            pk = row[6] == 1
         }
     end
 
@@ -330,17 +330,17 @@ function get_schema(db_path)
     schema = {}
     -- Get all user tables
     for row in sqlite.rows(db, "SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%';") do
-        table_name = row.name
+        table_name = row[1]
         schema[table_name] = {}
 
         sql = string.format("PRAGMA table_info(%s);", table_name)
         for col in sqlite.rows(db, sql) do
             schema[table_name][#schema[table_name] + 1] = {
-                name = col.name,
-                type = col.type,
-                notnull = col.notnull == 1,
-                default = col.dflt_value,
-                pk = col.pk == 1
+                name = col[2],
+                type = col[3],
+                notnull = col[4] == 1,
+                default = col[5],
+                pk = col[6] == 1
             }
         end
     end

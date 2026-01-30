@@ -400,7 +400,7 @@ static int pmain(lua_State *L) {
   return 0;
 }
 
-int main(int argc, char **argv) {
+int luam_main(int argc, char **argv) {
   int status;
   struct Smain s;
   lua_State *L = lua_open(); /* create state */
