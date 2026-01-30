@@ -5,6 +5,7 @@ set -e
 # We just need to make sure 'all' is built
 echo "Building C library..."
 cd src
+make clean
 make o a MYCFLAGS=-DLUA_USE_LINUX
 cd ..
 
