@@ -6,9 +6,6 @@ detect:
 rules:
     # Comments
     - type: "comment"
-      start: "--\\[\\["
-      end: "\\]\\]"
-    - type: "comment"
       match: "--.*$"
 
     # Strings

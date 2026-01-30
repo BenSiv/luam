@@ -595,3 +595,7 @@ LUALIB_API lua_State *luaL_newstate(void) {
     lua_atpanic(L, &panic);
   return L;
 }
+
+LUALIB_API void *luaL_get_stdin(void) { return stdin; }
+LUALIB_API void *luaL_get_stdout(void) { return stdout; }
+LUALIB_API void *luaL_get_stderr(void) { return stderr; }
