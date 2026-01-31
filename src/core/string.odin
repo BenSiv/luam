@@ -3,7 +3,9 @@
 // Note: Some functions need C FFI for memory allocation until lmem is fully integrated
 package core
 
+import "base:runtime"
 import "core:c"
+import "core:fmt"
 import "core:mem"
 
 // Size of a string object including its content
@@ -21,19 +23,19 @@ luaS_fix :: #force_inline proc(s: ^TString) {
 	s.tsv.marked |= (1 << FIXEDBIT)
 }
 
-// FFI to C memory functions (needed until full integration)
-@(private)
+// FFI to C functions
 foreign import lua_core "system:lua"
 
-@(private)
 foreign lua_core {
-	luaM_malloc_c :: proc(L: ^lua_State, size: c.size_t) -> rawptr ---
+	luaC_white_c :: proc(g: ^Global_State) -> c.int ---
+	@(link_name = "luaM_realloc_")
+	luaM_realloc_c :: proc(L: ^lua_State, block: rawptr, osize: c.size_t, nsize: c.size_t) -> rawptr ---
+	@(link_name = "luaM_toobig")
 	luaM_toobig_c :: proc(L: ^lua_State) -> rawptr ---
-	luaM_realloc__c :: proc(L: ^lua_State, block: rawptr, osize: c.size_t, nsize: c.size_t) -> rawptr ---
 }
 
-// Maximum allocation size
-MAX_SIZET :: max(c.size_t)
+// Maximum size for size_t
+// MAX_SIZET defined in mem.odin
 MAX_INT :: max(c.int)
 
 // lmod - hash modulo for power-of-2 sizes
@@ -46,8 +48,9 @@ changewhite :: #force_inline proc(x: ^GCObject) {
 	x.gch.marked ~= 3 // toggle between WHITE0 and WHITE1
 }
 
-// Resize string table
-luaS_resize :: proc(L: ^lua_State, newsize: c.int) {
+@(export, link_name = "luaS_resize")
+luaS_resize :: proc "c" (L: ^lua_State, newsize: c.int) {
+	context = runtime.default_context()
 	g := G(L)
 
 	// Cannot resize during GC traverse
@@ -56,12 +59,14 @@ luaS_resize :: proc(L: ^lua_State, newsize: c.int) {
 	}
 
 	tb := &g.strt
+	oldsize := tb.size
+	// fmt.printf("DEBUG: luaS_resize from %d to %d (nuse=%d)\n", oldsize, newsize, tb.nuse)
 
 	// Allocate new hash table
 	newhash := cast([^]^GCObject)luaM_malloc_c(L, c.size_t(newsize) * size_of(^GCObject))
 
 	// Initialize new buckets
-	for i in 0 ..< newsize {
+	for i in 0 ..< int(newsize) {
 		newhash[i] = nil
 	}
 
@@ -70,7 +75,16 @@ luaS_resize :: proc(L: ^lua_State, newsize: c.int) {
 		p := tb.hash[i]
 		for p != nil {
 			next := p.gch.next // save next
-			h := rawgco2ts(p).tsv.hash
+			ts := rawgco2ts(p)
+			h := ts.tsv.hash
+			// if getstr(ts) == "insert" {
+			// 	fmt.printf(
+			// 		"DEBUG: luaS_resize: rehashing 'insert', hash=%d, old_bucket=%d, new_bucket=%d\n",
+			// 		h,
+			// 		i,
+			// 		str_lmod(h, newsize),
+			// 	)
+			// }
 			h1 := str_lmod(h, newsize) // new position
 			p.gch.next = newhash[h1] // chain it
 			newhash[h1] = p
@@ -80,7 +94,7 @@ luaS_resize :: proc(L: ^lua_State, newsize: c.int) {
 
 	// Free old hash table
 	if tb.hash != nil && tb.size > 0 {
-		luaM_realloc__c(L, tb.hash, c.size_t(tb.size) * size_of(^GCObject), 0)
+		luaM_realloc_c(L, tb.hash, c.size_t(tb.size) * size_of(^GCObject), 0)
 	}
 
 	tb.size = newsize
@@ -128,13 +142,17 @@ newlstr :: proc(L: ^lua_State, str: [^]u8, l: c.size_t, h: u32) -> ^TString {
 }
 
 // Create or find interned string
-luaS_newlstr :: proc(L: ^lua_State, str: cstring, l: c.size_t) -> ^TString {
+@(export, link_name = "luaS_newlstr")
+luaS_newlstr :: proc "c" (L: ^lua_State, str: cstring, l: c.size_t) -> ^TString {
+	context = runtime.default_context()
+	// fmt.printf("DEBUG: Odin luaS_newlstr: %s (%d)\n", str, l)
 	g := G(L)
 	str_data := cast([^]u8)str
 
 	// Compute hash
 	h := u32(l) // seed
 	step := (l >> 5) + 1 // if string is too long, don't hash all chars
+
 	l1 := l
 	for l1 >= step {
 		h = h ~ ((h << 5) + (h >> 2) + u32(str_data[l1 - 1]))
@@ -144,19 +162,13 @@ luaS_newlstr :: proc(L: ^lua_State, str: cstring, l: c.size_t) -> ^TString {
 	// Search for existing string
 	bucket := str_lmod(h, g.strt.size)
 	o := g.strt.hash[bucket]
+	// First, check if string already exists in the table
 	for o != nil {
 		ts := rawgco2ts(o)
 		if ts.tsv.len == l {
-			// Compare string contents
-			existing := cast([^]u8)(cast(uintptr)ts + size_of(TString))
-			match := true
-			for i in 0 ..< int(l) {
-				if existing[i] != str_data[i] {
-					match = false
-					break
-				}
-			}
-			if match {
+			content := getstr(ts)
+			if mem.compare_ptrs(cast(rawptr)content, cast(rawptr)str, int(l)) == 0 {
+				// Found it!
 				// String may be dead - resurrect it
 				if isdead(g, o) {
 					changewhite(o)
@@ -172,7 +184,9 @@ luaS_newlstr :: proc(L: ^lua_State, str: cstring, l: c.size_t) -> ^TString {
 }
 
 // Convenience: create string from null-terminated cstring
-luaS_new :: #force_inline proc(L: ^lua_State, s: cstring) -> ^TString {
+@(export, link_name = "luaS_new")
+luaS_new :: proc "c" (L: ^lua_State, s: cstring) -> ^TString {
+	context = runtime.default_context()
 	l: c.size_t = 0
 	ptr := cast([^]u8)s
 	for ptr[l] != 0 {
@@ -182,7 +196,9 @@ luaS_new :: #force_inline proc(L: ^lua_State, s: cstring) -> ^TString {
 }
 
 // Create new userdata
-luaS_newudata :: proc(L: ^lua_State, s: c.size_t, e: ^Table) -> ^Udata {
+@(export, link_name = "luaS_newudata")
+luaS_newudata :: proc "c" (L: ^lua_State, s: c.size_t, e: ^Table) -> ^Udata {
+	context = runtime.default_context()
 	g := G(L)
 
 	// Check for overflow
@@ -205,4 +221,11 @@ luaS_newudata :: proc(L: ^lua_State, s: c.size_t, e: ^Table) -> ^Udata {
 	g.mainthread.next = obj2gco(u)
 
 	return u
+}
+
+// Initialize string table
+@(export, link_name = "luaS_init")
+luaS_init :: proc "c" (L: ^lua_State) {
+	context = runtime.default_context()
+	luaS_resize(L, MINSTRTABSIZE)
 }

@@ -2,6 +2,7 @@
 // Migrated from lfunc.c/h
 package core
 
+import "base:runtime"
 import "core:c"
 
 // Size calculations for closures
@@ -14,21 +15,32 @@ sizeLclosure :: #force_inline proc(n: int) -> c.size_t {
 }
 
 // FFI to C functions (needed until full integration)
-@(private)
 foreign import lua_core "system:lua"
 
-@(private)
 foreign lua_core {
-	luaC_link_c :: proc(L: ^lua_State, o: ^GCObject, tt: c.int) ---
-	luaC_linkupval_c :: proc(L: ^lua_State, uv: ^UpVal) ---
-	luaM_malloc_c :: proc(L: ^lua_State, size: c.size_t) -> rawptr ---
-	luaM_free_c :: proc(L: ^lua_State, block: rawptr, size: c.size_t) ---
-	luaM_freemem_c :: proc(L: ^lua_State, block: rawptr, size: c.size_t) ---
+}
+
+luaC_link_c :: luaC_link
+luaC_linkupval_c :: luaC_linkupval
+
+
+luaM_malloc_c :: #force_inline proc(L: ^lua_State, size: c.size_t) -> rawptr {
+	return luaM_realloc_c(L, nil, 0, size)
+}
+
+luaM_free_c :: #force_inline proc(L: ^lua_State, block: rawptr, size: c.size_t) {
+	luaM_realloc_c(L, block, size, 0)
+}
+
+luaM_freemem_c :: #force_inline proc(L: ^lua_State, block: rawptr, size: c.size_t) {
+	luaM_realloc_c(L, block, size, 0)
 }
 
 // Create new C closure
-luaF_newCclosure :: proc(L: ^lua_State, nelems: int, e: ^Table) -> ^Closure {
-	c := cast(^Closure)luaM_malloc_c(L, sizeCclosure(nelems))
+@(export, link_name = "luaF_newCclosure")
+luaF_newCclosure :: proc "c" (L: ^lua_State, nelems: c.int, e: ^Table) -> ^Closure {
+	context = runtime.default_context()
+	c := cast(^Closure)luaM_malloc_c(L, sizeCclosure(int(nelems)))
 	luaC_link_c(L, obj2gco(c), LUA_TFUNCTION)
 	c.c.isC = 1
 	c.c.env = e
@@ -37,22 +49,26 @@ luaF_newCclosure :: proc(L: ^lua_State, nelems: int, e: ^Table) -> ^Closure {
 }
 
 // Create new Lua closure
-luaF_newLclosure :: proc(L: ^lua_State, nelems: int, e: ^Table) -> ^Closure {
-	cl := cast(^Closure)luaM_malloc_c(L, sizeLclosure(nelems))
+@(export, link_name = "luaF_newLclosure")
+luaF_newLclosure :: proc "c" (L: ^lua_State, nelems: c.int, e: ^Table) -> ^Closure {
+	context = runtime.default_context()
+	cl := cast(^Closure)luaM_malloc_c(L, sizeLclosure(int(nelems)))
 	luaC_link_c(L, obj2gco(cl), LUA_TFUNCTION)
 	cl.l.isC = 0
 	cl.l.env = e
 	cl.l.nupvalues = u8(nelems)
 	// Initialize upvals to nil
 	upvals := cast([^]^UpVal)(cast(uintptr)&cl.l.upvals[0])
-	for i in 0 ..< nelems {
+	for i in 0 ..< int(nelems) {
 		upvals[i] = nil
 	}
 	return cl
 }
 
 // Create new upvalue
-luaF_newupval :: proc(L: ^lua_State) -> ^UpVal {
+@(export, link_name = "luaF_newupval")
+luaF_newupval :: proc "c" (L: ^lua_State) -> ^UpVal {
+	context = runtime.default_context()
 	uv := cast(^UpVal)luaM_malloc_c(L, size_of(UpVal))
 	luaC_link_c(L, obj2gco(uv), LUA_TUPVAL)
 	uv.v = &uv.u.value
@@ -67,7 +83,9 @@ ngcotouv :: #force_inline proc(o: ^GCObject) -> ^UpVal {
 }
 
 // Find or create upvalue for stack level
-luaF_findupval :: proc(L: ^lua_State, level: StkId) -> ^UpVal {
+@(export, link_name = "luaF_findupval")
+luaF_findupval :: proc "c" (L: ^lua_State, level: StkId) -> ^UpVal {
+	context = runtime.default_context()
 	g := G(L)
 	pp := &L.openupval
 
@@ -105,14 +123,15 @@ luaF_findupval :: proc(L: ^lua_State, level: StkId) -> ^UpVal {
 }
 
 // Unlink upvalue from uvhead list
-@(private)
 unlinkupval :: proc(uv: ^UpVal) {
 	uv.u.l.next.u.l.prev = uv.u.l.prev
 	uv.u.l.prev.u.l.next = uv.u.l.next
 }
 
 // Free upvalue
-luaF_freeupval :: proc(L: ^lua_State, uv: ^UpVal) {
+@(export, link_name = "luaF_freeupval")
+luaF_freeupval :: proc "c" (L: ^lua_State, uv: ^UpVal) {
+	context = runtime.default_context()
 	if uv.v != &uv.u.value { 	// is it open?
 		unlinkupval(uv) // remove from open list
 	}
@@ -125,7 +144,9 @@ isblack :: #force_inline proc(x: ^GCObject) -> bool {
 }
 
 // Close all upvalues up to given stack level
-luaF_close :: proc(L: ^lua_State, level: StkId) {
+@(export, link_name = "luaF_close")
+luaF_close :: proc "c" (L: ^lua_State, level: StkId) {
+	context = runtime.default_context()
 	g := G(L)
 
 	for L.openupval != nil {
@@ -149,7 +170,9 @@ luaF_close :: proc(L: ^lua_State, level: StkId) {
 }
 
 // Create new function prototype
-luaF_newproto :: proc(L: ^lua_State) -> ^Proto {
+@(export, link_name = "luaF_newproto")
+luaF_newproto :: proc "c" (L: ^lua_State) -> ^Proto {
+	context = runtime.default_context()
 	f := cast(^Proto)luaM_malloc_c(L, size_of(Proto))
 	luaC_link_c(L, obj2gco(f), LUA_TPROTO)
 	f.k = nil
@@ -175,7 +198,9 @@ luaF_newproto :: proc(L: ^lua_State) -> ^Proto {
 }
 
 // Free function prototype
-luaF_freeproto :: proc(L: ^lua_State, f: ^Proto) {
+@(export, link_name = "luaF_freeproto")
+luaF_freeproto :: proc "c" (L: ^lua_State, f: ^Proto) {
+	context = runtime.default_context()
 	if f.code != nil && f.sizecode > 0 {
 		luaM_freemem_c(L, f.code, c.size_t(f.sizecode) * size_of(Instruction))
 	}
@@ -198,18 +223,22 @@ luaF_freeproto :: proc(L: ^lua_State, f: ^Proto) {
 }
 
 // Free closure
-luaF_freeclosure :: proc(L: ^lua_State, cl: ^Closure) {
+@(export, link_name = "luaF_freeclosure")
+luaF_freeclosure :: proc "c" (L: ^lua_State, cl: ^Closure) {
+	context = runtime.default_context()
 	size :=
 		sizeCclosure(int(cl.c.nupvalues)) if cl.c.isC != 0 else sizeLclosure(int(cl.l.nupvalues))
 	luaM_freemem_c(L, cl, size)
 }
 
 // Get local variable name at given PC
-luaF_getlocalname :: proc(f: ^Proto, local_number: int, pc: int) -> cstring {
-	local_num := local_number
+@(export, link_name = "luaF_getlocalname")
+luaF_getlocalname :: proc "c" (f: ^Proto, local_number: c.int, pc: c.int) -> cstring {
+	context = runtime.default_context()
+	local_num := int(local_number)
 	for i in 0 ..< int(f.sizelocvars) {
-		if f.locvars[i].startpc <= c.int(pc) {
-			if pc < int(f.locvars[i].endpc) {
+		if f.locvars[i].startpc <= pc {
+			if int(pc) < int(f.locvars[i].endpc) {
 				local_num -= 1
 				if local_num == 0 {
 					return getstr(f.locvars[i].varname)

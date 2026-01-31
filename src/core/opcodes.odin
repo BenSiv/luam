@@ -134,7 +134,7 @@ isk :: #force_inline proc(x: int) -> bool {
 
 // Gets the index of the constant
 indexk :: #force_inline proc(r: int) -> int {
-	return r & ~BITRK
+	return r & ~int(BITRK)
 }
 
 MAXINDEXRK :: BITRK - 1 // 255
@@ -192,7 +192,8 @@ OpCode :: enum u8 {
 NUM_OPCODES :: int(OpCode.OP_VARARG) + 1
 
 // Opcode names for debugging
-opnames := [NUM_OPCODES]cstring {
+@(export, link_name = "luaP_opnames")
+opnames := [NUM_OPCODES + 1]cstring {
 	"MOVE",
 	"LOADK",
 	"LOADBOOL",
@@ -231,6 +232,7 @@ opnames := [NUM_OPCODES]cstring {
 	"CLOSE",
 	"CLOSURE",
 	"VARARG",
+	nil,
 }
 
 // Argument mode types
@@ -242,11 +244,18 @@ OpArgMask :: enum u8 {
 }
 
 // Opmode encoding: bits 0-1: op mode, bits 2-3: C arg, bits 4-5: B arg, bit 6: sets A, bit 7: is test
-opmode :: #force_inline proc(t: u8, a: u8, b: OpArgMask, c: OpArgMask, m: OpMode) -> u8 {
+opmode :: #force_inline proc "contextless" (
+	t: u8,
+	a: u8,
+	b: OpArgMask,
+	c: OpArgMask,
+	m: OpMode,
+) -> u8 {
 	return (t << 7) | (a << 6) | (u8(b) << 4) | (u8(c) << 2) | u8(m)
 }
 
 // Opmode table for all opcodes
+@(export, link_name = "luaP_opmodes")
 opmodes := [NUM_OPCODES]u8 {
 	opmode(0, 1, .OpArgR, .OpArgN, .iABC), // OP_MOVE
 	opmode(0, 1, .OpArgK, .OpArgN, .iABx), // OP_LOADK

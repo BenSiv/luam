@@ -3,6 +3,7 @@
 package core
 
 import "core:c"
+import "core:mem"
 
 // Lua type tags (from lua.h)
 LUA_TNIL :: 0
@@ -92,6 +93,15 @@ setnilvalue :: #force_inline proc(obj: ^TValue) {
 	obj.tt = LUA_TNIL
 }
 
+foreign import lua_core "system:lua"
+
+foreign lua_core {
+	@(link_name = "luaO_nilobject_")
+	nilobject_: TValue
+}
+
+nilobject := &nilobject_
+
 setnvalue :: #force_inline proc(obj: ^TValue, x: lua_Number) {
 	obj.value.n = x
 	obj.tt = LUA_TNUMBER
@@ -139,7 +149,7 @@ max_align_t :: struct {
 
 // Get string data (stored after the TString header)
 getstr :: #force_inline proc(ts: ^TString) -> cstring {
-	return cast(cstring)(cast(uintptr)ts + size_of(TString))
+	return cast(cstring)(cast(rawptr)(cast(uintptr)ts + size_of(TString)))
 }
 
 // Userdata header
@@ -300,18 +310,17 @@ Table :: struct {
 }
 
 // Table size helpers
-twoto :: #force_inline proc(x: u8) -> int {return 1 << int(x)}
+twoto :: #force_inline proc(x: u8) -> int {return 1 << uint(x)}
 sizenode :: #force_inline proc(t: ^Table) -> int {return twoto(t.lsizenode)}
 lmod :: #force_inline proc(s: uint, size: int) -> int {return int(s) & (size - 1)}
 
 // Global nil object
-nilobject_: TValue = {{nil}, LUA_TNIL}
-nilobject :: &nilobject_
+
 
 // Utility functions
 
 // Convert integer to floating point byte representation
-int2fb :: proc(x: u32) -> int {
+int2fb :: #force_inline proc(x: u32) -> int {
 	e := 0
 	val := x
 	for val >= 16 {
@@ -325,12 +334,12 @@ int2fb :: proc(x: u32) -> int {
 }
 
 // Convert floating point byte back to integer
-fb2int :: proc(x: int) -> int {
+fb2int :: #force_inline proc(x: c.int) -> int {
 	e := (x >> 3) & 31
 	if e == 0 {
-		return x
+		return int(x)
 	}
-	return ((x & 7) + 8) << (e - 1)
+	return int(((x & 7) + 8) << uint(e - 1))
 }
 
 // Log2 lookup table
@@ -610,7 +619,7 @@ ceillog2 :: #force_inline proc(x: u32) -> int {
 }
 
 // Raw equality comparison
-rawequalObj :: proc(t1: ^TValue, t2: ^TValue) -> bool {
+rawequalObj :: #force_inline proc(t1: ^TValue, t2: ^TValue) -> bool {
 	if t1.tt != t2.tt {
 		return false
 	}

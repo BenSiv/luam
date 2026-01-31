@@ -281,6 +281,8 @@ table_sort :: proc "c" (L: ^lua.State) -> c.int {
 	return 0
 }
 
+import "core:fmt"
+
 @(export)
 open_table :: proc "c" (L: ^lua.State) -> c.int {
 	context = runtime.default_context()
@@ -299,5 +301,14 @@ open_table :: proc "c" (L: ^lua.State) -> c.int {
 		{nil, nil},
 	}
 	lua.luaL_register(L, "table", &tablib[0])
+	// Get the table we just created/updated
+	lua.lua_getfield(L, -1, "insert")
+	insert_type := lua.lua_type(L, -1)
+	_ = insert_type
+	// 	fmt.printf(
+	// 		"DEBUG: open_table: table lib registered, insert type=%d (6=function)\n",
+	// 		insert_type,
+	// 	)
+	lua.lua_pop(L, 1)
 	return 1
 }

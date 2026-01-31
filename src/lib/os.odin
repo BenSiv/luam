@@ -4,19 +4,12 @@ import "../lua"
 import "base:runtime"
 import "core:c"
 import "core:c/libc"
+import "core:fmt"
 import "core:mem"
 
 // Implementation of os library functions using libc to match original C behavior
 
-// os.clock
-os_clock :: proc "c" (L: ^lua.State) -> c.int {
-	context = runtime.default_context()
-	c := libc.clock()
-	t := f64(c) / f64(libc.CLOCKS_PER_SEC)
-	lua.lua_pushnumber(L, t)
-	return 1
-}
-
+// os_pushresult
 os_pushresult :: proc "c" (L: ^lua.State, i: c.int, filename: cstring) -> c.int {
 	context = runtime.default_context()
 	en := int(libc.errno()^)
@@ -31,14 +24,21 @@ os_pushresult :: proc "c" (L: ^lua.State, i: c.int, filename: cstring) -> c.int 
 	}
 }
 
+// os.clock
+os_clock :: proc "c" (L: ^lua.State) -> c.int {
+	context = runtime.default_context()
+	c_val := libc.clock()
+	t := f64(c_val) / f64(libc.CLOCKS_PER_SEC)
+	lua.lua_pushnumber(L, t)
+	return 1
+}
+
 // os.getenv
 os_getenv :: proc "c" (L: ^lua.State) -> c.int {
 	context = runtime.default_context()
 	key := lua.luaL_checkstring(L, 1)
 	val := libc.getenv(key)
-	lua.lua_pushstring(L, val) // if val is nil, this might need check, but lua_pushstring handles nil/NULL?
-	// usage in loslib.c: lua_pushstring(L, getenv(...));
-	// lua_pushstring(NULL) pushes nil.
+	lua.lua_pushstring(L, val)
 	return 1
 }
 
@@ -68,12 +68,14 @@ os_exit :: proc "c" (L: ^lua.State) -> c.int {
 
 // os.remove
 os_remove :: proc "c" (L: ^lua.State) -> c.int {
+	context = runtime.default_context()
 	filename := lua.luaL_checkstring(L, 1)
 	return os_pushresult(L, libc.remove(filename) == 0 ? 1 : 0, filename)
 }
 
 // os.rename
 os_rename :: proc "c" (L: ^lua.State) -> c.int {
+	context = runtime.default_context()
 	fromname := lua.luaL_checkstring(L, 1)
 	toname := lua.luaL_checkstring(L, 2)
 	return os_pushresult(L, libc.rename(fromname, toname) == 0 ? 1 : 0, fromname)
@@ -81,11 +83,13 @@ os_rename :: proc "c" (L: ^lua.State) -> c.int {
 
 // Helper for date/time table
 setfield :: proc "c" (L: ^lua.State, key: cstring, value: int) {
+	context = runtime.default_context()
 	lua.lua_pushinteger(L, value)
 	lua.lua_setfield(L, -2, key)
 }
 
 setboolfield :: proc "c" (L: ^lua.State, key: cstring, value: int) {
+	context = runtime.default_context()
 	if value < 0 {return}
 	lua.lua_pushboolean(L, c.int(value != 0 ? 1 : 0))
 	lua.lua_setfield(L, -2, key)
@@ -108,6 +112,7 @@ getfield :: proc "c" (L: ^lua.State, key: cstring, d: int) -> int {
 }
 
 getboolfield :: proc "c" (L: ^lua.State, key: cstring) -> int {
+	context = runtime.default_context()
 	lua.lua_getfield(L, -1, key)
 	res := -1
 	if !lua.lua_isnil(L, -1) {
@@ -211,12 +216,7 @@ os_difftime :: proc "c" (L: ^lua.State) -> c.int {
 
 os_setlocale :: proc "c" (L: ^lua.State) -> c.int {
 	context = runtime.default_context()
-	// Simplified setlocale
 	l := lua.luaL_optstring(L, 1, nil)
-	// Lua 5.1 supports categories like "all", "collate", etc.
-	// We'll just support "all" (LC_ALL) for now to keep it simple
-	// libc.LC_ALL is usually 6 on Linux, but varies.
-	// Let's assume LC_ALL for now.
 	lua.lua_pushstring(L, libc.setlocale(libc.Locale_Category.ALL, l))
 	return 1
 }
@@ -230,6 +230,15 @@ os_tmpname :: proc "c" (L: ^lua.State) -> c.int {
 	}
 	lua.lua_pushstring(L, (cstring)(res))
 	return 1
+}
+
+os_ptr_dump :: proc "c" (L: ^lua.State) -> c.int {
+	context = runtime.default_context()
+	if lua.lua_isstring(L, 1) {
+		str := lua.lua_tostring(L, 1)
+		fmt.printf("DEBUG: ptr_dump '%s' %p\n", str, str)
+	}
+	return 0
 }
 
 @(export)
@@ -247,6 +256,7 @@ open_os :: proc "c" (L: ^lua.State) -> c.int {
 		{"difftime", os_difftime},
 		{"setlocale", os_setlocale},
 		{"tmpname", os_tmpname},
+		{"ptr_dump", os_ptr_dump},
 		{nil, nil},
 	}
 

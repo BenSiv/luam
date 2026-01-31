@@ -510,9 +510,7 @@ static int luaB_cowrap(lua_State *L) {
   return 1;
 }
 
-static int luaB_yield(lua_State *L) {
-  return lua_yield(L, lua_gettop(L));
-}
+static int luaB_yield(lua_State *L) { return lua_yield(L, lua_gettop(L)); }
 
 static int luaB_corunning(lua_State *L) {
   if (lua_pushthread(L))
@@ -538,20 +536,27 @@ static void auxopen(lua_State *L, const char *name, lua_CFunction f,
 }
 
 static void base_open(lua_State *L) {
+  fprintf(stderr, "DEBUG: base_open start\n");
   /* set global _G */
   lua_pushvalue(L, LUA_GLOBALSINDEX);
   lua_setglobal(L, "_G");
+  fprintf(stderr, "DEBUG: base_open _G set\n");
   /* open lib into global table */
   luaL_register(L, "_G", base_funcs);
+  fprintf(stderr, "DEBUG: base_open registered\n");
   lua_pushliteral(L, LUA_VERSION);
   lua_setglobal(L, "_VERSION"); /* set global _VERSION */
+  fprintf(stderr, "DEBUG: base_open _VERSION set\n");
   /* `ipairs' and `pairs' need auxiliary functions as upvalues */
   auxopen(L, "ipairs", luaB_ipairs, ipairsaux);
   auxopen(L, "pairs", luaB_pairs, luaB_next);
 }
 
 LUALIB_API int luaopen_base(lua_State *L) {
+  fprintf(stderr, "DEBUG: luaopen_base start\n");
   base_open(L);
+  fprintf(stderr, "DEBUG: luaopen_base mid\n");
   luaL_register(L, LUA_COLIBNAME, co_funcs);
+  fprintf(stderr, "DEBUG: luaopen_base end\n");
   return 2;
 }

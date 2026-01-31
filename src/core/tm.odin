@@ -2,12 +2,14 @@
 // Migrated from ltm.c/h
 package core
 
+import "base:runtime"
 import "core:c"
 
 // Type names for debugging
+@(export, link_name = "luaT_typenames")
 typenames := [NUM_TAGS + 3]cstring {
 	"nil",
-	"boolean",
+	"flag",
 	"userdata",
 	"number",
 	"string",
@@ -17,6 +19,7 @@ typenames := [NUM_TAGS + 3]cstring {
 	"thread",
 	"proto",
 	"upval",
+	"deadkey",
 }
 
 // Tag method event names (ORDER TM)
@@ -40,20 +43,14 @@ eventnames := [TM.TM_N]cstring {
 	"__call",
 }
 
-// FFI to C functions
-@(private)
-foreign import lua_core "system:lua"
-
-@(private)
-foreign lua_core {
-	luaS_new_c :: proc(L: ^lua_State, s: cstring) -> ^TString ---
-}
 
 // Initialize tag method names in global state
-luaT_init :: proc(L: ^lua_State) {
+@(export, link_name = "luaT_init")
+luaT_init :: proc "c" (L: ^lua_State) {
+	context = runtime.default_context()
 	g := G(L)
 	for i in TM.TM_INDEX ..= TM.TM_CALL {
-		ts := luaS_new_c(L, eventnames[i])
+		ts := luaS_new(L, eventnames[i])
 		g.tmname[i] = ts
 		luaS_fix(ts) // never collect these names
 	}
@@ -61,14 +58,19 @@ luaT_init :: proc(L: ^lua_State) {
 
 // Get tag method from event table
 // Used with fasttm macro - optimized for absence of tag methods
-luaT_gettm :: proc(events: ^Table, event: TM, ename: ^TString) -> ^TValue {
+// Get tag method from event table
+// Used with fasttm macro - optimized for absence of tag methods
+@(export, link_name = "luaT_gettm")
+luaT_gettm :: proc "c" (events: ^Table, event: c.int, ename: ^TString) -> ^TValue {
+	context = runtime.default_context()
 	tm := luaH_getstr(events, ename)
+	ev := TM(event)
 
 	// Check for fast events (TM_INDEX through TM_EQ)
-	if event <= TM.TM_EQ {
+	if ev <= TM.TM_EQ {
 		if ttisnil(tm) {
 			// No tag method - cache this fact
-			events.flags |= u8(1 << u8(event))
+			events.flags |= u8(1 << u8(ev))
 			return nil
 		}
 	} else {
@@ -79,32 +81,26 @@ luaT_gettm :: proc(events: ^Table, event: TM, ename: ^TString) -> ^TValue {
 	return cast(^TValue)tm
 }
 
-// Get tag method by object type
-luaT_gettmbyobj :: proc(L: ^lua_State, o: ^TValue, event: TM) -> ^TValue {
+// Get tag method for an object
+@(export, link_name = "luaT_gettmbyobj")
+luaT_gettmbyobj :: proc "c" (L: ^lua_State, o: ^TValue, event: c.int) -> ^TValue {
+	context = runtime.default_context()
 	mt: ^Table = nil
-
-	switch o.tt {
+	switch ttype(o) {
 	case LUA_TTABLE:
-		// Get table's metatable
-		t := cast(^Table)o.value.gc
-		mt = t.metatable
+		mt = hvalue(o).metatable
 	case LUA_TUSERDATA:
-		// Get userdata's metatable
-		u := cast(^Udata)o.value.gc
-		mt = u.uv.metatable
+		// mt = uvalue(o).uv.metatable
+		return nilobject // Luam disabled metatables for userdata
 	case:
-		// Get type's metatable from global state
-		g := G(L)
-		if o.tt >= 0 && o.tt < NUM_TAGS {
-			mt = g.mt[o.tt]
-		}
+		mt = G(L).mt[ttype(o)]
 	}
 
 	if mt == nil {
 		return nilobject
 	}
 
-	return luaH_getstr(mt, G(L).tmname[event])
+	return fasttm(L, mt, TM(event))
 }
 
 // Fast tag method lookup macro as inline proc
@@ -116,7 +112,7 @@ gfasttm :: #force_inline proc(g: ^Global_State, et: ^Table, e: TM) -> ^TValue {
 	if (et.flags & u8(1 << u8(e))) != 0 {
 		return nil // cached: tag method is absent
 	}
-	return luaT_gettm(et, e, g.tmname[e])
+	return luaT_gettm(et, c.int(e), g.tmname[e])
 }
 
 // Fast tag method lookup from lua_State

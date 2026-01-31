@@ -39,16 +39,15 @@ LUA_HOOKTAILRET :: 4
 MAXSTACK :: 250
 
 // Instruction constants
-NO_REG :: 255 // MAX_A + 1
+// MAX_A + 1
 
-// FFI to C functions (error handling stays in C for now)
-@(private)
+// lua_longjmp defined in state.odin
+// Alloc defined in state.odin
 foreign import lua_core "system:lua"
 
-@(private)
 foreign lua_core {
-	luaD_throw_c :: proc(L: ^lua_State, errcode: c.int) ---
-	luaD_call_c :: proc(L: ^lua_State, func: StkId, nresults: c.int) ---
+	// luaD_throw_c defined in do.odin
+	// luaD_call_c defined in do.odin
 	luaO_pushvfstring_c :: proc(L: ^lua_State, fmt: cstring, argp: rawptr) -> cstring ---
 	luaO_chunkid_c :: proc(out: [^]u8, source: cstring, bufflen: c.size_t) ---
 }
@@ -77,7 +76,7 @@ currentpc :: proc(L: ^lua_State, ci: ^CallInfo) -> int {
 		return -1
 	}
 	if ci == L.ci {
-		ci.savedpc = L.savedpc
+		L.savedpc = ci.savedpc // Ensure L.savedpc is up-to-date
 	}
 	return pcRel(ci.savedpc, ci_func(ci).l.p)
 }
@@ -167,10 +166,9 @@ isinstack :: proc(ci: ^CallInfo, o: ^TValue) -> bool {
 
 // Check if instruction after an open call is valid
 luaG_checkopenop :: proc(i: Instruction) -> int {
-	op := GET_OPCODE(i)
-	switch op {
+	#partial switch get_opcode(i) {
 	case .OP_CALL, .OP_TAILCALL, .OP_RETURN, .OP_SETLIST:
-		if GETARG_B(i) == 0 {
+		if getarg_b(i) == 0 {
 			return 1
 		}
 		return 0
@@ -185,8 +183,9 @@ luaG_checkcode :: proc(pt: ^Proto) -> int {
 	if pt.sizecode == 0 {
 		return 0
 	}
-	// Check last instruction is RETURN
-	if GET_OPCODE(pt.code[pt.sizecode - 1]) != .OP_RETURN {
+	// Check if the next instruction is a return
+	// We need to decode the opcode
+	if get_opcode(pt.code[pt.sizecode - 1]) != .OP_RETURN {
 		return 0
 	}
 	return 1

@@ -27,8 +27,8 @@ MKDIR= mkdir -p
 
 LUA_A=	$(OBJ_DIR)/liblua.a
 CORE_O=	$(OBJ_DIR)/lapi.o $(OBJ_DIR)/lcode.o $(OBJ_DIR)/ldebug.o $(OBJ_DIR)/ldo.o $(OBJ_DIR)/ldump.o $(OBJ_DIR)/lfunc.o $(OBJ_DIR)/lgc.o $(OBJ_DIR)/llex.o $(OBJ_DIR)/lmem.o \
-	$(OBJ_DIR)/lobject.o $(OBJ_DIR)/lopcodes.o $(OBJ_DIR)/lparser.o $(OBJ_DIR)/lstate.o $(OBJ_DIR)/lstring.o $(OBJ_DIR)/ltable.o $(OBJ_DIR)/ltm.o  \
-	$(OBJ_DIR)/lundump.o $(OBJ_DIR)/lvm.o $(OBJ_DIR)/lzio.o
+	$(OBJ_DIR)/lobject.o $(OBJ_DIR)/lopcodes.o $(OBJ_DIR)/lparser.o $(OBJ_DIR)/lstate.o $(OBJ_DIR)/ltm.o  \
+	$(OBJ_DIR)/lundump.o $(OBJ_DIR)/lzio.o
 # Shadowed by Odin: $(OBJ_DIR)/lstrlib.o $(OBJ_DIR)/lmathlib.o $(OBJ_DIR)/loslib.o $(OBJ_DIR)/linit.o $(OBJ_DIR)/lbaselib.o $(OBJ_DIR)/ltablib.o $(OBJ_DIR)/liolib.o $(OBJ_DIR)/ldblib.o $(OBJ_DIR)/bit.o $(OBJ_DIR)/loadlib.o
 # Note: $(OBJ_DIR)/ldump.o is NOT shadowed, it's core.
 LIB_O=	$(OBJ_DIR)/lauxlib.o \

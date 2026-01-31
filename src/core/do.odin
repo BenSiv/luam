@@ -56,21 +56,30 @@ luaD_checkstack :: #force_inline proc(L: ^lua_State, n: int) {
 	}
 }
 
-// FFI to C functions (complex parts stay in C)
-@(private)
+// FFI to C functions (temporarily needed for protected calls)
 foreign import lua_core "system:lua"
 
 @(private)
 foreign lua_core {
+	@(link_name = "luaD_growstack")
 	luaD_growstack_c :: proc(L: ^lua_State, n: c.int) ---
+	@(link_name = "luaD_throw")
 	luaD_throw_c :: proc(L: ^lua_State, errcode: c.int) ---
+	@(link_name = "luaD_rawrunprotected")
 	luaD_rawrunprotected_c :: proc(L: ^lua_State, f: Pfunc, ud: rawptr) -> c.int ---
+	@(link_name = "luaD_reallocstack")
 	luaD_reallocstack_c :: proc(L: ^lua_State, newsize: c.int) ---
+	@(link_name = "luaD_reallocCI")
 	luaD_reallocCI_c :: proc(L: ^lua_State, newsize: c.int) ---
+	@(link_name = "luaD_precall")
 	luaD_precall_c :: proc(L: ^lua_State, func: StkId, nresults: c.int) -> c.int ---
+	@(link_name = "luaD_poscall")
 	luaD_poscall_c :: proc(L: ^lua_State, firstResult: StkId) -> c.int ---
+	@(link_name = "luaD_call")
 	luaD_call_c :: proc(L: ^lua_State, func: StkId, nResults: c.int) ---
+	@(link_name = "luaD_pcall")
 	luaD_pcall_c :: proc(L: ^lua_State, func: Pfunc, u: rawptr, old_top: c.ptrdiff_t, ef: c.ptrdiff_t) -> c.int ---
+	@(link_name = "luaG_runerror")
 	luaG_runerror_c :: proc(L: ^lua_State, fmt: cstring, #c_vararg args: ..any) ---
 	luaV_execute_c :: proc(L: ^lua_State, nexeccalls: c.int) ---
 }

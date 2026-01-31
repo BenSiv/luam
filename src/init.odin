@@ -27,9 +27,9 @@ luaL_openlibs :: proc "c" (L: ^lua.State) {
 		{"struct", lua.luaopen_struct},
 	}
 
-	for lib in libs {
-		lua.pushcfunction(L, lib.func)
-		lua.lua_pushstring(L, lib.name) // name is already cstring
+	for lib_item in libs {
+		lua.pushcfunction(L, lib_item.func)
+		lua.lua_pushstring(L, lib_item.name) // name is already cstring
 		lua.lua_call(L, 1, 0)
 	}
 }

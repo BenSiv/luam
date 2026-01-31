@@ -76,7 +76,12 @@ end
 all_tests = {}
 
 if #arg > 0 then
+   print("DEBUG: arg table has " .. #arg .. " elements.")
+   for i, v in ipairs(arg) do
+       print("DEBUG: arg[" .. i .. "] = " .. tostring(v))
+   end
    -- Use provided args
+   print("DEBUG: table.insert before loop:", table.insert)
    for _, path in ipairs(arg) do
        if string.match(path, "_test.lua$") != nil or string.match(path, "test_.*%.lua$") != nil then
            table.insert(all_tests, path)
@@ -88,6 +93,7 @@ else
        os.exit(1)
    end
    test_root = "tst/unit"
+   print("DEBUG: scanning " .. test_root)
    all_tests = get_test_files(test_root)
    print("\nFound " .. #all_tests .. " tests in " .. test_root .. " using lfs\n")
 end

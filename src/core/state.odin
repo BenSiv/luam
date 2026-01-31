@@ -177,8 +177,8 @@ rawgco2ts :: #force_inline proc(o: ^GCObject) -> ^TString {
 	return &o.ts
 }
 
-gco2ts :: #force_inline proc(o: ^GCObject) -> ^TString.tsv {
-	return &rawgco2ts(o).tsv
+gco2ts :: #force_inline proc(o: ^GCObject) -> ^TString {
+	return rawgco2ts(o)
 }
 
 gco2h :: #force_inline proc(o: ^GCObject) -> ^Table {
@@ -211,7 +211,7 @@ iswhite :: #force_inline proc(x: ^GCObject) -> bool {
 }
 
 isdead :: #force_inline proc(g: ^Global_State, v: ^GCObject) -> bool {
-	return (v.gch.marked & 3) != luaC_white(g)
+	return (v.gch.marked & otherwhite(g) & WHITEBITS) != 0
 }
 
 // Bit manipulation helpers

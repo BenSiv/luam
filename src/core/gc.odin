@@ -26,7 +26,7 @@ otherwhite :: #force_inline proc(g: ^Global_State) -> u8 {
 }
 
 // Mask for clearing marks
-maskmarks :: cast(u8)(~((1 << BLACKBIT) | WHITEBITS))
+maskmarks :: ~u8((1 << BLACKBIT) | WHITEBITS)
 
 // Make object white
 makewhite :: #force_inline proc(g: ^Global_State, x: ^GCObject) {
@@ -67,60 +67,24 @@ luaC_checkGC :: #force_inline proc(L: ^lua_State) {
 }
 
 // FFI to C functions for complex GC operations
-@(private)
 foreign import lua_core "system:lua"
 
-@(private)
 foreign lua_core {
+	@(link_name = "luaC_step")
 	luaC_step_c :: proc(L: ^lua_State) ---
-	luaC_fullgc_c :: proc(L: ^lua_State) ---
-	reallymarkobject_c :: proc(g: ^Global_State, o: ^GCObject) ---
+	@(link_name = "luaC_barrierf")
+	luaC_barrierf :: proc(L: ^lua_State, o: ^GCObject, v: ^GCObject) ---
+	@(link_name = "luaC_barrierback")
+	luaC_barrierback :: proc(L: ^lua_State, t: ^Table) ---
+	@(link_name = "luaC_link")
+	luaC_link :: proc(L: ^lua_State, o: ^GCObject, tt: u8) ---
+	@(link_name = "luaC_linkupval")
+	luaC_linkupval :: proc(L: ^lua_State, uv: ^UpVal) ---
 }
 
-// Link a new object into the GC root list
-luaC_link :: proc(L: ^lua_State, o: ^GCObject, tt: u8) {
-	g := G(L)
-	o.gch.next = g.rootgc
-	g.rootgc = o
-	o.gch.marked = luaC_white(g)
-	o.gch.tt = tt
-}
+// Foreigns defined above
 
-// Link an upvalue into the GC root list
-luaC_linkupval :: proc(L: ^lua_State, uv: ^UpVal) {
-	g := G(L)
-	o := obj2gco(uv)
-	o.gch.next = g.rootgc
-	g.rootgc = o
-
-	if isgray(o) {
-		if g.gcstate == GCSpropagate {
-			gray2black(o)
-			luaC_barrier(L, uv, uv.v)
-		} else {
-			makewhite(g, o)
-		}
-	}
-}
-
-// Forward barrier - used when storing into a black object
-luaC_barrierf :: proc(L: ^lua_State, o: ^GCObject, v: ^GCObject) {
-	g := G(L)
-	if g.gcstate == GCSpropagate {
-		reallymarkobject_c(g, v)
-	} else {
-		makewhite(g, o)
-	}
-}
-
-// Backward barrier - used for tables
-luaC_barrierback :: proc(L: ^lua_State, t: ^Table) {
-	g := G(L)
-	o := obj2gco(t)
-	black2gray(o)
-	t.gclist = g.grayagain
-	g.grayagain = o
-}
+// Foreigns defined above
 
 // Generic barrier check macro as inline proc
 luaC_barrier :: #force_inline proc(L: ^lua_State, p: rawptr, v: ^TValue) {

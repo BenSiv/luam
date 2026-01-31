@@ -3,7 +3,9 @@
 // Implementation of tables with array part and hash part
 package core
 
+import "base:runtime"
 import "core:c"
+import "core:fmt"
 import "core:mem"
 
 // Max size of array part is 2^MAXBITS
@@ -11,8 +13,11 @@ MAXBITS :: 26
 MAXASIZE :: 1 << MAXBITS
 
 // Node accessors
+// indexk removed (defined in opcodes.odin)
+
+// Access node at index i
 gnode :: #force_inline proc(t: ^Table, i: int) -> ^Node {
-	return &t.node[i]
+	return &mem.ptr_offset(t.node, i)^
 }
 
 gkey :: #force_inline proc(n: ^Node) -> ^TValue {
@@ -22,6 +27,8 @@ gkey :: #force_inline proc(n: ^Node) -> ^TValue {
 gval :: #force_inline proc(n: ^Node) -> ^TValue {
 	return &n.i_val
 }
+
+gnextwoto :: #force_inline proc(x: u8) -> int {return 1 << uint(x)}
 
 gnext :: #force_inline proc(n: ^Node) -> ^Node {
 	return n.i_key.nk.next
@@ -40,45 +47,42 @@ numints :: size_of(lua_Number) / size_of(u32)
 
 // Dummy node for empty hash parts
 dummynode_: Node = {
-	i_val = {{nil}, LUA_TNIL},
-	i_key = {nk = {{nil}, LUA_TNIL, nil}},
+	i_val = {value = {gc = nil}, tt = LUA_TNIL},
+	i_key = {nk = {value = {gc = nil}, tt = LUA_TNIL, next = nil}},
 }
-dummynode :: &dummynode_
+dummynode := &dummynode_
 
 // FFI to C functions
-@(private)
 foreign import lua_core "system:lua"
 
-@(private)
 foreign lua_core {
-	luaG_runerror_c :: proc(L: ^lua_State, fmt: cstring, #c_vararg args: ..any) ---
-	luaC_link_c :: proc(L: ^lua_State, o: ^GCObject, tt: c.int) ---
-	luaC_barriert_c :: proc(L: ^lua_State, t: ^Table, key: ^TValue) ---
-	luaM_malloc_c :: proc(L: ^lua_State, size: c.size_t) -> rawptr ---
-	luaM_realloc_c :: proc(L: ^lua_State, block: rawptr, osize: c.size_t, nsize: c.size_t) -> rawptr ---
+	// luaD_throw_c defined in do.odin
+	// luaD_call_c defined in do.odin
+	@(link_name = "luaC_barrierback")
+	luaC_barrierback_c :: proc(L: ^lua_State, t: ^Table) ---
+	// luaM_realloc_c is defined in string.odin
+	// luaM_malloc_c defined in func.odin
 }
 
 // Hash function for numbers
 @(private)
 hashnum :: proc(t: ^Table, n: lua_Number) -> ^Node {
-	// Avoid problems with -0
-	if n == 0 {
+	// Avoid problems with -0 and NaN
+	if n == 0 || n != n {
 		return gnode(t, 0)
 	}
 
 	// Hash the bytes of the number
 	a: [numints]u32
-	mem.copy(&a, &n, size_of(lua_Number))
+	local_n := n
+	mem.copy(&a, &local_n, size_of(lua_Number))
 
 	sum := a[0]
 	for i in 1 ..< numints {
 		sum += a[i]
 	}
 
-	// hashmod: avoid power of 2 for numbers
-	sz := sizenode(t) - 1
-	if sz < 1 {sz = 1}
-	return gnode(t, int(sum) % sz)
+	return hashpow2(t, sum)
 }
 
 // Hash macros converted to procs
@@ -95,9 +99,7 @@ hashboolean :: #force_inline proc(t: ^Table, p: c.int) -> ^Node {
 }
 
 hashpointer :: #force_inline proc(t: ^Table, p: rawptr) -> ^Node {
-	sz := sizenode(t) - 1
-	if sz < 1 {sz = 1}
-	return gnode(t, int(cast(uintptr)p) % sz)
+	return hashpow2(t, u32(uintptr(p)))
 }
 
 // Get raw TString from TValue
@@ -164,15 +166,17 @@ setarrayvector :: proc(L: ^lua_State, t: ^Table, size: int) {
 // Set node vector
 @(private)
 setnodevector :: proc(L: ^lua_State, t: ^Table, size: int) {
+	actual_size: int
 	if size == 0 {
 		t.node = dummynode
 		t.lsizenode = 0
+		actual_size = 0
 	} else {
 		lsize := ceillog2(u32(size))
 		if lsize > MAXBITS {
 			luaG_runerror_c(L, "table overflow")
 		}
-		actual_size := twoto(u8(lsize))
+		actual_size = twoto(u8(lsize))
 		t.node = cast(^Node)luaM_malloc_c(L, c.size_t(actual_size) * size_of(Node))
 		for i in 0 ..< actual_size {
 			n := gnode(t, i)
@@ -182,11 +186,13 @@ setnodevector :: proc(L: ^lua_State, t: ^Table, size: int) {
 		}
 		t.lsizenode = u8(lsize)
 	}
-	t.lastfree = gnode(t, sizenode(t))
+	t.lastfree = gnode(t, actual_size)
 }
 
-// Create new table
-luaH_new :: proc(L: ^lua_State, narray: int, nhash: int) -> ^Table {
+// luaH_new is implicitly external but let's export it
+@(export, link_name = "luaH_new")
+luaH_new :: proc "c" (L: ^lua_State, narray: c.int, nhash: c.int) -> ^Table {
+	context = runtime.default_context()
 	t := cast(^Table)luaM_malloc_c(L, size_of(Table))
 	luaC_link_c(L, obj2gco(t), LUA_TTABLE)
 	t.metatable = nil
@@ -195,13 +201,15 @@ luaH_new :: proc(L: ^lua_State, narray: int, nhash: int) -> ^Table {
 	t.sizearray = 0
 	t.lsizenode = 0
 	t.node = dummynode
-	setarrayvector(L, t, narray)
-	setnodevector(L, t, nhash)
+	setarrayvector(L, t, int(narray))
+	setnodevector(L, t, int(nhash))
 	return t
 }
 
 // Free table
-luaH_free :: proc(L: ^lua_State, t: ^Table) {
+@(export, link_name = "luaH_free")
+luaH_free :: proc "c" (L: ^lua_State, t: ^Table) {
+	context = runtime.default_context()
 	if t.node != dummynode {
 		luaM_realloc_c(L, t.node, c.size_t(sizenode(t)) * size_of(Node), 0)
 	}
@@ -212,7 +220,9 @@ luaH_free :: proc(L: ^lua_State, t: ^Table) {
 }
 
 // Get by integer key
-luaH_getnum :: proc(t: ^Table, key: int) -> ^TValue {
+@(export, link_name = "luaH_getnum")
+luaH_getnum :: proc "c" (t: ^Table, key: c.int) -> ^TValue {
+	context = runtime.default_context()
 	// Check array part first
 	if u32(key - 1) < u32(t.sizearray) {
 		return &t.array[key - 1]
@@ -232,8 +242,11 @@ luaH_getnum :: proc(t: ^Table, key: int) -> ^TValue {
 }
 
 // Get by string key
-luaH_getstr :: proc(t: ^Table, key: ^TString) -> ^TValue {
+@(export, link_name = "luaH_getstr")
+luaH_getstr :: proc "c" (t: ^Table, key: ^TString) -> ^TValue {
+	context = runtime.default_context()
 	n := hashstr(t, key)
+	keystr := getstr(key)
 	for n != nil {
 		k := gkey(n)
 		if ttisstring(k) && rawtsvalue(k) == key {
@@ -245,7 +258,9 @@ luaH_getstr :: proc(t: ^Table, key: ^TString) -> ^TValue {
 }
 
 // Main get function
-luaH_get :: proc(t: ^Table, key: ^TValue) -> ^TValue {
+@(export, link_name = "luaH_get")
+luaH_get :: proc "c" (t: ^Table, key: ^TValue) -> ^TValue {
+	context = runtime.default_context()
 	switch key.tt {
 	case LUA_TNIL:
 		return nilobject
@@ -255,7 +270,7 @@ luaH_get :: proc(t: ^Table, key: ^TValue) -> ^TValue {
 		n := key.value.n
 		k := int(n)
 		if lua_Number(k) == n {
-			return luaH_getnum(t, k)
+			return luaH_getnum(t, c.int(k))
 		}
 		// Fall through to generic hash lookup
 		fallthrough
@@ -283,27 +298,61 @@ getfreepos :: proc(t: ^Table) -> ^Node {
 	return nil
 }
 
-// Forward declaration for newkey
-newkey :: proc(L: ^lua_State, t: ^Table, key: ^TValue) -> ^TValue
+// Insert new key
+newkey :: proc(L: ^lua_State, t: ^Table, key: ^TValue) -> ^TValue {
+	mp := mainposition(t, key)
+
+	if !ttisnil(gval(mp)) || mp == dummynode {
+		n := getfreepos(t)
+		if n == nil {
+			rehash(L, t, key)
+			return luaH_set(L, t, key)
+		}
+
+		othern := mainposition(t, key2tval(mp))
+		if othern != mp {
+			// Colliding node is out of its main position
+			// Find previous node
+			for gnext(othern) != mp {
+				othern = gnext(othern)
+			}
+			set_gnext(othern, n)
+			n^ = mp^
+			set_gnext(mp, nil)
+			setnilvalue(gval(mp))
+		} else {
+			// Colliding node is in its own main position
+			set_gnext(n, gnext(mp))
+			set_gnext(mp, n)
+			mp = n
+		}
+	}
+
+	// Set key
+	k := gkey(mp)
+	k.value = key.value
+	k.tt = key.tt
+	luaC_barriert(L, t, key)
+
+	return gval(mp)
+}
 
 // Set by general key
-luaH_set :: proc(L: ^lua_State, t: ^Table, key: ^TValue) -> ^TValue {
+@(export, link_name = "luaH_set")
+luaH_set :: proc "c" (L: ^lua_State, t: ^Table, key: ^TValue) -> ^TValue {
+	context = runtime.default_context()
 	p := luaH_get(t, key)
 	t.flags = 0
 	if p != nilobject {
 		return cast(^TValue)p
 	}
-
-	if ttisnil(key) {
-		luaG_runerror_c(L, "table index is nil")
-	}
-	// Note: NaN check would go here
-
 	return newkey(L, t, key)
 }
 
 // Set by integer key
-luaH_setnum :: proc(L: ^lua_State, t: ^Table, key: int) -> ^TValue {
+@(export, link_name = "luaH_setnum")
+luaH_setnum :: proc "c" (L: ^lua_State, t: ^Table, key: c.int) -> ^TValue {
+	context = runtime.default_context()
 	p := luaH_getnum(t, key)
 	if p != nilobject {
 		return cast(^TValue)p
@@ -315,7 +364,9 @@ luaH_setnum :: proc(L: ^lua_State, t: ^Table, key: int) -> ^TValue {
 }
 
 // Set by string key
-luaH_setstr :: proc(L: ^lua_State, t: ^Table, key: ^TString) -> ^TValue {
+@(export, link_name = "luaH_setstr")
+luaH_setstr :: proc "c" (L: ^lua_State, t: ^Table, key: ^TString) -> ^TValue {
+	context = runtime.default_context()
 	p := luaH_getstr(t, key)
 	if p != nilobject {
 		return cast(^TValue)p
@@ -362,7 +413,7 @@ resize :: proc(L: ^lua_State, t: ^Table, nasize: int, nhsize: int) {
 		// Re-insert elements from vanishing slice
 		for i in nasize ..< oldasize {
 			if !ttisnil(&t.array[i]) {
-				slot := luaH_setnum(L, t, i + 1)
+				slot := luaH_setnum(L, t, c.int(i + 1))
 				setobj(slot, &t.array[i])
 			}
 		}
@@ -378,7 +429,7 @@ resize :: proc(L: ^lua_State, t: ^Table, nasize: int, nhsize: int) {
 	// Re-insert elements from old hash part
 	old_count := twoto(u8(oldhsize))
 	for i := old_count - 1; i >= 0; i -= 1 {
-		old := &nold[i]
+		old := &mem.ptr_offset(nold, int(i))^
 		if !ttisnil(gval(old)) {
 			slot := luaH_set(L, t, key2tval(old))
 			setobj(slot, gval(old))
@@ -391,47 +442,10 @@ resize :: proc(L: ^lua_State, t: ^Table, nasize: int, nhsize: int) {
 	}
 }
 
-// Insert new key
-newkey :: proc(L: ^lua_State, t: ^Table, key: ^TValue) -> ^TValue {
-	mp := mainposition(t, key)
-
-	if !ttisnil(gval(mp)) || mp == dummynode {
-		n := getfreepos(t)
-		if n == nil {
-			rehash(L, t, key)
-			return luaH_set(L, t, key)
-		}
-
-		othern := mainposition(t, key2tval(mp))
-		if othern != mp {
-			// Colliding node is out of its main position
-			// Find previous node
-			for gnext(othern) != mp {
-				othern = gnext(othern)
-			}
-			set_gnext(othern, n)
-			n^ = mp^
-			set_gnext(mp, nil)
-			setnilvalue(gval(mp))
-		} else {
-			// Colliding node is in its own main position
-			set_gnext(n, gnext(mp))
-			set_gnext(mp, n)
-			mp = n
-		}
-	}
-
-	// Set key
-	k := gkey(mp)
-	k.value = key.value
-	k.tt = key.tt
-	luaC_barriert_c(L, t, key)
-
-	return gval(mp)
-}
-
 // Find boundary (# operator)
-luaH_getn :: proc(t: ^Table) -> int {
+@(export, link_name = "luaH_getn")
+luaH_getn :: proc "c" (t: ^Table) -> c.int {
+	context = runtime.default_context()
 	j := int(t.sizearray)
 	if j > 0 && ttisnil(&t.array[j - 1]) {
 		// Binary search in array part
@@ -444,15 +458,15 @@ luaH_getn :: proc(t: ^Table) -> int {
 				i = m
 			}
 		}
-		return i
+		return c.int(i)
 	}
 
 	if t.node == dummynode {
-		return j
+		return c.int(j)
 	}
 
 	// Search in hash part
-	return unbound_search(t, u32(j))
+	return c.int(unbound_search(t, u32(j)))
 }
 
 @(private)
@@ -461,13 +475,13 @@ unbound_search :: proc(t: ^Table, j: u32) -> int {
 	new_j := j + 1
 
 	// Find bounds
-	for !ttisnil(luaH_getnum(t, int(new_j))) {
+	for !ttisnil(luaH_getnum(t, c.int(new_j))) {
 		i = new_j
 		new_j *= 2
 		if new_j > u32(MAX_INT) {
 			// Overflow - linear search
 			ii := u32(1)
-			for !ttisnil(luaH_getnum(t, int(ii))) {
+			for !ttisnil(luaH_getnum(t, c.int(ii))) {
 				ii += 1
 			}
 			return int(ii - 1)
@@ -477,7 +491,7 @@ unbound_search :: proc(t: ^Table, j: u32) -> int {
 	// Binary search between i and j
 	for new_j - i > 1 {
 		m := (i + new_j) / 2
-		if ttisnil(luaH_getnum(t, int(m))) {
+		if ttisnil(luaH_getnum(t, c.int(m))) {
 			new_j = m
 		} else {
 			i = m
@@ -487,7 +501,9 @@ unbound_search :: proc(t: ^Table, j: u32) -> int {
 }
 
 // Next for table iteration
-luaH_next :: proc(L: ^lua_State, t: ^Table, key: StkId) -> int {
+@(export, link_name = "luaH_next")
+luaH_next :: proc "c" (L: ^lua_State, t: ^Table, key: StkId) -> c.int {
+	context = runtime.default_context()
 	i := findindex(L, t, key)
 
 	// Search array part

@@ -5,6 +5,8 @@ import "core:fmt"
 import "core:os"
 import "core:strings"
 
+import _ "core"
+
 // Initial Odin entry point
 // This will just transfer control to the existing C implementation for now
 
