@@ -6,6 +6,7 @@
 
 #include <ctype.h>
 #include <locale.h>
+#include <stdio.h>
 #include <string.h>
 
 #define llex_c
@@ -28,11 +29,11 @@
 
 /* ORDER RESERVED */
 const char *const luaX_tokens[] = {
-    "and",   "break",    "do",       "else",     "elseif", "end",
-    "false", "for",      "function", "if",       "in",     "const",
-    "nil",   "not",      "or",       "return",   "then",   "true",
-    "while", "..",       "...",      "==",       ">=",     "<=",
-    "!=",    "<number>", "<name>",   "<string>", "<eof>",  NULL};
+    "and",      "break",    "do",       "else",   "elseif", "end",   "false",
+    "for",      "function", "if",       "in",     "local",  "const", "nil",
+    "not",      "or",       "repeat",   "return", "then",   "true",  "until",
+    "while",    "..",       "...",      "==",     ">=",     "<=",    "~=",
+    "<number>", "<name>",   "<string>", "<eof>",  NULL};
 
 #define save_and_next(ls) (save(ls, ls->current), next(ls))
 
@@ -48,13 +49,22 @@ static void save(LexState *ls, int c) {
   b->buffer[b->n++] = cast(char, c);
 }
 
-void luaX_init(lua_State *L) {
+void luaX_init_unique(lua_State *L) {
   int i;
+  fprintf(stderr, "DEBUG: C sizeof(TString)=%zu, sizeof(TValue)=%zu\n",
+          sizeof(TString), sizeof(TValue));
+  fprintf(stderr,
+          "DEBUG: C luaX_init_unique called for state %p (NUM_RESERVED=%d, "
+          "TK_WHILE=%d)\n",
+          L, NUM_RESERVED, TK_WHILE);
+  fflush(stderr);
   for (i = 0; i < NUM_RESERVED; i++) {
     TString *ts = luaS_new(L, luaX_tokens[i]);
     luaS_fix(ts); /* reserved words are never collected */
-    lua_assert(strlen(luaX_tokens[i]) + 1 <= TOKEN_LEN);
     ts->tsv.reserved = cast_byte(i + 1); /* reserved word */
+    fprintf(stderr, "DEBUG: keyword '%s' reserved as %d at %p\n",
+            luaX_tokens[i], i + 1, ts);
+    fflush(stderr);
   }
 }
 
@@ -440,9 +450,10 @@ static int llex(LexState *ls, SemInfo *seminfo) {
           save_and_next(ls);
         } while (isalnum(ls->current) || ls->current == '_');
         ts = luaX_newstring(ls, luaZ_buffer(ls->buff), luaZ_bufflen(ls->buff));
-        if (ts->tsv.reserved > 0) /* reserved word? */
-          return ts->tsv.reserved - 1 + FIRST_RESERVED;
-        else {
+        if (ts->tsv.reserved > 0) { /* reserved word? */
+          int res = ts->tsv.reserved - 1 + FIRST_RESERVED;
+          return res;
+        } else {
           seminfo->ts = ts;
           return TK_NAME;
         }

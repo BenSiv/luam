@@ -1,6 +1,6 @@
 #!/bin/bash
 
-LUAM=${LUAM_BIN:-"./bin/luam"}
+LUAM=${LUAM_BIN:-"./bin/luam_odin"}
 
 run_test() {
   local input="$1"

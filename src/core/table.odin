@@ -1,5 +1,4 @@
 // Lua tables (hash)
-// Migrated from ltable.c/h
 // Implementation of tables with array part and hash part
 package core
 
@@ -53,15 +52,15 @@ dummynode_: Node = {
 dummynode := &dummynode_
 
 // FFI to C functions
-foreign import lua_core "system:lua"
+foreign import lua_core "../../obj/liblua.a"
 
 foreign lua_core {
 	// luaD_throw_c defined in do.odin
 	// luaD_call_c defined in do.odin
 	@(link_name = "luaC_barrierback")
 	luaC_barrierback_c :: proc(L: ^lua_State, t: ^Table) ---
-	// luaM_realloc_c is defined in string.odin
-	// luaM_malloc_c defined in func.odin
+	// luaM_realloc_ is defined in string.odin
+	// luaM_malloc defined in func.odin
 }
 
 // Hash function for numbers
@@ -141,7 +140,7 @@ setarrayvector :: proc(L: ^lua_State, t: ^Table, size: int) {
 	old_size := int(t.sizearray)
 	if size > old_size {
 		// Grow array
-		t.array = cast([^]TValue)luaM_realloc_c(
+		t.array = cast([^]TValue)luaM_realloc_(
 			L,
 			t.array,
 			c.size_t(old_size) * size_of(TValue),
@@ -153,7 +152,7 @@ setarrayvector :: proc(L: ^lua_State, t: ^Table, size: int) {
 		}
 	} else if size < old_size {
 		// Shrink array
-		t.array = cast([^]TValue)luaM_realloc_c(
+		t.array = cast([^]TValue)luaM_realloc_(
 			L,
 			t.array,
 			c.size_t(old_size) * size_of(TValue),
@@ -177,7 +176,7 @@ setnodevector :: proc(L: ^lua_State, t: ^Table, size: int) {
 			luaG_runerror_c(L, "table overflow")
 		}
 		actual_size = twoto(u8(lsize))
-		t.node = cast(^Node)luaM_malloc_c(L, c.size_t(actual_size) * size_of(Node))
+		t.node = cast(^Node)luaM_malloc(L, c.size_t(actual_size) * size_of(Node))
 		for i in 0 ..< actual_size {
 			n := gnode(t, i)
 			set_gnext(n, nil)
@@ -193,7 +192,7 @@ setnodevector :: proc(L: ^lua_State, t: ^Table, size: int) {
 @(export, link_name = "luaH_new")
 luaH_new :: proc "c" (L: ^lua_State, narray: c.int, nhash: c.int) -> ^Table {
 	context = runtime.default_context()
-	t := cast(^Table)luaM_malloc_c(L, size_of(Table))
+	t := cast(^Table)luaM_malloc(L, size_of(Table))
 	luaC_link_c(L, obj2gco(t), LUA_TTABLE)
 	t.metatable = nil
 	t.flags = 0xFF // all tag methods absent initially
@@ -211,21 +210,23 @@ luaH_new :: proc "c" (L: ^lua_State, narray: c.int, nhash: c.int) -> ^Table {
 luaH_free :: proc "c" (L: ^lua_State, t: ^Table) {
 	context = runtime.default_context()
 	if t.node != dummynode {
-		luaM_realloc_c(L, t.node, c.size_t(sizenode(t)) * size_of(Node), 0)
+		luaM_realloc_(L, t.node, c.size_t(sizenode(t)) * size_of(Node), 0)
 	}
 	if t.array != nil && t.sizearray > 0 {
-		luaM_realloc_c(L, t.array, c.size_t(t.sizearray) * size_of(TValue), 0)
+		luaM_realloc_(L, t.array, c.size_t(t.sizearray) * size_of(TValue), 0)
 	}
-	luaM_realloc_c(L, t, size_of(Table), 0)
+	luaM_realloc_(L, t, size_of(Table), 0)
 }
 
 // Get by integer key
 @(export, link_name = "luaH_getnum")
 luaH_getnum :: proc "c" (t: ^Table, key: c.int) -> ^TValue {
 	context = runtime.default_context()
+
 	// Check array part first
 	if u32(key - 1) < u32(t.sizearray) {
-		return &t.array[key - 1]
+		result := &t.array[key - 1]
+		return result
 	}
 
 	// Search hash part
@@ -234,10 +235,13 @@ luaH_getnum :: proc "c" (t: ^Table, key: c.int) -> ^TValue {
 	for n != nil {
 		k := gkey(n)
 		if ttisnumber(k) && k.value.n == nk {
-			return gval(n)
+			result := gval(n)
+			return result
 		}
 		n = gnext(n)
 	}
+
+	// Not found
 	return nilobject
 }
 
@@ -383,13 +387,118 @@ luaH_resizearray :: proc(L: ^lua_State, t: ^Table, nasize: int) {
 	resize(L, t, nasize, nsize)
 }
 
-// Helper for resize - rehash part
+// Count integer keys in array part
+@(private)
+numusearray :: proc(t: ^Table, nums: []int) -> int {
+	lg := 0
+	ttlg := 1 // 2^lg
+	ause := 0 // summation of nums
+	i := 1 // count to traverse all array keys
+
+	for lg <= MAXBITS {
+		lc := 0 // counter
+		lim := ttlg
+		if lim > int(t.sizearray) {
+			lim = int(t.sizearray)
+			if i > lim {
+				break
+			}
+		}
+
+		// Count elements in range (2^(lg-1), 2^lg]
+		for i <= lim {
+			if !ttisnil(&t.array[i - 1]) {
+				lc += 1
+			}
+			i += 1
+		}
+		nums[lg] += lc
+		ause += lc
+
+		lg += 1
+		ttlg *= 2
+	}
+	return ause
+}
+
+// Count integer keys in hash part
+@(private)
+numusehash :: proc(t: ^Table, nums: []int, pnasize: ^int) -> int {
+	totaluse := 0
+	ause := 0
+	i := sizenode(t)
+
+	for i > 0 {
+		i -= 1
+		n := gnode(t, i)
+		if !ttisnil(gval(n)) {
+			k := arrayindex(key2tval(n))
+			if k > 0 && k <= MAXASIZE {
+				nums[ceillog2(u32(k))] += 1
+				ause += 1
+			}
+			totaluse += 1
+		}
+	}
+	pnasize^ += ause
+	return totaluse
+}
+
+// Compute optimal array size
+@(private)
+computesizes :: proc(nums: []int, narray: ^int) -> int {
+	a := 0 // number of elements smaller than 2^i
+	na := 0 // number of elements to go to array part
+	n := 0 // optimal size for array part
+	twotoi := 1
+
+	for i := 0; twotoi / 2 < narray^; i += 1 {
+		if nums[i] > 0 {
+			a += nums[i]
+			if a > twotoi / 2 { 	// more than half elements present?
+				n = twotoi // optimal size (till now)
+				na = a // all elements smaller than n will go to array part
+			}
+		}
+		if a == narray^ {
+			break
+		}
+		twotoi *= 2
+	}
+	narray^ = n
+	return na
+}
+
+// Proper rehash with array growth analysis
 @(private)
 rehash :: proc(L: ^lua_State, t: ^Table, ek: ^TValue) {
-	// Simplified rehash - just double the size
-	old_size := sizenode(t)
-	new_size := old_size * 2 if old_size > 0 else 1
-	resize(L, t, int(t.sizearray), new_size)
+	nums: [MAXBITS + 1]int // nums[i] = number of keys between 2^(i-1) and 2^i
+
+	// Reset counts
+	for i in 0 ..= MAXBITS {
+		nums[i] = 0
+	}
+
+	// Count keys in array part
+	nasize := numusearray(t, nums[:])
+	totaluse := nasize
+
+	// Count keys in hash part
+	totaluse += numusehash(t, nums[:], &nasize)
+
+	// Count extra key
+	k := arrayindex(ek)
+	if k > 0 && k <= MAXASIZE {
+		nums[ceillog2(u32(k))] += 1
+		nasize += 1
+	}
+	totaluse += 1
+
+	// Compute new size for array part
+	na := computesizes(nums[:], &nasize)
+
+	// Resize the table to new computed sizes
+	resize(L, t, nasize, totaluse - na)
 }
 
 // Resize table
@@ -418,7 +527,7 @@ resize :: proc(L: ^lua_State, t: ^Table, nasize: int, nhsize: int) {
 			}
 		}
 		// Shrink
-		t.array = cast([^]TValue)luaM_realloc_c(
+		t.array = cast([^]TValue)luaM_realloc_(
 			L,
 			t.array,
 			c.size_t(oldasize) * size_of(TValue),
@@ -438,7 +547,7 @@ resize :: proc(L: ^lua_State, t: ^Table, nasize: int, nhsize: int) {
 
 	// Free old hash part
 	if nold != dummynode {
-		luaM_realloc_c(L, nold, c.size_t(old_count) * size_of(Node), 0)
+		luaM_realloc_(L, nold, c.size_t(old_count) * size_of(Node), 0)
 	}
 }
 
@@ -505,6 +614,13 @@ unbound_search :: proc(t: ^Table, j: u32) -> int {
 luaH_next :: proc "c" (L: ^lua_State, t: ^Table, key: StkId) -> c.int {
 	context = runtime.default_context()
 	i := findindex(L, t, key)
+	fmt.printf(
+		"DEBUG: luaH_next: t=%p, sizearray=%d, sizenode=%d, start_i=%d\n",
+		t,
+		t.sizearray,
+		sizenode(t),
+		i,
+	)
 
 	// Search array part
 	for i += 1; i < int(t.sizearray); i += 1 {
@@ -518,9 +634,11 @@ luaH_next :: proc "c" (L: ^lua_State, t: ^Table, key: StkId) -> c.int {
 	// Search hash part
 	for i -= int(t.sizearray); i < sizenode(t); i += 1 {
 		n := gnode(t, i)
+		fmt.printf("DEBUG: luaH_next: checking hash node %d, val type=%d\n", i, ttype(gval(n)))
 		if !ttisnil(gval(n)) {
 			setobj(key, key2tval(n))
 			setobj(cast(^TValue)(cast(uintptr)key + size_of(TValue)), gval(n))
+			fmt.printf("DEBUG: luaH_next: returning key at hash node %d\n", i)
 			return 1
 		}
 	}
@@ -531,11 +649,13 @@ luaH_next :: proc "c" (L: ^lua_State, t: ^Table, key: StkId) -> c.int {
 @(private)
 findindex :: proc(L: ^lua_State, t: ^Table, key: StkId) -> int {
 	if ttisnil(key) {
+		fmt.printf("DEBUG: findindex: key is nil, returning -1\n")
 		return -1
 	}
 
 	i := arrayindex(key)
 	if i > 0 && i <= int(t.sizearray) {
+		// fmt.printf("DEBUG: findindex: key is in array at %d\n", i)
 		return i - 1
 	}
 
@@ -543,17 +663,20 @@ findindex :: proc(L: ^lua_State, t: ^Table, key: StkId) -> int {
 	for n != nil {
 		if rawequalObj(key2tval(n), key) {
 			idx := cast(int)((cast(uintptr)n - cast(uintptr)gnode(t, 0)) / size_of(Node))
+			fmt.printf("DEBUG: findindex: key found in hash at %d\n", idx)
 			return idx + int(t.sizearray)
 		}
 		// Check for dead key
 		k := gkey(n)
 		if k.tt == LUA_TDEADKEY && iscollectable(key) && k.value.gc == key.value.gc {
 			idx := cast(int)((cast(uintptr)n - cast(uintptr)gnode(t, 0)) / size_of(Node))
+			// fmt.printf("DEBUG: findindex: dead key found in hash at %d\n", idx)
 			return idx + int(t.sizearray)
 		}
 		n = gnext(n)
 	}
 
+	fmt.printf("DEBUG: findindex: key NOT FOUND, error\n")
 	luaG_runerror_c(L, "invalid key to 'next'")
 	return 0
 }

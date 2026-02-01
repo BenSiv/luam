@@ -54,6 +54,11 @@ luaV_execute :: proc "c" (L: ^lua_State, nexeccalls: libc.int) {
 	// Main loop
 
 	loop: for {
+		if nilobject.tt != LUA_TNIL {
+			fmt.eprintln("FATAL: nilobject corruption detected in VM loop! tt =", nilobject.tt)
+			// Break here to get a stack trace in GDB
+			_ = (cast(^int)nil)^
+		}
 		// Fetch instruction
 		i := pc[0]
 		pc = cast([^]Instruction)(cast(uintptr)pc + size_of(Instruction))
@@ -439,7 +444,7 @@ luaV_execute :: proc "c" (L: ^lua_State, nexeccalls: libc.int) {
 			}
 			L.savedpc = pc
 
-			res := luaD_precall_c(L, ra, libc.int(nresults))
+			res := luaD_precall_pure(L, ra, libc.int(nresults))
 			switch res {
 			case PCRLUA:
 				ncalls += 1
@@ -470,7 +475,7 @@ luaV_execute :: proc "c" (L: ^lua_State, nexeccalls: libc.int) {
 			}
 			L.savedpc = pc
 
-			res := luaD_precall_c(L, ra, libc.int(LUA_MULTRET))
+			res := luaD_precall_pure(L, ra, libc.int(LUA_MULTRET))
 			switch res {
 			case PCRLUA:
 				// Tail call: replace frame
@@ -517,7 +522,7 @@ luaV_execute :: proc "c" (L: ^lua_State, nexeccalls: libc.int) {
 				luaF_close(L, base)
 			}
 			L.savedpc = pc
-			b_res := luaD_poscall_c(L, ra)
+			b_res := luaD_poscall_pure(L, ra)
 
 			ncalls -= 1
 			if ncalls == 0 {
@@ -599,7 +604,7 @@ luaV_execute :: proc "c" (L: ^lua_State, nexeccalls: libc.int) {
 			L.top = cast(StkId)(cast(uintptr)cb + 3 * size_of(TValue))
 
 			L.savedpc = pc
-			luaD_call_c(L, cb, libc.int(getarg_c(i)))
+			luaD_call_pure(L, cb, libc.int(getarg_c(i)))
 			base = L.base
 			L.top = L.ci.top
 
@@ -666,10 +671,9 @@ luaV_execute :: proc "c" (L: ^lua_State, nexeccalls: libc.int) {
 
 				op_inst := get_opcode(inst)
 				upvals_ptr := cast([^]^UpVal)&ncl.l.upvals[0]
-				parent_upvals := cast([^]^UpVal)&cl.upvals[0]
 				if op_inst == .OP_GETUPVAL {
 					b := getarg_b(inst)
-					upvals_ptr[j] = parent_upvals[b]
+					upvals_ptr[j] = cl.upvals[b]
 				} else {
 					// OP_MOVE
 					b := getarg_b(inst)
@@ -677,10 +681,27 @@ luaV_execute :: proc "c" (L: ^lua_State, nexeccalls: libc.int) {
 						L,
 						cast(StkId)(cast(uintptr)base + uintptr(b) * size_of(TValue)),
 					)
+					// REFRESH after potential GC in findupval
+					base = L.base
+					ci = L.ci
+					cl = &clvalue(ci.func).l
 				}
 			}
 
 			base = L.base
+			ci = L.ci
+			if ci.func == nil {
+				fmt.eprintln("FATAL: ci.func is nil at OP_CLOSURE!")
+				_ = (cast(^int)nil)^
+			}
+			if !ttisfunction(ci.func) {
+				fmt.eprintln("FATAL: ci.func is not a function at OP_CLOSURE! tt =", ci.func.tt)
+				_ = (cast(^int)nil)^
+			}
+			if ci.func.value.gc == nil {
+				fmt.eprintln("FATAL: ci.func.value.gc is nil at OP_CLOSURE!")
+				_ = (cast(^int)nil)^
+			}
 			ra = cast(StkId)(cast(uintptr)base + uintptr(getarg_a(i)) * size_of(TValue))
 			cl = &clvalue(ci.func).l
 			setclvalue(L, ra, ncl)

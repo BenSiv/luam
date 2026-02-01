@@ -51,7 +51,7 @@ function run_test(path)
             message = "Load error: " .. (load_err or "unknown"),
             traceback = ""
         })
-        print("[FAIL] (Load error)")
+        print("[FAIL] (Load error: " .. tostring(load_err) .. ")")
         return
     end
 
@@ -63,12 +63,14 @@ function run_test(path)
         table.insert(results.passed, path)
         print("[PASS]")
     else
-        table.insert(results.failed, {
-            path = path,
-            message = (err_obj and err_obj.message) or "unknown error",
-            traceback = (err_obj and err_obj.traceback) or ""
-        })
+        table.insert(results.failed, {path = path, err = err_obj})
         print("[FAIL]")
+        if type(err_obj) == "table" then
+            print("  Error: " .. tostring(err_obj.message))
+            print("  Traceback: " .. tostring(err_obj.traceback))
+        else
+            print("  Error: " .. tostring(err_obj))
+        end
     end
 end
 
@@ -77,12 +79,10 @@ all_tests = {}
 
 if #arg > 0 then
    print("DEBUG: arg table has " .. #arg .. " elements.")
-   for i, v in ipairs(arg) do
-       print("DEBUG: arg[" .. i .. "] = " .. tostring(v))
-   end
    -- Use provided args
-   print("DEBUG: table.insert before loop:", table.insert)
-   for _, path in ipairs(arg) do
+   for i=1, #arg do
+       path = arg[i]
+       print("DEBUG: processing arg[" .. i .. "] = " .. tostring(path))
        if string.match(path, "_test.lua$") != nil or string.match(path, "test_.*%.lua$") != nil then
            table.insert(all_tests, path)
        end
@@ -103,7 +103,8 @@ print("Running " .. #all_tests .. " tests\n")
 
 table.sort(all_tests)
 
-for _, test_path in ipairs(all_tests) do
+for i=1, #all_tests do
+    test_path = all_tests[i]
     run_test(test_path)
 end
 

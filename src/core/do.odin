@@ -23,8 +23,6 @@ PCRYIELD :: 2 // Yielded
 LUAI_MAXCCALLS :: 200
 LUAI_MAXCALLS :: 20000
 
-// Memory error message
-MEMERRMSG :: "not enough memory"
 
 // Stack save/restore helpers
 savestack :: #force_inline proc(L: ^lua_State, p: StkId) -> c.ptrdiff_t {
@@ -57,9 +55,8 @@ luaD_checkstack :: #force_inline proc(L: ^lua_State, n: int) {
 }
 
 // FFI to C functions (temporarily needed for protected calls)
-foreign import lua_core "system:lua"
+foreign import lua_core "../../obj/liblua.a"
 
-@(private)
 foreign lua_core {
 	@(link_name = "luaD_growstack")
 	luaD_growstack_c :: proc(L: ^lua_State, n: c.int) ---
@@ -71,17 +68,16 @@ foreign lua_core {
 	luaD_reallocstack_c :: proc(L: ^lua_State, newsize: c.int) ---
 	@(link_name = "luaD_reallocCI")
 	luaD_reallocCI_c :: proc(L: ^lua_State, newsize: c.int) ---
-	@(link_name = "luaD_precall")
-	luaD_precall_c :: proc(L: ^lua_State, func: StkId, nresults: c.int) -> c.int ---
-	@(link_name = "luaD_poscall")
-	luaD_poscall_c :: proc(L: ^lua_State, firstResult: StkId) -> c.int ---
-	@(link_name = "luaD_call")
-	luaD_call_c :: proc(L: ^lua_State, func: StkId, nResults: c.int) ---
+	// luaD_precall, luaD_poscall, luaD_call removed (replaced by pure Odin versions)
 	@(link_name = "luaD_pcall")
 	luaD_pcall_c :: proc(L: ^lua_State, func: Pfunc, u: rawptr, old_top: c.ptrdiff_t, ef: c.ptrdiff_t) -> c.int ---
 	@(link_name = "luaG_runerror")
 	luaG_runerror_c :: proc(L: ^lua_State, fmt: cstring, #c_vararg args: ..any) ---
 	luaV_execute_c :: proc(L: ^lua_State, nexeccalls: c.int) ---
+	@(link_name = "luaD_protectedparser")
+	luaD_protectedparser :: proc(L: ^lua_State, z: ^ZIO, name: cstring) -> c.int ---
+	@(link_name = "luaU_dump")
+	luaU_dump :: proc(L: ^lua_State, p: ^Proto, writer: lua_Writer, data: rawptr, strip: c.int) -> c.int ---
 }
 
 // Correct stack pointers after reallocation

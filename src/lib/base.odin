@@ -383,12 +383,13 @@ base_costatus :: proc "c" (L: ^lua.State) -> c.int {
 }
 
 auxresume :: proc "c" (L: ^lua.State, co: ^lua.State, narg: c.int) -> c.int {
+	context = runtime.default_context()
 	status := costatus(L, co)
 	if lua.lua_checkstack(co, narg) == 0 {
 		lua.luaL_error(L, "too many arguments to resume")
 	}
 	if status != 1 { 	// CO_SUS
-		lua.lua_pushfstring(L, "cannot resume %s coroutine", statnames[status])
+		lua.lua_pushstring(L, fmt.ctprintf("cannot resume %s coroutine", statnames[status]))
 		return -1
 	}
 	lua.lua_xmove(L, co, narg)

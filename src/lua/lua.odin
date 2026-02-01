@@ -1,5 +1,6 @@
 package lua
 
+import core "../core"
 import "base:runtime"
 import "core:c"
 import "core:mem"
@@ -82,85 +83,83 @@ foreign libc {
 
 @(default_calling_convention = "c")
 foreign liblua {
-	lua_pushcclosure :: proc(L: ^State, fn: CFunction, n: c.int) ---
-	lua_pushstring :: proc(L: ^State, s: cstring) ---
-	lua_pushlstring :: proc(L: ^State, s: cstring, len: c.size_t) ---
-	lua_call :: proc(L: ^State, nargs: c.int, nresults: c.int) ---
-	lua_pushvalue :: proc(L: ^State, idx: c.int) ---
-	lua_settop :: proc(L: ^State, idx: c.int) ---
-	lua_replace :: proc(L: ^State, idx: c.int) ---
-	lua_gettable :: proc(L: ^State, idx: c.int) ---
-	lua_settable :: proc(L: ^State, idx: c.int) ---
-	lua_toboolean :: proc(L: ^State, idx: c.int) -> c.int ---
-	lua_tointeger :: proc(L: ^State, idx: c.int) -> Integer ---
-	lua_tonumber :: proc(L: ^State, idx: c.int) -> Number ---
-	lua_tolstring :: proc(L: ^State, idx: c.int, len: ^c.size_t) -> cstring ---
-	lua_objlen :: proc(L: ^State, idx: c.int) -> c.size_t ---
-	lua_next :: proc(L: ^State, idx: c.int) -> c.int ---
-	lua_rawget :: proc(L: ^State, idx: c.int) ---
-	lua_rawset :: proc(L: ^State, idx: c.int) ---
-	lua_rawequal :: proc(L: ^State, idx1: c.int, idx2: c.int) -> c.int ---
-	lua_rawgeti :: proc(L: ^State, idx: c.int, n: c.int) ---
-	lua_rawseti :: proc(L: ^State, idx: c.int, n: c.int) ---
-	lua_lessthan :: proc(L: ^State, idx1: c.int, idx2: c.int) -> c.int ---
-	lua_typename :: proc(L: ^State, tp: c.int) -> cstring ---
-	lua_topointer :: proc(L: ^State, idx: c.int) -> rawptr ---
-	lua_tothread :: proc(L: ^State, idx: c.int) -> ^State ---
-	lua_newthread :: proc(L: ^State) -> ^State ---
-	lua_setfield :: proc(L: ^State, idx: c.int, k: cstring) ---
-	lua_getfield :: proc(L: ^State, idx: c.int, k: cstring) ---
-	lua_createtable :: proc(L: ^State, narr, nrec: c.int) ---
-	lua_newuserdata :: proc(L: ^State, size: c.size_t) -> rawptr ---
-	lua_getmetatable :: proc(L: ^State, objindex: c.int) -> c.int ---
-	lua_setmetatable :: proc(L: ^State, objindex: c.int) -> c.int ---
-	lua_type :: proc(L: ^State, idx: c.int) -> c.int ---
+	// lua_pushcclosure :: proc(L: ^State, fn: CFunction, n: c.int) ---
+	// lua_pushstring :: proc(L: ^State, s: cstring) ---
+	// lua_pushlstring :: proc(L: ^State, s: cstring, len: c.size_t) ---
+	// lua_call :: proc(L: ^State, nargs: c.int, nresults: c.int) ---
+	// lua_pushvalue :: proc(L: ^State, idx: c.int) ---
+	// lua_settop :: proc(L: ^State, idx: c.int) ---
+	// lua_replace :: proc(L: ^State, idx: c.int) ---
+	// lua_gettable :: proc(L: ^State, idx: c.int) ---
+	// lua_settable :: proc(L: ^State, idx: c.int) ---
+	// lua_toboolean :: proc(L: ^State, idx: c.int) -> c.int ---
+	// lua_tointeger :: proc(L: ^State, idx: c.int) -> Integer ---
+	// lua_tonumber :: proc(L: ^State, idx: c.int) -> Number ---
+	// lua_tolstring :: proc(L: ^State, idx: c.int, len: ^c.size_t) -> cstring ---
+	// lua_objlen :: proc(L: ^State, idx: c.int) -> c.size_t ---
+	// lua_next :: proc(L: ^State, idx: c.int) -> c.int ---
+	// lua_rawget :: proc(L: ^State, idx: c.int) ---
+	// lua_rawset :: proc(L: ^State, idx: c.int) ---
+	// lua_rawequal :: proc(L: ^State, idx1: c.int, idx2: c.int) -> c.int ---
+	// lua_rawgeti :: proc(L: ^State, idx: c.int, n: c.int) ---
+	// lua_rawseti :: proc(L: ^State, idx: c.int, n: c.int) ---
+	// lua_lessthan :: proc(L: ^State, idx1: c.int, idx2: c.int) -> c.int ---
+	// lua_typename :: proc(L: ^State, tp: c.int) -> cstring ---
+	// lua_topointer :: proc(L: ^State, idx: c.int) -> rawptr ---
+	// lua_tothread :: proc(L: ^State, idx: c.int) -> ^State ---
+	// lua_newthread :: proc(L: ^State) -> ^State ---
+	// lua_setfield :: proc(L: ^State, idx: c.int, k: cstring) ---
+	// lua_getfield :: proc(L: ^State, idx: c.int, k: cstring) ---
+	// lua_createtable :: proc(L: ^State, narr, nrec: c.int) ---
+	// lua_newuserdata :: proc(L: ^State, size: c.size_t) -> rawptr ---
+	// lua_getmetatable :: proc(L: ^State, objindex: c.int) -> c.int ---
+	// lua_setmetatable :: proc(L: ^State, objindex: c.int) -> c.int ---
+	// lua_type :: proc(L: ^State, idx: c.int) -> c.int ---
 
-	@(link_name = "lua_isnumber")
-	_lua_isnumber :: proc(L: ^State, idx: c.int) -> c.int ---
-	@(link_name = "lua_isstring")
-	_lua_isstring :: proc(L: ^State, idx: c.int) -> c.int ---
-	@(link_name = "lua_iscfunction")
-	_lua_iscfunction :: proc(L: ^State, idx: c.int) -> c.int ---
-	@(link_name = "lua_isuserdata")
-	_lua_isuserdata :: proc(L: ^State, idx: c.int) -> c.int ---
+	// @(link_name = "lua_isnumber")
+	// _lua_isnumber :: proc(L: ^State, idx: c.int) -> c.int ---
+	// lua_atpanic :: proc(L: ^State, panicf: CFunction) -> CFunction ---
+	// @(link_name = "lua_isstring")
+	// _lua_isstring :: proc(L: ^State, idx: c.int) -> c.int ---
+	// @(link_name = "lua_iscfunction")
+	// _lua_iscfunction :: proc(L: ^State, idx: c.int) -> c.int ---
+	// @(link_name = "lua_isuserdata")
+	// _lua_isuserdata :: proc(L: ^State, idx: c.int) -> c.int ---
 
-	lua_touserdata :: proc(L: ^State, idx: c.int) -> rawptr ---
-	lua_concat :: proc(L: ^State, n: c.int) ---
-	lua_pushnumber :: proc(L: ^State, n: Number) ---
+	// lua_touserdata :: proc(L: ^State, idx: c.int) -> rawptr ---
+	// lua_concat :: proc(L: ^State, n: c.int) ---
+	// lua_pushnumber :: proc(L: ^State, n: Number) ---
 	lua_pushfstring :: proc(L: ^State, format: cstring, #c_vararg args: ..any) -> cstring ---
-	lua_pushvfstring :: proc(L: ^State, fmt: cstring, argp: rawptr) -> cstring ---
-	lua_pushinteger :: proc(L: ^State, n: Integer) ---
-	lua_pushnil :: proc(L: ^State) ---
-	lua_pushboolean :: proc(L: ^State, b: c.int) ---
-	lua_pushlightuserdata :: proc(L: ^State, p: rawptr) ---
-	lua_pcall :: proc(L: ^State, nargs: c.int, nresults: c.int, errfunc: c.int) -> c.int ---
-	lua_cpcall :: proc(L: ^State, func: CFunction, ud: rawptr) -> c.int ---
-	lua_close :: proc(L: ^State) ---
-	lua_insert :: proc(L: ^State, idx: c.int) ---
-	lua_remove :: proc(L: ^State, idx: c.int) ---
-	lua_checkstack :: proc(L: ^State, sz: c.int) -> c.int ---
-	lua_setfenv :: proc(L: ^State, idx: c.int) -> c.int ---
-	lua_getfenv :: proc(L: ^State, idx: c.int) ---
+	lua_pushvfstring :: proc(L: ^State, fmt: cstring, argp: c.va_list) -> cstring ---
+	// lua_pushinteger :: proc(L: ^State, n: Integer) ---
+	// lua_pushnil :: proc(L: ^State) ---
+	// lua_pushboolean :: proc(L: ^State, b: c.int) ---
+	// lua_pushlightuserdata :: proc(L: ^State, p: rawptr) ---
+	// lua_pcall :: proc(L: ^State, nargs: c.int, nresults: c.int, errfunc: c.int) -> c.int ---
+	// lua_cpcall :: proc(L: ^State, func: CFunction, ud: rawptr) -> c.int ---
+	// lua_close :: proc(L: ^State) ---
+	// lua_insert :: proc(L: ^State, idx: c.int) ---
+	// lua_remove :: proc(L: ^State, idx: c.int) ---
+	// lua_checkstack :: proc(L: ^State, sz: c.int) -> c.int ---
+	// lua_setfenv :: proc(L: ^State, idx: c.int) -> c.int ---
+	// lua_getfenv :: proc(L: ^State, idx: c.int) ---
 	lua_getstack :: proc(L: ^State, level: c.int, ar: ^Debug) -> c.int ---
 	lua_getinfo :: proc(L: ^State, what: cstring, ar: ^Debug) -> c.int ---
 	lua_getlocal :: proc(L: ^State, ar: ^Debug, n: c.int) -> cstring ---
 	lua_setlocal :: proc(L: ^State, ar: ^Debug, n: c.int) -> cstring ---
-	lua_getupvalue :: proc(L: ^State, funcindex: c.int, n: c.int) -> cstring ---
-	lua_setupvalue :: proc(L: ^State, funcindex: c.int, n: c.int) -> cstring ---
+	// lua_getupvalue :: proc(L: ^State, funcindex: c.int, n: c.int) -> cstring ---
+	// lua_setupvalue :: proc(L: ^State, funcindex: c.int, n: c.int) -> cstring ---
 	lua_sethook :: proc(L: ^State, func: Hook, mask: c.int, count: c.int) -> c.int ---
 	lua_gethook :: proc(L: ^State) -> Hook ---
 	lua_gethookmask :: proc(L: ^State) -> c.int ---
 	lua_gethookcount :: proc(L: ^State) -> c.int ---
-	lua_error :: proc(L: ^State) -> c.int ---
-	lua_load :: proc(L: ^State, reader: Reader, dt: rawptr, chunkname: cstring) -> c.int ---
-	lua_setlevel :: proc(from: ^State, to: ^State) ---
-	lua_xmove :: proc(from: ^State, to: ^State, n: c.int) ---
-	lua_pushthread :: proc(L: ^State) -> c.int ---
+	// lua_error :: proc(L: ^State) -> c.int ---
+	// lua_load :: proc(L: ^State, reader: Reader, dt: rawptr, chunkname: cstring) -> c.int ---
+	// lua_setlevel :: proc(from: ^State, to: ^State) ---
+	// lua_xmove :: proc(from: ^State, to: ^State, n: c.int) ---
+	// lua_pushthread :: proc(L: ^State) -> c.int ---
 	lua_resume :: proc(Co: ^State, narg: c.int) -> c.int ---
 	lua_yield :: proc(L: ^State, nresults: c.int) -> c.int ---
-	lua_status :: proc(L: ^State) -> c.int ---
-	lua_gc :: proc(L: ^State, what: c.int, data: c.int) -> c.int ---
-	lua_gettop :: proc(L: ^State) -> c.int ---
 
 	luaL_register :: proc(L: ^State, libname: cstring, l: ^Reg) ---
 	luaL_checkstack :: proc(L: ^State, sz: c.int, msg: cstring) ---
@@ -193,7 +192,7 @@ foreign liblua {
 	luaL_addvalue :: proc(B: ^Buffer) ---
 	luaL_pushresult :: proc(B: ^Buffer) ---
 
-	lua_dump :: proc(L: ^State, writer: Writer, data: rawptr) -> c.int ---
+	// lua_dump :: proc(L: ^State, writer: Writer, data: rawptr) -> c.int ---
 	sprintf :: proc(s: [^]u8, format: cstring, #c_vararg args: ..any) -> c.int ---
 
 	// Standard Library Open Functions
@@ -207,6 +206,257 @@ foreign liblua {
 	luaopen_debug :: proc(L: ^State) -> c.int ---
 	luaopen_bit :: proc(L: ^State) -> c.int ---
 	luaopen_struct :: proc(L: ^State) -> c.int ---
+}
+
+// Ported API Wrappers
+lua_type :: #force_inline proc "c" (L: ^State, idx: c.int) -> c.int {
+	context = runtime.default_context()
+	return core.lua_type(cast(^core.lua_State)L, idx)
+}
+lua_typename :: #force_inline proc "c" (L: ^State, tp: c.int) -> cstring {
+	context = runtime.default_context()
+	return core.lua_typename(cast(^core.lua_State)L, tp)
+}
+lua_gettop :: #force_inline proc "c" (L: ^State) -> c.int {
+	context = runtime.default_context()
+	return core.lua_gettop(cast(^core.lua_State)L)
+}
+lua_settop :: #force_inline proc "c" (L: ^State, idx: c.int) {
+	context = runtime.default_context()
+	core.lua_settop(cast(^core.lua_State)L, idx)
+}
+lua_pushvalue :: #force_inline proc "c" (L: ^State, idx: c.int) {
+	context = runtime.default_context()
+	core.lua_pushvalue(cast(^core.lua_State)L, idx)
+}
+lua_remove :: #force_inline proc "c" (L: ^State, idx: c.int) {
+	context = runtime.default_context()
+	core.lua_remove(cast(^core.lua_State)L, idx)
+}
+lua_insert :: #force_inline proc "c" (L: ^State, idx: c.int) {
+	context = runtime.default_context()
+	core.lua_insert(cast(^core.lua_State)L, idx)
+}
+lua_replace :: #force_inline proc "c" (L: ^State, idx: c.int) {
+	context = runtime.default_context()
+	core.lua_replace(cast(^core.lua_State)L, idx)
+}
+lua_checkstack :: #force_inline proc "c" (L: ^State, sz: c.int) -> c.int {
+	context = runtime.default_context()
+	return core.lua_checkstack(cast(^core.lua_State)L, sz)
+}
+lua_xmove :: #force_inline proc "c" (from: ^State, to: ^State, n: c.int) {
+	context = runtime.default_context()
+	core.lua_xmove(cast(^core.lua_State)from, cast(^core.lua_State)to, n)
+}
+lua_toboolean :: #force_inline proc "c" (L: ^State, idx: c.int) -> c.int {
+	context = runtime.default_context()
+	return core.lua_toboolean(cast(^core.lua_State)L, idx)
+}
+lua_tonumber :: #force_inline proc "c" (L: ^State, idx: c.int) -> Number {
+	context = runtime.default_context()
+	return cast(Number)core.lua_tonumber(cast(^core.lua_State)L, idx)
+}
+lua_tointeger :: #force_inline proc "c" (L: ^State, idx: c.int) -> Integer {
+	context = runtime.default_context()
+	return cast(Integer)core.lua_tointeger(cast(^core.lua_State)L, idx)
+}
+lua_tolstring :: #force_inline proc "c" (L: ^State, idx: c.int, len: ^c.size_t) -> cstring {
+	context = runtime.default_context()
+	return core.lua_tolstring(cast(^core.lua_State)L, idx, len)
+}
+lua_objlen :: #force_inline proc "c" (L: ^State, idx: c.int) -> c.size_t {
+	context = runtime.default_context()
+	return core.lua_objlen(cast(^core.lua_State)L, idx)
+}
+lua_tocfunction :: #force_inline proc "c" (L: ^State, idx: c.int) -> CFunction {
+	context = runtime.default_context()
+	return cast(CFunction)core.lua_tocfunction(cast(^core.lua_State)L, idx)
+}
+lua_newthread :: #force_inline proc "c" (L: ^State) -> ^State {
+	context = runtime.default_context()
+	return cast(^State)core.lua_newthread(cast(^core.lua_State)L)
+}
+lua_newuserdata :: #force_inline proc "c" (L: ^State, size: c.size_t) -> rawptr {
+	context = runtime.default_context()
+	return core.lua_newuserdata(cast(^core.lua_State)L, size)
+}
+lua_touserdata :: #force_inline proc "c" (L: ^State, idx: c.int) -> rawptr {
+	context = runtime.default_context()
+	return core.lua_touserdata(cast(^core.lua_State)L, idx)
+}
+lua_tothread :: #force_inline proc "c" (L: ^State, idx: c.int) -> ^State {
+	context = runtime.default_context()
+	return cast(^State)core.lua_tothread(cast(^core.lua_State)L, idx)
+}
+lua_topointer :: #force_inline proc "c" (L: ^State, idx: c.int) -> rawptr {
+	context = runtime.default_context()
+	return core.lua_topointer(cast(^core.lua_State)L, idx)
+}
+lua_pushnil :: #force_inline proc "c" (L: ^State) {
+	context = runtime.default_context()
+	core.lua_pushnil(cast(^core.lua_State)L)
+}
+lua_pushnumber :: #force_inline proc "c" (L: ^State, n: Number) {
+	context = runtime.default_context()
+	core.lua_pushnumber(cast(^core.lua_State)L, cast(f64)n)
+}
+lua_pushinteger :: #force_inline proc "c" (L: ^State, n: Integer) {
+	context = runtime.default_context()
+	core.lua_pushinteger(cast(^core.lua_State)L, cast(core.lua_Integer)n)
+}
+lua_pushlstring :: #force_inline proc "c" (L: ^State, s: cstring, len: c.size_t) {
+	context = runtime.default_context()
+	core.lua_pushlstring(cast(^core.lua_State)L, s, len)
+}
+lua_pushstring :: #force_inline proc "c" (L: ^State, s: cstring) {
+	context = runtime.default_context()
+	core.lua_pushstring(cast(^core.lua_State)L, s)
+}
+lua_pushcclosure :: #force_inline proc "c" (L: ^State, fn: CFunction, n: c.int) {
+	context = runtime.default_context()
+	core.lua_pushcclosure(cast(^core.lua_State)L, cast(core.lua_CFunction)fn, n)
+}
+lua_pushboolean :: #force_inline proc "c" (L: ^State, b: c.int) {
+	context = runtime.default_context()
+	core.lua_pushboolean(cast(^core.lua_State)L, b)
+}
+lua_pushlightuserdata :: #force_inline proc "c" (L: ^State, p: rawptr) {
+	context = runtime.default_context()
+	core.lua_pushlightuserdata(cast(^core.lua_State)L, p)
+}
+lua_pushthread :: #force_inline proc "c" (L: ^State) -> c.int {
+	context = runtime.default_context()
+	return core.lua_pushthread(cast(^core.lua_State)L)
+}
+lua_gettable :: #force_inline proc "c" (L: ^State, idx: c.int) {
+	context = runtime.default_context()
+	core.lua_gettable(cast(^core.lua_State)L, idx)
+}
+lua_getfield :: #force_inline proc "c" (L: ^State, idx: c.int, k: cstring) {
+	context = runtime.default_context()
+	core.lua_getfield(cast(^core.lua_State)L, idx, k)
+}
+lua_rawget :: #force_inline proc "c" (L: ^State, idx: c.int) {
+	context = runtime.default_context()
+	core.lua_rawget(cast(^core.lua_State)L, idx)
+}
+lua_rawgeti :: #force_inline proc "c" (L: ^State, idx: c.int, n: c.int) {
+	context = runtime.default_context()
+	core.lua_rawgeti(cast(^core.lua_State)L, idx, n)
+}
+lua_createtable :: #force_inline proc "c" (L: ^State, narr, nrec: c.int) {
+	context = runtime.default_context()
+	core.lua_createtable(cast(^core.lua_State)L, narr, nrec)
+}
+lua_getmetatable :: #force_inline proc "c" (L: ^State, objindex: c.int) -> c.int {
+	context = runtime.default_context()
+	return core.lua_getmetatable(cast(^core.lua_State)L, objindex)
+}
+lua_getfenv :: #force_inline proc "c" (L: ^State, idx: c.int) {
+	context = runtime.default_context()
+	core.lua_getfenv(cast(^core.lua_State)L, idx)
+}
+lua_settable :: #force_inline proc "c" (L: ^State, idx: c.int) {
+	context = runtime.default_context()
+	core.lua_settable(cast(^core.lua_State)L, idx)
+}
+lua_setfield :: #force_inline proc "c" (L: ^State, idx: c.int, k: cstring) {
+	context = runtime.default_context()
+	core.lua_setfield(cast(^core.lua_State)L, idx, k)
+}
+lua_rawset :: #force_inline proc "c" (L: ^State, idx: c.int) {
+	context = runtime.default_context()
+	core.lua_rawset(cast(^core.lua_State)L, idx)
+}
+lua_rawseti :: #force_inline proc "c" (L: ^State, idx: c.int, n: c.int) {
+	context = runtime.default_context()
+	core.lua_rawseti(cast(^core.lua_State)L, idx, n)
+}
+lua_setmetatable :: #force_inline proc "c" (L: ^State, objindex: c.int) -> c.int {
+	context = runtime.default_context()
+	return core.lua_setmetatable(cast(^core.lua_State)L, objindex)
+}
+lua_setfenv :: #force_inline proc "c" (L: ^State, idx: c.int) -> c.int {
+	context = runtime.default_context()
+	return core.lua_setfenv(cast(^core.lua_State)L, idx)
+}
+lua_call :: #force_inline proc "c" (L: ^State, nargs: c.int, nresults: c.int) {
+	context = runtime.default_context()
+	core.lua_call(cast(^core.lua_State)L, nargs, nresults)
+}
+lua_pcall :: #force_inline proc "c" (L: ^State, nargs, nresults, errfunc: c.int) -> c.int {
+	context = runtime.default_context()
+	return core.lua_pcall(cast(^core.lua_State)L, nargs, nresults, errfunc)
+}
+lua_cpcall :: #force_inline proc "c" (L: ^State, func: CFunction, ud: rawptr) -> c.int {
+	context = runtime.default_context()
+	return core.lua_cpcall(cast(^core.lua_State)L, cast(core.lua_CFunction)func, ud)
+}
+lua_load :: #force_inline proc "c" (
+	L: ^State,
+	reader: Reader,
+	dt: rawptr,
+	chunkname: cstring,
+) -> c.int {
+	context = runtime.default_context()
+	return core.lua_load(cast(^core.lua_State)L, cast(core.lua_Reader)reader, dt, chunkname)
+}
+lua_getupvalue :: #force_inline proc "c" (L: ^State, funcindex, n: c.int) -> cstring {
+	context = runtime.default_context()
+	return core.lua_getupvalue(cast(^core.lua_State)L, funcindex, n)
+}
+lua_setupvalue :: #force_inline proc "c" (L: ^State, funcindex, n: c.int) -> cstring {
+	context = runtime.default_context()
+	return core.lua_setupvalue(cast(^core.lua_State)L, funcindex, n)
+}
+lua_setlevel :: #force_inline proc "c" (from: ^State, to: ^State) {
+	context = runtime.default_context()
+	core.lua_setlevel(cast(^core.lua_State)from, cast(^core.lua_State)to)
+}
+lua_dump :: #force_inline proc "c" (L: ^State, writer: Writer, data: rawptr) -> c.int {
+	context = runtime.default_context()
+	return core.lua_dump(cast(^core.lua_State)L, cast(core.lua_Writer)writer, data)
+}
+lua_atpanic :: #force_inline proc "c" (L: ^State, panicf: CFunction) -> CFunction {
+	context = runtime.default_context()
+	return cast(CFunction)core.lua_atpanic(cast(^core.lua_State)L, cast(core.lua_CFunction)panicf)
+}
+lua_status :: #force_inline proc "c" (L: ^State) -> c.int {
+	context = runtime.default_context()
+	return core.lua_status(cast(^core.lua_State)L)
+}
+lua_gc :: #force_inline proc "c" (L: ^State, what: c.int, data: c.int) -> c.int {
+	context = runtime.default_context()
+	return core.lua_gc(cast(^core.lua_State)L, what, data)
+}
+lua_error :: #force_inline proc "c" (L: ^State) -> c.int {
+	context = runtime.default_context()
+	return core.lua_error(cast(^core.lua_State)L)
+}
+lua_next :: #force_inline proc "c" (L: ^State, idx: c.int) -> c.int {
+	context = runtime.default_context()
+	return core.lua_next(cast(^core.lua_State)L, idx)
+}
+lua_concat :: #force_inline proc "c" (L: ^State, n: c.int) {
+	context = runtime.default_context()
+	core.lua_concat(cast(^core.lua_State)L, n)
+}
+lua_close :: #force_inline proc "c" (L: ^State) {
+	context = runtime.default_context()
+	core.lua_close(cast(^core.lua_State)L)
+}
+lua_rawequal :: #force_inline proc "c" (L: ^State, idx1, idx2: c.int) -> c.int {
+	context = runtime.default_context()
+	return core.lua_rawequal(cast(^core.lua_State)L, idx1, idx2)
+}
+lua_equal :: #force_inline proc "c" (L: ^State, idx1, idx2: c.int) -> c.int {
+	context = runtime.default_context()
+	return core.lua_equal(cast(^core.lua_State)L, idx1, idx2)
+}
+lua_lessthan :: #force_inline proc "c" (L: ^State, idx1, idx2: c.int) -> c.int {
+	context = runtime.default_context()
+	return core.lua_lessthan(cast(^core.lua_State)L, idx1, idx2)
 }
 
 Writer :: #type proc "c" (L: ^State, p: rawptr, sz: c.size_t, ud: rawptr) -> c.int
@@ -289,19 +539,23 @@ lua_isthread :: #force_inline proc "c" (L: ^State, n: c.int) -> bool {
 }
 
 lua_isnumber :: #force_inline proc "c" (L: ^State, n: c.int) -> bool {
-	return _lua_isnumber(L, n) != 0
+	context = runtime.default_context()
+	return core.lua_isnumber(cast(^core.lua_State)L, n) != 0
 }
 
 lua_isstring :: #force_inline proc "c" (L: ^State, n: c.int) -> bool {
-	return _lua_isstring(L, n) != 0
+	context = runtime.default_context()
+	return core.lua_isstring(cast(^core.lua_State)L, n) != 0
 }
 
 lua_iscfunction :: #force_inline proc "c" (L: ^State, n: c.int) -> bool {
-	return _lua_iscfunction(L, n) != 0
+	context = runtime.default_context()
+	return core.lua_iscfunction(cast(^core.lua_State)L, n) != 0
 }
 
 lua_isuserdata :: #force_inline proc "c" (L: ^State, n: c.int) -> bool {
-	return _lua_isuserdata(L, n) != 0
+	context = runtime.default_context()
+	return core.lua_isuserdata(cast(^core.lua_State)L, n) != 0
 }
 
 lua_isfunction :: #force_inline proc "c" (L: ^State, n: c.int) -> bool {

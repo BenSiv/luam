@@ -4,6 +4,7 @@ import "../lua"
 import "base:runtime"
 import "core:c"
 import "core:c/libc"
+import "core:fmt"
 import "core:mem"
 
 // KEY_HOOK is used as a lightuserdata key in the registry
@@ -84,7 +85,7 @@ db_getinfo :: proc "c" (L: ^lua.State) -> c.int {
 			return 1
 		}
 	} else if lua.lua_isfunction(L, arg + 1) {
-		lua.lua_pushfstring(L, ">%s", options)
+		lua.lua_pushstring(L, fmt.ctprintf(">%s", options))
 		options = lua.lua_tostring(L, -1)
 		lua.lua_pushvalue(L, arg + 1)
 		lua.lua_xmove(L, L1, 1)
@@ -358,23 +359,25 @@ db_errorfb :: proc "c" (L: ^lua.State) -> c.int {
 		}
 		lua.lua_pushliteral(L, "\n\t")
 		lua.lua_getinfo(L1, "Snl", &ar)
-		lua.lua_pushfstring(L, "%s:", cstring(&ar.short_src[0]))
+		lua.lua_pushstring(L, fmt.ctprintf("%s:", cstring(&ar.short_src[0])))
 		if ar.currentline > 0 {
-			lua.lua_pushfstring(L, "%d:", ar.currentline)
+			lua.lua_pushstring(L, fmt.ctprintf("%d:", ar.currentline))
 		}
 		if (cast([^]u8)ar.namewhat)[0] != 0 {
-			lua.lua_pushfstring(L, " in function '%s'", ar.name)
+			lua.lua_pushstring(L, fmt.ctprintf(" in function '%s'", ar.name))
 		} else {
 			if (cast([^]u8)ar.what)[0] == 'm' {
 				lua.lua_pushliteral(L, " in main chunk")
 			} else if (cast([^]u8)ar.what)[0] == 'C' || (cast([^]u8)ar.what)[0] == 't' {
 				lua.lua_pushliteral(L, " ?")
 			} else {
-				lua.lua_pushfstring(
+				lua.lua_pushstring(
 					L,
-					" in function <%s:%d>",
-					cstring(&ar.short_src[0]),
-					int(ar.linedefined),
+					fmt.ctprintf(
+						" in function <%s:%d>",
+						cstring(&ar.short_src[0]),
+						int(ar.linedefined),
+					),
 				)
 			}
 		}

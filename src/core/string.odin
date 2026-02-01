@@ -24,14 +24,9 @@ luaS_fix :: #force_inline proc(s: ^TString) {
 }
 
 // FFI to C functions
-foreign import lua_core "system:lua"
+foreign import lua_core "../../obj/liblua.a"
 
 foreign lua_core {
-	luaC_white_c :: proc(g: ^Global_State) -> c.int ---
-	@(link_name = "luaM_realloc_")
-	luaM_realloc_c :: proc(L: ^lua_State, block: rawptr, osize: c.size_t, nsize: c.size_t) -> rawptr ---
-	@(link_name = "luaM_toobig")
-	luaM_toobig_c :: proc(L: ^lua_State) -> rawptr ---
 }
 
 // Maximum size for size_t
@@ -63,7 +58,7 @@ luaS_resize :: proc "c" (L: ^lua_State, newsize: c.int) {
 	// fmt.printf("DEBUG: luaS_resize from %d to %d (nuse=%d)\n", oldsize, newsize, tb.nuse)
 
 	// Allocate new hash table
-	newhash := cast([^]^GCObject)luaM_malloc_c(L, c.size_t(newsize) * size_of(^GCObject))
+	newhash := cast([^]^GCObject)luaM_malloc(L, c.size_t(newsize) * size_of(^GCObject))
 
 	// Initialize new buckets
 	for i in 0 ..< int(newsize) {
@@ -94,7 +89,7 @@ luaS_resize :: proc "c" (L: ^lua_State, newsize: c.int) {
 
 	// Free old hash table
 	if tb.hash != nil && tb.size > 0 {
-		luaM_realloc_c(L, tb.hash, c.size_t(tb.size) * size_of(^GCObject), 0)
+		luaM_realloc_(L, tb.hash, c.size_t(tb.size) * size_of(^GCObject), 0)
 	}
 
 	tb.size = newsize
@@ -108,11 +103,12 @@ newlstr :: proc(L: ^lua_State, str: [^]u8, l: c.size_t, h: u32) -> ^TString {
 
 	// Check for overflow
 	if l + 1 > (MAX_SIZET - size_of(TString)) / size_of(u8) {
-		luaM_toobig_c(L)
+		luaM_toobig(L)
 	}
 
 	// Allocate string object
-	ts := cast(^TString)luaM_malloc_c(L, (l + 1) * size_of(u8) + size_of(TString))
+	ts := cast(^TString)luaM_malloc(L, (l + 1) * size_of(u8) + size_of(TString))
+	fmt.printf("DEBUG: Odin newlstr allocated %p for '%s' len %d\n", ts, str, l)
 
 	// Initialize header
 	ts.tsv.len = l
@@ -145,7 +141,8 @@ newlstr :: proc(L: ^lua_State, str: [^]u8, l: c.size_t, h: u32) -> ^TString {
 @(export, link_name = "luaS_newlstr")
 luaS_newlstr :: proc "c" (L: ^lua_State, str: cstring, l: c.size_t) -> ^TString {
 	context = runtime.default_context()
-	// fmt.printf("DEBUG: Odin luaS_newlstr: %s (%d)\n", str, l)
+	fmt.printf("DEBUG: Odin size_of(TString)=%d\n", size_of(TString))
+	// fmt.printf("DEBUG: Odin luaS_newlstr: '%s' (%d)\n", str, l)
 	g := G(L)
 	str_data := cast([^]u8)str
 
@@ -203,11 +200,11 @@ luaS_newudata :: proc "c" (L: ^lua_State, s: c.size_t, e: ^Table) -> ^Udata {
 
 	// Check for overflow
 	if s > MAX_SIZET - size_of(Udata) {
-		luaM_toobig_c(L)
+		luaM_toobig(L)
 	}
 
 	// Allocate userdata
-	u := cast(^Udata)luaM_malloc_c(L, s + size_of(Udata))
+	u := cast(^Udata)luaM_malloc(L, s + size_of(Udata))
 
 	// Initialize header
 	u.uv.marked = luaC_white(g)

@@ -1,5 +1,6 @@
 package lib
 
+import "../core"
 import "../lua"
 import "base:runtime"
 import "core:c"
@@ -18,7 +19,7 @@ os_pushresult :: proc "c" (L: ^lua.State, i: c.int, filename: cstring) -> c.int 
 		return 1
 	} else {
 		lua.lua_pushnil(L)
-		lua.lua_pushfstring(L, "%s: error %d", filename, en)
+		lua.lua_pushstring(L, fmt.ctprintf("%s: error %d", filename, en))
 		lua.lua_pushinteger(L, en)
 		return 3
 	}
@@ -61,7 +62,7 @@ os_exit :: proc "c" (L: ^lua.State) -> c.int {
 		status = c.int(lua.luaL_optinteger(L, 1, int(libc.EXIT_SUCCESS)))
 	}
 	if lua.lua_toboolean(L, 2) != 0 {
-		lua.lua_close(L)
+		core.lua_close(cast(^core.lua_State)L)
 	}
 	libc.exit(status)
 }

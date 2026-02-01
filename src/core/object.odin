@@ -76,7 +76,9 @@ ttisthread :: #force_inline proc(o: ^TValue) -> bool {return o.tt == LUA_TTHREAD
 ttislightuserdata :: #force_inline proc(o: ^TValue) -> bool {return o.tt == LUA_TLIGHTUSERDATA}
 
 // Value accessors
-ttype :: #force_inline proc(o: ^TValue) -> c.int {return o.tt}
+ttype :: #force_inline proc(o: ^TValue) -> c.int {
+	return o.tt
+}
 gcvalue :: #force_inline proc(o: ^TValue) -> ^GCObject {return o.value.gc}
 pvalue :: #force_inline proc(o: ^TValue) -> rawptr {return o.value.p}
 nvalue :: #force_inline proc(o: ^TValue) -> lua_Number {return o.value.n}
@@ -93,7 +95,7 @@ setnilvalue :: #force_inline proc(obj: ^TValue) {
 	obj.tt = LUA_TNIL
 }
 
-foreign import lua_core "system:lua"
+foreign import lua_core "../../obj/liblua.a"
 
 foreign lua_core {
 	@(link_name = "luaO_nilobject_")
@@ -635,4 +637,37 @@ rawequalObj :: #force_inline proc(t1: ^TValue, t2: ^TValue) -> bool {
 	case:
 		return t1.value.gc == t2.value.gc
 	}
+}
+
+// Helpers added for API migration
+// uvalue is in vm.odin. clvalue, hvalue are in do.odin.
+
+thvalue :: #force_inline proc(o: ^TValue) -> ^lua_State {
+	return cast(^lua_State)o.value.gc.th
+}
+
+rawuvalue :: #force_inline proc(o: ^TValue) -> ^Udata {
+	return cast(^Udata)o.value.gc
+}
+
+svalue :: #force_inline proc(o: ^TValue) -> cstring {
+	return getstr(tsvalue(o))
+}
+
+lua_number2integer :: #force_inline proc(res: ^lua_Integer, n: lua_Number) {
+	res^ = cast(lua_Integer)n
+}
+
+// Lua Reader/Writer types
+lua_Reader :: #type proc "c" (L: ^lua_State, ud: rawptr, sz: ^c.size_t) -> cstring
+lua_Writer :: #type proc "c" (L: ^lua_State, p: rawptr, sz: c.size_t, ud: rawptr) -> c.int
+
+setuvalue :: #force_inline proc(L: ^lua_State, obj: ^TValue, x: ^Udata) {
+	obj.value.gc = cast(^GCObject)x
+	obj.tt = LUA_TUSERDATA
+}
+
+setthvalue :: #force_inline proc(L: ^lua_State, obj: ^TValue, x: ^lua_State) {
+	obj.value.gc = cast(^GCObject)x
+	obj.tt = LUA_TTHREAD
 }

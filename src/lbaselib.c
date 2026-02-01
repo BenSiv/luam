@@ -217,7 +217,6 @@ static int luaB_ipairs(lua_State *L) {
 static int load_aux(lua_State *L, int status) {
   if (status == 0) { /* OK? */
     /* [ANTIGRAVITY] DEBUG: Check if we have a function */
-    /* printf("DEBUG: load_aux OK. Top type: %d, Top: %p, Base: %p\n",
            lua_type(L, -1), L->top, L->base); */
     return 1;
   } else {

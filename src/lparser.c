@@ -698,7 +698,6 @@ static void primaryexp(LexState *ls, expdesc *v) {
       luaK_indexed(fs, v, &key);
       break;
     }
-    /* REMOVED: colon method syntax disabled in LuaM
     case ':': {
       expdesc key;
       luaX_next(ls);
@@ -707,7 +706,6 @@ static void primaryexp(LexState *ls, expdesc *v) {
       funcargs(ls, v);
       break;
     }
-    */
     case '(':
     case TK_STRING:
     case '{': { /* funcargs */
@@ -1048,6 +1046,44 @@ static void assignment(LexState *ls, struct LHS_assign *lh, int nvars) {
     adjustlocalvars(ls, n_new);
 }
 
+static void localfunc(LexState *ls) {
+  expdesc v, b;
+  FuncState *fs = ls->fs;
+  new_localvar(ls, str_checkname(ls), 0, 0);
+  init_exp(&v, VLOCAL, fs->freereg);
+  luaK_reserveregs(fs, 1);
+  adjustlocalvars(ls, 1);
+  body(ls, &b, 0, ls->linenumber);
+  luaK_storevar(fs, &v, &b);
+  /* debug information will only see the name after this point! */
+  getlocvar(fs, fs->nactvar - 1).startpc = fs->pc;
+}
+
+static void localstat(LexState *ls) {
+  /* stat -> LOCAL NAME {',' NAME} ['=' explist1]
+           | LOCAL FUNCTION NAME body */
+  luaX_next(ls);                 /* skip LOCAL */
+  if (testnext(ls, TK_FUNCTION)) /* local function? */
+    localfunc(ls);
+  else {
+    /* stat -> LOCAL NAME {',' NAME} ['=' explist1] */
+    int nvars = 0;
+    int nexps;
+    expdesc e;
+    do {
+      new_localvar(ls, str_checkname(ls), nvars++, 0);
+    } while (testnext(ls, ','));
+    if (testnext(ls, '='))
+      nexps = explist1(ls, &e);
+    else {
+      e.k = VVOID;
+      nexps = 0;
+    }
+    adjust_assign(ls, nvars, nexps, &e);
+    adjustlocalvars(ls, nvars);
+  }
+}
+
 static void conststat(LexState *ls) {
   /* conststat -> CONST NAME {',' NAME} ['=' explist1] */
   int nvars = 0;
@@ -1094,6 +1130,30 @@ static void breakstat(LexState *ls) {
   if (upval)
     luaK_codeABC(fs, OP_CLOSE, bl->nactvar, 0, 0);
   luaK_concat(fs, &bl->breaklist, luaK_jump(fs));
+}
+
+static void repeatstat(LexState *ls, int line) {
+  /* repeatstat -> REPEAT block UNTIL cond */
+  int condexit;
+  FuncState *fs = ls->fs;
+  int repeat_init = luaK_getlabel(fs);
+  BlockCnt bl1, bl2;
+  enterblock(fs, &bl1, 1); /* loop block */
+  enterblock(fs, &bl2, 0); /* scope block */
+  luaX_next(ls);           /* skip REPEAT */
+  chunk(ls);
+  check_match(ls, TK_UNTIL, TK_REPEAT, line);
+  condexit = cond(ls); /* read condition (loop back if false) */
+  if (!bl2.upval) {    /* no upvalues? */
+    leaveblock(fs);    /* finish scope */
+    luaK_patchlist(ls->fs, condexit, repeat_init); /* close the loop */
+  } else {         /* complete semantics when there are upvalues */
+    breakstat(ls); /* if condition then break */
+    luaK_patchtohere(ls->fs, condexit);                 /* else... */
+    leaveblock(fs);                                     /* finish scope... */
+    luaK_patchlist(ls->fs, luaK_jump(fs), repeat_init); /* and jump back */
+  }
+  leaveblock(fs); /* finish loop */
 }
 
 static void whilestat(LexState *ls, int line) {
@@ -1341,6 +1401,14 @@ static int statement(LexState *ls) {
     luaX_next(ls); /* skip BREAK */
     breakstat(ls);
     return 1; /* must be last statement */
+  }
+  case TK_LOCAL: { /* stat -> localstat */
+    localstat(ls);
+    return 0;
+  }
+  case TK_REPEAT: { /* stat -> repeatstat */
+    repeatstat(ls, line);
+    return 0;
   }
   case TK_CONST: {
     conststat(ls);

@@ -43,13 +43,15 @@ MAXSTACK :: 250
 
 // lua_longjmp defined in state.odin
 // Alloc defined in state.odin
-foreign import lua_core "system:lua"
+foreign import lua_core "../../obj/liblua.a"
 
 foreign lua_core {
 	// luaD_throw_c defined in do.odin
 	// luaD_call_c defined in do.odin
 	luaO_pushvfstring_c :: proc(L: ^lua_State, fmt: cstring, argp: rawptr) -> cstring ---
 	luaO_chunkid_c :: proc(out: [^]u8, source: cstring, bufflen: c.size_t) ---
+	@(link_name = "luaG_errormsg")
+	luaG_errormsg_c :: proc(L: ^lua_State) ---
 }
 
 // PC relative to function

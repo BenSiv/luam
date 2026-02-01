@@ -22,7 +22,7 @@ if decoded.name == data.name and
    decoded.version == data.version and
    decoded.list[4] == data.list[4] and
    decoded.nested.key == data.nested.key then
-   print("PSSED: Data round-tripped successfully")
+   print("PASSED: Data round-tripped successfully")
 else
    print("FLED: Data mismatch")
    print("Expected name:", data.name, "ot:", decoded.name)

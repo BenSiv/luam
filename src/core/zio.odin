@@ -2,6 +2,7 @@
 // Migrated from lzio.c/h
 package core
 
+import "base:runtime"
 import "core:c"
 import "core:mem"
 
@@ -63,19 +64,18 @@ ZIO :: struct {
 }
 
 // Initialize a ZIO stream
-init :: proc(L: rawptr, z: ^ZIO, reader: Reader, data: rawptr) {
-	z.L = L
-	z.reader = reader
-	z.data = data
-	z.n = 0
-	z.p = nil
-}
+// Initialize a ZIO stream - REPLACED by luaZ_init
+// init :: proc(L: rawptr, z: ^ZIO, reader: Reader, data: rawptr) { ... }
 
 // Fill buffer - call reader for more data
 // Returns first byte or EOZ if end of stream
-fill :: proc(z: ^ZIO) -> int {
+// Fill buffer - call reader for more data
+// Returns first byte or EOZ if end of stream
+@(export, link_name = "luaZ_fill")
+luaZ_fill :: proc "c" (z: ^ZIO) -> c.int {
+	context = runtime.default_context()
 	size: c.size_t = 0
-	L := z.L
+	L := cast(^lua_State)z.L
 
 	// Note: lua_unlock/lua_lock are no-ops in standard Lua
 	buff := z.reader(L, z.data, &size)
@@ -88,7 +88,7 @@ fill :: proc(z: ^ZIO) -> int {
 	z.p = buff
 	result := char2int(z.p[0])
 	z.p = z.p[1:] // advance pointer
-	return result
+	return c.int(result)
 }
 
 // Get character from stream (macro in C)
@@ -99,32 +99,46 @@ zgetc :: #force_inline proc(z: ^ZIO) -> int {
 		z.p = z.p[1:]
 		return result
 	}
-	return fill(z)
+	return int(luaZ_fill(z))
 }
 
 // Look ahead one character without consuming
-lookahead :: proc(z: ^ZIO) -> int {
+@(export, link_name = "luaZ_lookahead")
+luaZ_lookahead :: proc "c" (z: ^ZIO) -> c.int {
+	context = runtime.default_context()
 	if z.n == 0 {
-		if fill(z) == EOZ {
-			return EOZ
+		if luaZ_fill(z) == c.int(EOZ) {
+			return c.int(EOZ)
 		} else {
 			// fill removed first byte; put it back
 			z.n += 1
 			z.p = z.p[-1:] // back up pointer
 		}
 	}
-	return char2int(z.p[0])
+	return c.int(char2int(z.p[0]))
+}
+
+// Initialize a ZIO stream
+@(export, link_name = "luaZ_init")
+luaZ_init :: proc "c" (L: ^lua_State, z: ^ZIO, reader: Reader, data: rawptr) {
+	z.L = L
+	z.reader = reader
+	z.data = data
+	z.n = 0
+	z.p = nil
 }
 
 // Read n bytes from stream into buffer
 // Returns number of bytes NOT read (0 = success)
-read :: proc(z: ^ZIO, b: rawptr, n: c.size_t) -> c.size_t {
+@(export, link_name = "luaZ_read")
+luaZ_read :: proc "c" (z: ^ZIO, b: rawptr, n: c.size_t) -> c.size_t {
+	context = runtime.default_context()
 	remaining := n
 	dest := cast([^]u8)b
 	offset: c.size_t = 0
 
 	for remaining > 0 {
-		if lookahead(z) == EOZ {
+		if luaZ_lookahead(z) == c.int(EOZ) {
 			return remaining // return number of missing bytes
 		}
 
@@ -144,25 +158,26 @@ read :: proc(z: ^ZIO, b: rawptr, n: c.size_t) -> c.size_t {
 }
 
 // Ensure buffer has at least n bytes of space
-// Note: This requires memory allocation from lua_State
-// For now, returns existing buffer - will be completed when lstate is integrated
-openspace :: proc(L: rawptr, buff: ^Mbuffer, n: c.size_t) -> [^]u8 {
-	// TODO: Integrate with mem.reallocv when lstate is migrated
-	// For now, assume buffer is pre-allocated or caller handles it
+@(export, link_name = "luaZ_openspace")
+luaZ_openspace :: proc "c" (L: ^lua_State, buff: ^Mbuffer, n: c.size_t) -> [^]u8 {
+	context = runtime.default_context()
 	if n > buff.buffsize {
-		// Would need: resizebuffer(L, buff, max(n, LUA_MINBUFFER))
+		new_size := n
+		if new_size < LUA_MINBUFFER {
+			new_size = LUA_MINBUFFER
+		}
+		luaZ_resizebuffer(L, buff, new_size)
 	}
 	return buff.buffer
 }
 
-// Resize buffer (requires Lua allocator - stub for now)
-resizebuffer :: proc(L: rawptr, buff: ^Mbuffer, size: c.size_t) {
-	// TODO: Implement when lstate is migrated
-	// luaM_reallocvector(L, buff.buffer, buff.buffsize, size, u8)
+// Resize buffer
+luaZ_resizebuffer :: proc(L: ^lua_State, buff: ^Mbuffer, size: c.size_t) {
+	buff.buffer = luaM_reallocvector(L, buff.buffer, int(buff.buffsize), int(size), u8)
 	buff.buffsize = size
 }
 
 // Free buffer
-freebuffer :: proc(L: rawptr, buff: ^Mbuffer) {
-	resizebuffer(L, buff, 0)
+luaZ_freebuffer :: proc(L: ^lua_State, buff: ^Mbuffer) {
+	luaZ_resizebuffer(L, buff, 0)
 }

@@ -4,6 +4,7 @@ package core
 
 import "base:runtime"
 import "core:c"
+import "core:fmt"
 
 // Type names for debugging
 @(export, link_name = "luaT_typenames")
@@ -93,7 +94,11 @@ luaT_gettmbyobj :: proc "c" (L: ^lua_State, o: ^TValue, event: c.int) -> ^TValue
 		// mt = uvalue(o).uv.metatable
 		return nilobject // Luam disabled metatables for userdata
 	case:
-		mt = G(L).mt[ttype(o)]
+		tag := ttype(o)
+		if tag < 0 || tag >= i32(len(G(L).mt)) {
+			return nilobject
+		}
+		mt = G(L).mt[tag]
 	}
 
 	if mt == nil {

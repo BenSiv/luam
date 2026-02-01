@@ -5,12 +5,13 @@ import "core:fmt"
 import "core:os"
 import "core:strings"
 
-import _ "core"
+import "core"
 
 // Initial Odin entry point
 // This will just transfer control to the existing C implementation for now
 
 main :: proc() {
+	fmt.printf("DEBUG: Odin main starting...\n")
 	args := os.args
 	argc := i32(len(args))
 

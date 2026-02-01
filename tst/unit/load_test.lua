@@ -1,39 +1,39 @@
-print("esting unified load...")
+print("Testing unified load...")
 
-passed = true
+local passed = true
 
--- est load with string (formerly loadstring)
+-- Test load with string
 f, err = load("return 'loaded from string'")
-if f != nil then
+if f ~= nil then
     if f() == 'loaded from string' then
-        print("load(string): PSS")
+        print("load(string): PASS")
     else
-        print("load(string): FL (wrong return)")
+        print("load(string): FAIL (wrong return)")
         passed = false
     end
 else
-    print("load(string): FL (error: " .. tostring(err) .. ")")
+    print("load(string): FAIL (error: " .. tostring(err) .. ")")
     passed = false
 end
 
--- est load with function
+-- Test load with function
 code_part = "return 'loaded from function'"
-i = 0
+local i = 0
 func_reader = function()
     i = i + 1
     if i == 1 then return code_part else return nil end
 end
 
 f, err = load(func_reader, "myfuncs")
-if f != nil then
+if f ~= nil then
     if f() == 'loaded from function' then
-        print("load(function): PSS")
+        print("load(function): PASS")
     else
-        print("load(function): FL (wrong return)")
+        print("load(function): FAIL (wrong return)")
         passed = false
     end
 else
-    print("load(function): FL (error: " .. tostring(err) .. ")")
+    print("load(function): FAIL (error: " .. tostring(err) .. ")")
     passed = false
 end
 

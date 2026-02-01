@@ -26,10 +26,10 @@ OBJ_DIR= ../obj
 MKDIR= mkdir -p
 
 LUA_A=	$(OBJ_DIR)/liblua.a
-CORE_O=	$(OBJ_DIR)/lapi.o $(OBJ_DIR)/lcode.o $(OBJ_DIR)/ldebug.o $(OBJ_DIR)/ldo.o $(OBJ_DIR)/ldump.o $(OBJ_DIR)/lfunc.o $(OBJ_DIR)/lgc.o $(OBJ_DIR)/llex.o $(OBJ_DIR)/lmem.o \
-	$(OBJ_DIR)/lobject.o $(OBJ_DIR)/lopcodes.o $(OBJ_DIR)/lparser.o $(OBJ_DIR)/lstate.o $(OBJ_DIR)/ltm.o  \
-	$(OBJ_DIR)/lundump.o $(OBJ_DIR)/lzio.o
-# Shadowed by Odin: $(OBJ_DIR)/lstrlib.o $(OBJ_DIR)/lmathlib.o $(OBJ_DIR)/loslib.o $(OBJ_DIR)/linit.o $(OBJ_DIR)/lbaselib.o $(OBJ_DIR)/ltablib.o $(OBJ_DIR)/liolib.o $(OBJ_DIR)/ldblib.o $(OBJ_DIR)/bit.o $(OBJ_DIR)/loadlib.o
+CORE_O=	$(OBJ_DIR)/lcode.o $(OBJ_DIR)/ldebug.o $(OBJ_DIR)/ldo.o $(OBJ_DIR)/ldump.o $(OBJ_DIR)/llex.o \
+	$(OBJ_DIR)/lobject.o $(OBJ_DIR)/lopcodes.o $(OBJ_DIR)/lparser.o \
+	$(OBJ_DIR)/lundump.o $(OBJ_DIR)/api_shim.o
+# Shadowed by Odin: $(OBJ_DIR)/lgc.o $(OBJ_DIR)/lmem.o $(OBJ_DIR)/lapi.o $(OBJ_DIR)/lstrlib.o $(OBJ_DIR)/lmathlib.o $(OBJ_DIR)/loslib.o $(OBJ_DIR)/linit.o $(OBJ_DIR)/lbaselib.o $(OBJ_DIR)/ltablib.o $(OBJ_DIR)/liolib.o $(OBJ_DIR)/ldblib.o $(OBJ_DIR)/bit.o $(OBJ_DIR)/loadlib.o
 # Note: $(OBJ_DIR)/ldump.o is NOT shadowed, it's core.
 LIB_O=	$(OBJ_DIR)/lauxlib.o \
 	$(OBJ_DIR)/struct.o
@@ -182,15 +182,10 @@ $(OBJ_DIR)/ldump.o: ldump.c lua.h luaconf.h lobject.h llimits.h lstate.h ltm.h \
   lzio.h lmem.h lundump.h
 $(OBJ_DIR)/lfunc.o: lfunc.c lua.h luaconf.h lfunc.h lobject.h llimits.h lgc.h lmem.h \
   lstate.h ltm.h lzio.h
-$(OBJ_DIR)/lgc.o: lgc.c lua.h luaconf.h ldebug.h lstate.h lobject.h llimits.h ltm.h \
-  lzio.h lmem.h ldo.h lfunc.h lgc.h lstring.h ltable.h
-$(OBJ_DIR)/linit.o: linit.c lua.h luaconf.h lualib.h lauxlib.h
-$(OBJ_DIR)/liolib.o: liolib.c lua.h luaconf.h lauxlib.h lualib.h
-$(OBJ_DIR)/llex.o: llex.c lua.h luaconf.h ldo.h lobject.h llimits.h lstate.h ltm.h \
-  lzio.h lmem.h llex.h lparser.h lstring.h lgc.h ltable.h
-$(OBJ_DIR)/lmathlib.o: lmathlib.c lua.h luaconf.h lauxlib.h lualib.h
-$(OBJ_DIR)/lmem.o: lmem.c lua.h luaconf.h ldebug.h lstate.h lobject.h llimits.h \
-  ltm.h lzio.h lmem.h ldo.h
+# $(OBJ_DIR)/lgc.o: lgc.c lua.h luaconf.h ldebug.h lstate.h lobject.h llimits.h ltm.h \
+#   lzio.h lmem.h ldo.h lfunc.h lgc.h lstring.h ltable.h
+# $(OBJ_DIR)/lmem.o: lmem.c lua.h luaconf.h ldebug.h lstate.h lobject.h llimits.h \
+#   ltm.h lzio.h lmem.h ldo.h
 $(OBJ_DIR)/loadlib.o: loadlib.c lua.h luaconf.h lauxlib.h lualib.h
 $(OBJ_DIR)/lobject.o: lobject.c lua.h luaconf.h ldo.h lobject.h llimits.h lstate.h \
   ltm.h lzio.h lmem.h lstring.h lgc.h lvm.h
@@ -219,6 +214,7 @@ $(OBJ_DIR)/lvm.o: lvm.c lua.h luaconf.h ldebug.h lstate.h lobject.h llimits.h lt
   lzio.h lmem.h ldo.h lfunc.h lgc.h lopcodes.h lstring.h ltable.h lvm.h
 $(OBJ_DIR)/lzio.o: lzio.c lua.h luaconf.h llimits.h lmem.h lstate.h lobject.h ltm.h \
   lzio.h
+$(OBJ_DIR)/api_shim.o: api_shim.c lua.h luaconf.h
 $(OBJ_DIR)/print.o: print.c ldebug.h lstate.h lua.h luaconf.h lobject.h llimits.h \
   ltm.h lzio.h lmem.h lopcodes.h lundump.h
 

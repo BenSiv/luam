@@ -20,8 +20,7 @@ MAXTAGLOOP :: 100
 LUA_MULTRET :: -1
 
 // FFI to C functions
-// FFI to C functions
-foreign import lua_core "system:lua"
+foreign import lua_core "../../obj/liblua.a"
 
 foreign lua_core {
 	@(link_name = "luaG_typeerror")
@@ -36,8 +35,6 @@ foreign lua_core {
 	luaO_str2d_c :: proc(s: cstring, result: ^lua_Number) -> c.int ---
 	@(link_name = "luaO_rawequalObj")
 	luaO_rawequalObj_c :: proc(t1: ^TValue, t2: ^TValue) -> c.int ---
-	@(link_name = "luaZ_openspace")
-	luaZ_openspace_c :: proc(L: ^lua_State, buff: ^Mbuffer, n: c.size_t) -> [^]u8 ---
 }
 
 // Number arithmetic macros as inline procs
@@ -154,7 +151,7 @@ callTMres :: proc(L: ^lua_State, res: StkId, f: ^TValue, p1: ^TValue, p2: ^TValu
 	setobj2s(L, cast(StkId)(cast(uintptr)L.top + size_of(TValue)), p1) // 1st argument
 	setobj2s(L, cast(StkId)(cast(uintptr)L.top + 2 * size_of(TValue)), p2) // 2nd argument
 	L.top = cast(StkId)(cast(uintptr)L.top + 3 * size_of(TValue))
-	luaD_call_c(L, cast(StkId)(cast(uintptr)L.top - 3 * size_of(TValue)), 1)
+	luaD_call_pure(L, cast(StkId)(cast(uintptr)L.top - 3 * size_of(TValue)), 1)
 	res_restored := restorestack(L, result)
 	L.top = cast(StkId)(cast(uintptr)L.top - size_of(TValue))
 	setobjs2s(L, res_restored, L.top)
@@ -168,7 +165,7 @@ callTM :: proc(L: ^lua_State, f: ^TValue, p1: ^TValue, p2: ^TValue, p3: ^TValue)
 	setobj2s(L, cast(StkId)(cast(uintptr)L.top + 2 * size_of(TValue)), p2)
 	setobj2s(L, cast(StkId)(cast(uintptr)L.top + 3 * size_of(TValue)), p3)
 	L.top = cast(StkId)(cast(uintptr)L.top + 4 * size_of(TValue))
-	luaD_call_c(L, cast(StkId)(cast(uintptr)L.top - 4 * size_of(TValue)), 0)
+	luaD_call_pure(L, cast(StkId)(cast(uintptr)L.top - 4 * size_of(TValue)), 0)
 }
 
 // Get table value with metamethods
@@ -500,7 +497,7 @@ luaV_concat :: proc "c" (L: ^lua_State, total: int, last: int) {
 
 			// Allocate buffer
 			buff := &G(L).buff
-			buffer := luaZ_openspace_c(L, buff, tl)
+			buffer := luaZ_openspace(L, buff, tl)
 
 			tl = 0
 			for i = n; i > 0; i -= 1 {
