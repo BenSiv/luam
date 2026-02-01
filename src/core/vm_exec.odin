@@ -80,6 +80,7 @@ luaV_execute :: proc "c" (L: ^lua_State, nexeccalls: libc.int) {
 		ra := cast(StkId)(cast(uintptr)base + uintptr(getarg_a(i)) * size_of(TValue))
 
 		op := get_opcode(i)
+		// fmt.printf("DEBUG: VM op=%v a=%d b=%d c=%d\n", op, getarg_a(i), getarg_b(i), getarg_c(i))
 
 		switch op {
 		case .OP_MOVE:
@@ -123,6 +124,7 @@ luaV_execute :: proc "c" (L: ^lua_State, nexeccalls: libc.int) {
 			sethvalue(L, &env_val, cl.env)
 			luaV_gettable(L, &env_val, rb, ra)
 			base = L.base
+
 
 		case .OP_GETTABLE:
 			// Protect(luaV_gettable(L, RB(i), RKC(i), ra))
@@ -294,7 +296,9 @@ luaV_execute :: proc "c" (L: ^lua_State, nexeccalls: libc.int) {
 			setbvalue(ra, libc.int(res))
 
 		case .OP_LEN:
+			a := getarg_a(i)
 			b := getarg_b(i)
+			ra := cast(StkId)(cast(uintptr)base + uintptr(a) * size_of(TValue))
 			rb := cast(StkId)(cast(uintptr)base + uintptr(b) * size_of(TValue))
 
 			L.savedpc = pc
@@ -362,6 +366,7 @@ luaV_execute :: proc "c" (L: ^lua_State, nexeccalls: libc.int) {
 			}
 
 		case .OP_LT:
+			a := getarg_a(i)
 			b := getarg_b(i)
 			c := getarg_c(i)
 			rb: ^TValue
@@ -377,7 +382,7 @@ luaV_execute :: proc "c" (L: ^lua_State, nexeccalls: libc.int) {
 			less := luaV_lessthan(L, rb, rc)
 			base = L.base
 
-			if less == getarg_a(i) {
+			if int(less) == int(a) {
 				next_i := pc[0]
 				sbx := getarg_sbx(next_i)
 				pc = mem.ptr_offset(pc, int(sbx) + 1)

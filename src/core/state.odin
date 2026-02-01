@@ -306,16 +306,7 @@ f_luaopen :: proc "c" (L: ^lua_State, ud: rawptr) {
 	// We might need to import luaX_init or reimplement it.
 	// But llex.c is C.
 	// Import it.
-	fmt.printf(
-		"DEBUG: Odin size_of(TValue)=%d, align_of(TValue)=%d\n",
-		size_of(TValue),
-		align_of(TValue),
-	)
-	fmt.printf(
-		"DEBUG: Odin size_of(Table)=%d, align_of(Table)=%d\n",
-		size_of(Table),
-		align_of(Table),
-	)
+
 	luaX_init_unique_c(L)
 
 	s := luaS_new(L, "not enough memory")
@@ -397,9 +388,23 @@ luaE_freethread :: proc "c" (L: ^lua_State, L1: ^lua_State) {
 	luaM_freemem(L, fromstate(L1), c.size_t(state_size(size_of(lua_State))))
 }
 
+@(private)
+struct_size_check :: proc() {
+	fmt.printf("DIAGNOSTIC: size_of(TValue) = %d (eval expecting 16)\n", size_of(TValue))
+	fmt.printf("DIAGNOSTIC: size_of(TKey) = %d\n", size_of(TKey))
+	fmt.printf("DIAGNOSTIC: size_of(Node) = %d\n", size_of(Node))
+	fmt.printf("DIAGNOSTIC: size_of(Table) = %d\n", size_of(Table))
+	fmt.printf("DIAGNOSTIC: offset_of(Table, lsizenode) = %d\n", offset_of(Table, lsizenode))
+	fmt.printf("DIAGNOSTIC: offset_of(Table, metatable) = %d\n", offset_of(Table, metatable))
+	fmt.printf("DIAGNOSTIC: offset_of(Table, array) = %d\n", offset_of(Table, array))
+	fmt.printf("DIAGNOSTIC: offset_of(Table, node) = %d\n", offset_of(Table, node))
+	fmt.printf("DIAGNOSTIC: offset_of(Table, sizearray) = %d\n", offset_of(Table, sizearray))
+}
+
 @(export, link_name = "lua_newstate")
 lua_newstate :: proc "c" (f: Alloc, ud: rawptr) -> ^lua_State {
 	context = runtime.default_context()
+	struct_size_check()
 	l := f(ud, nil, 0, c.size_t(state_size(size_of(LG))))
 	if l == nil {
 		return nil

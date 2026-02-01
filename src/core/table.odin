@@ -4,7 +4,6 @@ package core
 
 import "base:runtime"
 import "core:c"
-import "core:fmt"
 import "core:mem"
 
 // Max size of array part is 2^MAXBITS
@@ -200,6 +199,8 @@ luaH_new :: proc "c" (L: ^lua_State, narray: c.int, nhash: c.int) -> ^Table {
 	t.sizearray = 0
 	t.lsizenode = 0
 	t.node = dummynode
+	t.gclist = nil // Initialize missing field
+	fmt.printf("DEBUG: luaH_new t=%p narray=%d nhash=%d\n", t, narray, nhash)
 	setarrayvector(L, t, int(narray))
 	setnodevector(L, t, int(nhash))
 	return t
@@ -222,26 +223,72 @@ luaH_free :: proc "c" (L: ^lua_State, t: ^Table) {
 @(export, link_name = "luaH_getnum")
 luaH_getnum :: proc "c" (t: ^Table, key: c.int) -> ^TValue {
 	context = runtime.default_context()
+	fmt.printf(
+		"DEBUG: luaH_getnum t=%p key=%d sizearray=%d lsizenode=%d\n",
+		t,
+		key,
+		t.sizearray,
+		t.lsizenode,
+	)
 
 	// Check array part first
 	if u32(key - 1) < u32(t.sizearray) {
-		result := &t.array[key - 1]
-		return result
+		return &t.array[key - 1]
 	}
 
 	// Search hash part
 	nk := lua_Number(key)
 	n := hashnum(t, nk)
-	for n != nil {
-		k := gkey(n)
-		if ttisnumber(k) && k.value.n == nk {
-			result := gval(n)
-			return result
-		}
-		n = gnext(n)
+
+	if n == dummynode {
+		fmt.printf("DEBUG: luaH_getnum key=%d -> dummynode\n", key)
+		return nilobject
 	}
 
-	// Not found
+	count := 0
+	nodes := t.node
+	num_nodes := twoto(t.lsizenode)
+
+	for n != nil {
+		if count > 1000 {
+			fmt.printf("CRITICAL: luaH_getnum loop > 1000 for key %d t=%p! Breaking.\n", key, t)
+			break
+		}
+
+		// Bounds check
+		offset := (cast(uintptr)n - cast(uintptr)nodes) / size_of(Node)
+		fmt.printf(
+			"DEBUG: luaH_getnum it=%d n=%p idx=%d key_tt=%d\n",
+			count,
+			n,
+			offset,
+			gkey(n).tt,
+		)
+
+		if offset >= uintptr(num_nodes) {
+			fmt.printf(
+				"CRITICAL: luaH_getnum OOB n=%p (idx %d) for t=%p (max %d)!\n",
+				n,
+				offset,
+				t,
+				num_nodes,
+			)
+			break
+		}
+
+		count += 1
+		k := gkey(n)
+
+		if ttisnumber(k) && k.value.n == nk {
+			fmt.printf("DEBUG: luaH_getnum it=%d found key=%d\n", count, key)
+			return gval(n)
+		}
+
+		next_n := gnext(n)
+		fmt.printf("DEBUG: luaH_getnum it=%d following next_n=%p\n", count, next_n)
+		n = next_n
+	}
+
 	return nilobject
 }
 
@@ -250,7 +297,6 @@ luaH_getnum :: proc "c" (t: ^Table, key: c.int) -> ^TValue {
 luaH_getstr :: proc "c" (t: ^Table, key: ^TString) -> ^TValue {
 	context = runtime.default_context()
 	n := hashstr(t, key)
-	keystr := getstr(key)
 	for n != nil {
 		k := gkey(n)
 		if ttisstring(k) && rawtsvalue(k) == key {
@@ -279,6 +325,10 @@ luaH_get :: proc "c" (t: ^Table, key: ^TValue) -> ^TValue {
 		// Fall through to generic hash lookup
 		fallthrough
 	case:
+		// Debug generic lookup
+		if t != nil { 	// Always print to catch nil keys
+			fmt.printf("DEBUG: luaH_get generic key.tt=%d t=%p\n", key.tt, t)
+		}
 		node := mainposition(t, key)
 		for node != nil {
 			if rawequalObj(key2tval(node), key) {
@@ -302,13 +352,17 @@ getfreepos :: proc(t: ^Table) -> ^Node {
 	return nil
 }
 
-// Insert new key
+import "core:fmt"
+import "core:strings"
+
 newkey :: proc(L: ^lua_State, t: ^Table, key: ^TValue) -> ^TValue {
 	mp := mainposition(t, key)
+
 
 	if !ttisnil(gval(mp)) || mp == dummynode {
 		n := getfreepos(t)
 		if n == nil {
+			// fmt.printf("DEBUG: newkey table full, rehash\n")
 			rehash(L, t, key)
 			return luaH_set(L, t, key)
 		}
@@ -317,6 +371,7 @@ newkey :: proc(L: ^lua_State, t: ^Table, key: ^TValue) -> ^TValue {
 		if othern != mp {
 			// Colliding node is out of its main position
 			// Find previous node
+			// fmt.printf("DEBUG: newkey moving intruder mp=%p to n=%p\n", mp, n)
 			for gnext(othern) != mp {
 				othern = gnext(othern)
 			}
@@ -326,6 +381,7 @@ newkey :: proc(L: ^lua_State, t: ^Table, key: ^TValue) -> ^TValue {
 			setnilvalue(gval(mp))
 		} else {
 			// Colliding node is in its own main position
+			// fmt.printf("DEBUG: newkey collision at mp=%p, n=%p is new home\n", mp, n)
 			set_gnext(n, gnext(mp))
 			set_gnext(mp, n)
 			mp = n
@@ -336,6 +392,7 @@ newkey :: proc(L: ^lua_State, t: ^Table, key: ^TValue) -> ^TValue {
 	k := gkey(mp)
 	k.value = key.value
 	k.tt = key.tt
+	// fmt.printf("DEBUG: newkey set key in mp=%p tt=%d\n", mp, k.tt)
 	luaC_barriert(L, t, key)
 
 	return gval(mp)
@@ -575,7 +632,10 @@ luaH_getn :: proc "c" (t: ^Table) -> c.int {
 	}
 
 	// Search in hash part
-	return c.int(unbound_search(t, u32(j)))
+	// fmt.printf("DEBUG: luaH_getn t=%p sizearray=%d lsizenode=%d node=%p entering unbound_search\n", t, t.sizearray, t.lsizenode, t.node)
+	res := c.int(unbound_search(t, u32(j)))
+	fmt.printf("DEBUG: luaH_getn t=%p returning %d\n", t, res)
+	return res
 }
 
 @(private)
@@ -585,27 +645,24 @@ unbound_search :: proc(t: ^Table, j: u32) -> int {
 
 	// Find bounds
 	for !ttisnil(luaH_getnum(t, c.int(new_j))) {
+		fmt.printf("DEBUG: unbound_search find loop i=%d new_j=%d\n", i, new_j)
 		i = new_j
 		new_j *= 2
-		if new_j > u32(MAX_INT) {
-			// Overflow - linear search
-			ii := u32(1)
-			for !ttisnil(luaH_getnum(t, c.int(ii))) {
-				ii += 1
-			}
-			return int(ii - 1)
+		if new_j > u32(2147483647) / 2 { 	// Use literal for MAX_INT to be safe
+			break
 		}
 	}
-
-	// Binary search between i and j
+	// now i has boundary and new_j is outside
 	for new_j - i > 1 {
 		m := (i + new_j) / 2
+		// fmt.printf("DEBUG: unbound_search binary loop i=%d new_j=%d m=%d\n", i, new_j, m)
 		if ttisnil(luaH_getnum(t, c.int(m))) {
 			new_j = m
 		} else {
 			i = m
 		}
 	}
+	fmt.printf("DEBUG: unbound_search returning %d\n", i)
 	return int(i)
 }
 
@@ -614,13 +671,6 @@ unbound_search :: proc(t: ^Table, j: u32) -> int {
 luaH_next :: proc "c" (L: ^lua_State, t: ^Table, key: StkId) -> c.int {
 	context = runtime.default_context()
 	i := findindex(L, t, key)
-	fmt.printf(
-		"DEBUG: luaH_next: t=%p, sizearray=%d, sizenode=%d, start_i=%d\n",
-		t,
-		t.sizearray,
-		sizenode(t),
-		i,
-	)
 
 	// Search array part
 	for i += 1; i < int(t.sizearray); i += 1 {
@@ -634,11 +684,9 @@ luaH_next :: proc "c" (L: ^lua_State, t: ^Table, key: StkId) -> c.int {
 	// Search hash part
 	for i -= int(t.sizearray); i < sizenode(t); i += 1 {
 		n := gnode(t, i)
-		fmt.printf("DEBUG: luaH_next: checking hash node %d, val type=%d\n", i, ttype(gval(n)))
 		if !ttisnil(gval(n)) {
 			setobj(key, key2tval(n))
 			setobj(cast(^TValue)(cast(uintptr)key + size_of(TValue)), gval(n))
-			fmt.printf("DEBUG: luaH_next: returning key at hash node %d\n", i)
 			return 1
 		}
 	}
@@ -649,13 +697,11 @@ luaH_next :: proc "c" (L: ^lua_State, t: ^Table, key: StkId) -> c.int {
 @(private)
 findindex :: proc(L: ^lua_State, t: ^Table, key: StkId) -> int {
 	if ttisnil(key) {
-		fmt.printf("DEBUG: findindex: key is nil, returning -1\n")
 		return -1
 	}
 
 	i := arrayindex(key)
 	if i > 0 && i <= int(t.sizearray) {
-		// fmt.printf("DEBUG: findindex: key is in array at %d\n", i)
 		return i - 1
 	}
 
@@ -663,20 +709,17 @@ findindex :: proc(L: ^lua_State, t: ^Table, key: StkId) -> int {
 	for n != nil {
 		if rawequalObj(key2tval(n), key) {
 			idx := cast(int)((cast(uintptr)n - cast(uintptr)gnode(t, 0)) / size_of(Node))
-			fmt.printf("DEBUG: findindex: key found in hash at %d\n", idx)
 			return idx + int(t.sizearray)
 		}
 		// Check for dead key
 		k := gkey(n)
 		if k.tt == LUA_TDEADKEY && iscollectable(key) && k.value.gc == key.value.gc {
 			idx := cast(int)((cast(uintptr)n - cast(uintptr)gnode(t, 0)) / size_of(Node))
-			// fmt.printf("DEBUG: findindex: dead key found in hash at %d\n", idx)
 			return idx + int(t.sizearray)
 		}
 		n = gnext(n)
 	}
 
-	fmt.printf("DEBUG: findindex: key NOT FOUND, error\n")
 	luaG_runerror_c(L, "invalid key to 'next'")
 	return 0
 }

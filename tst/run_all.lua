@@ -1,6 +1,8 @@
 -- tst/run_all.lua
 -- Luam Test Runner
 
+print("DEBUG: Script started")
+
 ok, lfs_mod = pcall(require, "lfs")
 if not ok then
     lfs = nil
@@ -75,9 +77,11 @@ function run_test(path)
 end
 
 -- Main Execution
+
 all_tests = {}
 
 if #arg > 0 then
+
    print("DEBUG: arg table has " .. #arg .. " elements.")
    -- Use provided args
    for i=1, #arg do

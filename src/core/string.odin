@@ -55,7 +55,6 @@ luaS_resize :: proc "c" (L: ^lua_State, newsize: c.int) {
 
 	tb := &g.strt
 	oldsize := tb.size
-	// fmt.printf("DEBUG: luaS_resize from %d to %d (nuse=%d)\n", oldsize, newsize, tb.nuse)
 
 	// Allocate new hash table
 	newhash := cast([^]^GCObject)luaM_malloc(L, c.size_t(newsize) * size_of(^GCObject))
@@ -72,14 +71,6 @@ luaS_resize :: proc "c" (L: ^lua_State, newsize: c.int) {
 			next := p.gch.next // save next
 			ts := rawgco2ts(p)
 			h := ts.tsv.hash
-			// if getstr(ts) == "insert" {
-			// 	fmt.printf(
-			// 		"DEBUG: luaS_resize: rehashing 'insert', hash=%d, old_bucket=%d, new_bucket=%d\n",
-			// 		h,
-			// 		i,
-			// 		str_lmod(h, newsize),
-			// 	)
-			// }
 			h1 := str_lmod(h, newsize) // new position
 			p.gch.next = newhash[h1] // chain it
 			newhash[h1] = p
@@ -108,7 +99,6 @@ newlstr :: proc(L: ^lua_State, str: [^]u8, l: c.size_t, h: u32) -> ^TString {
 
 	// Allocate string object
 	ts := cast(^TString)luaM_malloc(L, (l + 1) * size_of(u8) + size_of(TString))
-	fmt.printf("DEBUG: Odin newlstr allocated %p for '%s' len %d\n", ts, str, l)
 
 	// Initialize header
 	ts.tsv.len = l
@@ -141,8 +131,6 @@ newlstr :: proc(L: ^lua_State, str: [^]u8, l: c.size_t, h: u32) -> ^TString {
 @(export, link_name = "luaS_newlstr")
 luaS_newlstr :: proc "c" (L: ^lua_State, str: cstring, l: c.size_t) -> ^TString {
 	context = runtime.default_context()
-	fmt.printf("DEBUG: Odin size_of(TString)=%d\n", size_of(TString))
-	// fmt.printf("DEBUG: Odin luaS_newlstr: '%s' (%d)\n", str, l)
 	g := G(L)
 	str_data := cast([^]u8)str
 
@@ -164,7 +152,16 @@ luaS_newlstr :: proc "c" (L: ^lua_State, str: cstring, l: c.size_t) -> ^TString 
 		ts := rawgco2ts(o)
 		if ts.tsv.len == l {
 			content := getstr(ts)
-			if mem.compare_ptrs(cast(rawptr)content, cast(rawptr)str, int(l)) == 0 {
+			if mem.compare((cast([^]u8)content)[:l], (cast([^]u8)str)[:l]) == 0 {
+				if l == 3 {
+					fmt.printf(
+						"DEBUG: interning hit '%s' at %p (hash %08X, bucket %d)\n",
+						content,
+						ts,
+						h,
+						bucket,
+					)
+				}
 				// Found it!
 				// String may be dead - resurrect it
 				if isdead(g, o) {
@@ -173,7 +170,17 @@ luaS_newlstr :: proc "c" (L: ^lua_State, str: cstring, l: c.size_t) -> ^TString 
 				return ts
 			}
 		}
-		o = o.gch.next
+		o = ts.tsv.next
+	}
+
+	if l == 3 {
+		fmt.printf(
+			"DEBUG: interning NEW '%s' (hash %08X, bucket %d, stsize %d)\n",
+			str,
+			h,
+			bucket,
+			g.strt.size,
+		)
 	}
 
 	// Not found - create new string
