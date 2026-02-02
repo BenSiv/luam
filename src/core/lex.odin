@@ -380,6 +380,13 @@ llex :: proc(ls: ^LexState, seminfo: ^SemInfo) -> c.int {
 					}
 				}
 				ts := luaX_newstring(ls, cstring(ls.buff.buffer), bufflen(ls.buff))
+				if getstr(ts) == "if" {
+					fmt.printf(
+						"DEBUG: llex scanned 'if' at %p with reserved=%d\n",
+						ts,
+						ts.tsv.reserved,
+					)
+				}
 				if ts.tsv.reserved > 0 {
 					return c.int(ts.tsv.reserved) - 1 + FIRST_RESERVED
 				} else {
@@ -401,12 +408,22 @@ llex :: proc(ls: ^LexState, seminfo: ^SemInfo) -> c.int {
 @(export, link_name = "luaX_init_unique")
 luaX_init :: proc "c" (L: ^lua_State) {
 	context = runtime.default_context()
+	fmt.printf("DEBUG: luaX_init called\n")
+	fmt.printf("DEBUG: size_of(TValue) = %d\n", size_of(TValue))
+	fmt.printf("DEBUG: size_of(Value) = %d\n", size_of(Value))
+	fmt.printf("DEBUG: size_of(Node) = %d\n", size_of(Node))
+	fmt.printf("DEBUG: size_of(TKey) = %d\n", size_of(TKey))
+	fmt.printf("DEBUG: offset_of(TValue, tt) = %d\n", offset_of(TValue, tt))
 	// Initialize reserved words
 	// In C: luaX_init_unique logic
 	for i in 0 ..< NUM_RESERVED {
-		ts := luaS_new(L, strings.clone_to_cstring(luaX_tokens[i]))
+		name := strings.clone_to_cstring(luaX_tokens[i])
+		ts := luaS_new(L, name)
 		luaS_fix(ts)
 		ts.tsv.reserved = u8(i + 1)
+		if luaX_tokens[i] == "if" {
+			fmt.printf("DEBUG: 'if' initialized at %p with reserved=%d\n", ts, ts.tsv.reserved)
+		}
 	}
 }
 

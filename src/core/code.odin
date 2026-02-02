@@ -10,6 +10,42 @@ NO_JUMP :: -1
 
 // --- Functions ---
 
+luaK_storevar :: proc(fs: ^FuncState, var, ex: ^expdesc) {
+	#partial switch var.k {
+	case .VLOCAL:
+		freeexp(fs, ex)
+		exp2reg(fs, ex, int(var.u.s.info))
+	// Track inferred type (omitted if not in FuncState yet)
+	// fs.actvartypes[var.u.s.info] = ex.inferred
+	case .VUPVAL:
+		e := int(luaK_exp2anyreg(fs, ex))
+		luaK_codeABC(fs, .OP_SETUPVAL, e, int(var.u.s.info), 0)
+	case .VGLOBAL:
+		e := int(luaK_exp2anyreg(fs, ex))
+		luaK_codeABx(fs, .OP_SETGLOBAL, e, int(var.u.s.info))
+	case .VINDEXED:
+		e := int(luaK_exp2RK(fs, ex))
+		luaK_codeABC(fs, .OP_SETTABLE, int(var.u.s.info), int(var.u.s.aux), e)
+	}
+	freeexp(fs, ex)
+}
+
+luaK_self :: proc(fs: ^FuncState, e, key: ^expdesc) {
+	luaK_exp2anyreg(fs, e)
+	freeexp(fs, e)
+	func := fs.freereg
+	luaK_reserveregs(fs, 2)
+	luaK_codeABC(fs, .OP_SELF, int(func), int(e.u.s.info), int(luaK_exp2RK(fs, key)))
+	freeexp(fs, key)
+	e.u.s.info = c.int(func)
+	e.k = .VNONRELOC
+}
+
+luaK_indexed :: proc(fs: ^FuncState, t, k: ^expdesc) {
+	t.u.s.aux = c.int(luaK_exp2RK(fs, k))
+	t.k = .VINDEXED
+}
+
 luaK_codeABC :: proc(fs: ^FuncState, o: OpCode, A, B, C: int) -> int {
 	// lua_assert(getOpMode(o) == iABC);
 	// lua_assert(getBMode(o) != OpArgN || B == 0);
@@ -276,6 +312,16 @@ luaK_dischargevars :: proc(fs: ^FuncState, e: ^expdesc) {
 		e.k = .VRELOCABLE
 	case .VVARARG, .VCALL:
 		luaK_setoneret(fs, e)
+	}
+}
+
+luaK_setreturns :: proc(fs: ^FuncState, e: ^expdesc, nresults: c.int) {
+	if e.k == .VCALL { 	// expression is an open function call?
+		setarg_c(getcode_ref(fs, e), int(nresults + 1))
+	} else if e.k == .VVARARG {
+		setarg_b(getcode_ref(fs, e), int(nresults + 1))
+		setarg_a(getcode_ref(fs, e), int(fs.freereg))
+		luaK_reserveregs(fs, 1)
 	}
 }
 
@@ -708,12 +754,63 @@ removevalues :: proc(fs: ^FuncState, list: c.int) {
 	}
 }
 
-luaK_goiftrue :: proc(fs: ^FuncState, e: ^expdesc, strict: c.int) {
-	// Stub or partial impl needed for infix
+luaK_goiftrue :: proc(fs: ^FuncState, e: ^expdesc, strict: c.int = 0) {
+	pc: c.int /* pc of last jump */
+	luaK_dischargevars(fs, e)
+	#partial switch e.k {
+	case .VK, .VKNUM:
+		if strict != 0 {
+			luaX_syntaxerror(fs.ls, "conditional requires a boolean value, got constant")
+		}
+		fallthrough
+	case .VTRUE:
+		pc = NO_JUMP /* always true; do nothing */
+	case .VJMP:
+		invertjump(fs, e)
+		pc = e.u.s.info
+	case:
+		pc = c.int(jumponcond(fs, e, 0, int(strict)))
+	}
+	luaK_concat(fs, &e.f, pc) /* insert last jump in `f' list */
+	luaK_patchtohere(fs, e.t)
+	e.t = NO_JUMP
 }
 
-luaK_goiffalse :: proc(fs: ^FuncState, e: ^expdesc, strict: c.int) {
-	// Stub
+luaK_goiffalse :: proc(fs: ^FuncState, e: ^expdesc, strict: c.int = 0) {
+	pc: c.int /* pc of last jump */
+	luaK_dischargevars(fs, e)
+	#partial switch e.k {
+	case .VK, .VKNUM:
+		if strict != 0 {
+			luaX_syntaxerror(fs.ls, "conditional requires a boolean value, got constant")
+		}
+		fallthrough
+	case .VNIL, .VFALSE:
+		pc = NO_JUMP /* always false; do nothing */
+	case .VJMP:
+		pc = e.u.s.info
+	case:
+		pc = c.int(jumponcond(fs, e, 1, int(strict)))
+	}
+	luaK_concat(fs, &e.t, pc) /* insert last jump in `t' list */
+	luaK_patchtohere(fs, e.f)
+	e.f = NO_JUMP
+}
+
+@(private)
+jumponcond :: proc(fs: ^FuncState, e: ^expdesc, cond: int, strict: int) -> int {
+	if e.k == .VRELOCABLE {
+		ie := getcode(fs, e)
+		if get_opcode(ie) == .OP_NOT {
+			// [ANTIGRAVITY] Strict Check: Do not optimize away OP_NOT.
+			// Standard behavior would be:
+			// fs.pc -= 1
+			// return condjump(fs, .OP_TEST, int(getarg_b(ie)), NO_REG, (cond == 0 ? 1 : 0) + (strict != 0 ? 2 : 0))
+		}
+	}
+	discharge2anyreg(fs, e)
+	freeexp(fs, e)
+	return condjump(fs, .OP_TESTSET, NO_REG, int(e.u.s.info), cond + (strict != 0 ? 2 : 0))
 }
 
 luaK_setlist :: proc(fs: ^FuncState, base, nelems, tostore: c.int) {

@@ -24,7 +24,8 @@ luaL_openlibs :: proc "c" (L: ^lua.State) {
 		{"math", lib.open_math},
 		{"debug", lib.open_debug},
 		{"bit", lib.open_bit},
-		{"struct", lua.luaopen_struct},
+		{"bit", lib.open_bit},
+		// {"struct", lua.luaopen_struct},
 	}
 
 	for lib_item in libs {

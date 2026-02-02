@@ -123,10 +123,8 @@ static int getargs(lua_State *L, char **argv, int n) {
   int i;
   int argc = 0;
   while (argv[argc]) {
-    printf("DEBUG: getargs argv[%d] = %p (%s)\n", argc, (void*)argv[argc], argv[argc]);
-    argc++;              /* count total number of arguments */
+    argc++; /* count total number of arguments */
   }
-  printf("DEBUG: getargs total argc = %d, n = %d\n", argc, n);
   narg = argc - (n + 1); /* number of arguments to the script */
   luaL_checkstack(L, narg + 3, "too many arguments to script");
   for (i = n + 1; i < argc; i++)

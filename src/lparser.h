@@ -11,7 +11,6 @@
 #include "lobject.h"
 #include "lzio.h"
 
-
 /*
 ** Expression descriptor
 */
@@ -60,15 +59,12 @@ typedef struct expdesc {
   InferredType inferred; /* compile-time inferred type */
 } expdesc;
 
-
 typedef struct upvaldesc {
   lu_byte k;
   lu_byte info;
 } upvaldesc;
 
-
 struct BlockCnt; /* defined in lparser.c */
-
 
 /* state needed to generate code for a given function */
 typedef struct FuncState {
@@ -91,9 +87,7 @@ typedef struct FuncState {
   InferredType actvartypes[LUAI_MAXVARS]; /* inferred types for locals */
 } FuncState;
 
-
-LUAI_FUNC Proto *luaY_parser(lua_State *L, ZIO *z, Mbuffer *buff,
-                             const char *name);
-
+LUAI_FUNC Proto *luamY_parser(lua_State *L, ZIO *z, Mbuffer *buff,
+                              const char *name);
 
 #endif

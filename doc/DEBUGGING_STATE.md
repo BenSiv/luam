@@ -1,58 +1,32 @@
-# Lua VM Debugging State - 2026-02-01
+# Lua VM Debugging State - 2026-02-01 (Update)
 
-## Problem Description
-The Lua VM hangs indefinitely when running `tst/run_all.lua`. Specifically, it hangs at line 83 during the evaluation of `#arg` or immediately thereafter.
+## Achievements
+1. **Fixed VM Hang:** The hang in `tst/run_all.lua` was caused by inverted logic in `OP_LT` and `OP_LE` instructions in `vm_exec.odin`.
+   - Lua spec: `if ((RK(B) < RK(C)) ~= A) then pc++`. This means if condition != A, jump.
+   - Odin implementation had: `if (less == A)`.
+   - Fix: Changed `==` to `!=` for `OP_LT` and `OP_LE`.
+   - Result: Test suite now runs past the hang.
 
-```lua
-83: if #arg > 0 then
-85:    print("DEBUG: arg table has " .. #arg .. " elements.")
-```
+2. **Build System Update:**
+   - Modified build process to link Odin implementations of `base`, `string`, etc., by stripping C implementations (`lbaselib.o`, `lstrlib.o`) from `liblua.a`.
+   - Exported `luaopen_base` and `luaopen_string` with correct `link_name` in Odin.
 
-## Current Findings
+## New Problem: Missing Library Functions
+After fixing the hang, the test fails with `attempt to call a nil value` at `string.match` (line 90 of `tst/run_all.lua`).
+Further debugging revealed:
+- `tst/run_all.lua` crashes because `string.match` is nil.
+- Basic tests (`-e "print(pairs)"`) also crash because `print` and `pairs` are nil.
+- `Debug` logs confirm `open_base` (Odin) is called.
+- `_G` is set.
+- However, `interning NEW 'print'` logs are missing, suggesting `luaL_register` loop is not processing `base_funcs` correctly or `print` string is not being interned/set.
+- `string` library functions like `len` and `rep` ARE registered (logs show `interning NEW 'len'`), but `match` seems missing.
 
-### 1. Table Length Evaluation (`luaH_getn`)
-- **Verified:** `luaH_getn` is functioning correctly.
-- For the `arg` table, `sizearray` is 31 (correct for the number of test files passed in `bld/test.sh`).
-- `luaH_getn` correctly enters `unbound_search` to check the hash part.
-- `unbound_search` calls `luaH_getnum(t, 32)`, which correctly returns `nil` (meaning the boundary is 31).
-- `luaH_getn` returns **31** successfully.
+### Current Hypothesis
+- `luaL_register` (in `lauxlib.c`) might be failing to iterate the `base_funcs` array correctly when passed from Odin.
+- Struct layout mismatch for `luaL_Reg` between Odin and C?
+- `luaL_findtable` usage in `luaL_register` might be resolving `_G` incorrectly or creating a new table instead of using `_G`.
 
-### 2. ABI and Struct Layout
-- **Verified:** Odin and C structure layouts match.
-- `TValue` size: 16 bytes.
-- `Table` offsets:
-    - `metatable`: 16
-    - `array`: 24
-    - `node`: 32
-    - `sizearray`: 56
-- `TValue.tt` is confirmed as `c.int` (4 bytes), matching Lua 5.1's C implementation.
-
-### 3. String Interning
-- Interning appears to work (verified via debug logs showing "interning hit" and "interning NEW").
-- Global string table starts at size 0 and is resized to 256 (`MINSTRTABSIZE`) during initialization.
-
-### 4. Suspected Locations for the Hang
-The hang occurs *after* `luaH_getn` returns. The next VM instructions are:
-1. `OP_LEN` (completed)
-2. `OP_LT` (evaluating `31 > 0`)
-3. `OP_CONCAT` (merging strings for the `print` statement)
-4. `tostring` (converting `31` to string `"31"`)
-5. `OP_CALL` (calling `print`)
-
-**Potential culprits:**
-- **`OP_LT`**: Incorrect branching logic in `vm_exec.odin`.
-- **`luaV_concat`**: Infinite loop or logic error during string merging in `vm.odin`.
-- **`tostring` / `num_to_str`**: Issues in the number-to-string conversion helper.
-- **`luaS_newlstr`**: Potential infinite loop during bucket traversal or rehashing if `next` links are corrupted.
-
-## Experiments & Instrumentation Done
-- Added extensive logging to `luaH_getnum`, `newkey`, `unbound_search`, and `luaH_getn`.
-- Added ABI verification prints in `state.odin`.
-- Added instruction tracing in `vm_exec.odin` (currently commented out but ready for use).
-- Integrated `fmt.bprintf` for simplified `num_to_str` implementation in `vm.odin`.
-
-## Strategy for Next Session
-1. Enable `OP_CODE` tracing in `vm_exec.odin` to see exactly which instruction hangs.
-2. If `OP_CONCAT` is the culprit, instrument `luaV_concat` and `luaS_newlstr` to check for length overflows or pointer corruption.
-3. If `OP_LT` is the culprit, verify the `pc` increment logic in `vm_exec.odin` for conditional jumps.
-4. Verify `savestack`/`restorestack` logic in Odin, as it might be losing precision or miscalculating offsets during stack reallocations.
+## Next Steps
+1. Verify `luaL_Reg` struct alignment and size consistency between C and Odin.
+2. Implement manual registration loop in `open_base` (bypassing `luaL_register`) to verify if individual function insertion works.
+3. Investigate `luaH_getstr` failure for `string.match` despite successful insertion (if inserted).

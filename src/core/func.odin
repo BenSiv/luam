@@ -43,6 +43,7 @@ luaF_newCclosure :: proc "c" (L: ^lua_State, nelems: c.int, e: ^Table) -> ^Closu
 @(export, link_name = "luaF_newLclosure")
 luaF_newLclosure :: proc "c" (L: ^lua_State, nelems: c.int, e: ^Table) -> ^Closure {
 	context = runtime.default_context()
+	fmt.printf("DEBUG: luaF_newLclosure called. nelems=%d e=%p\n", nelems, e)
 	cl := cast(^Closure)luaM_malloc(L, sizeLclosure(int(nelems)))
 	luaC_link_c(L, obj2gco(cl), LUA_TFUNCTION)
 	cl.l.isC = 0

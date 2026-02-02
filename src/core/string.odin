@@ -153,15 +153,6 @@ luaS_newlstr :: proc "c" (L: ^lua_State, str: cstring, l: c.size_t) -> ^TString 
 		if ts.tsv.len == l {
 			content := getstr(ts)
 			if mem.compare((cast([^]u8)content)[:l], (cast([^]u8)str)[:l]) == 0 {
-				if l == 3 {
-					fmt.printf(
-						"DEBUG: interning hit '%s' at %p (hash %08X, bucket %d)\n",
-						content,
-						ts,
-						h,
-						bucket,
-					)
-				}
 				// Found it!
 				// String may be dead - resurrect it
 				if isdead(g, o) {
@@ -171,16 +162,6 @@ luaS_newlstr :: proc "c" (L: ^lua_State, str: cstring, l: c.size_t) -> ^TString 
 			}
 		}
 		o = ts.tsv.next
-	}
-
-	if l == 3 {
-		fmt.printf(
-			"DEBUG: interning NEW '%s' (hash %08X, bucket %d, stsize %d)\n",
-			str,
-			h,
-			bucket,
-			g.strt.size,
-		)
 	}
 
 	// Not found - create new string

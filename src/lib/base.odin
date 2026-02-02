@@ -468,7 +468,7 @@ base_corunning :: proc "c" (L: ^lua.State) -> c.int {
 	return 1
 }
 
-@(export)
+@(export, link_name = "luaopen_base")
 open_base :: proc "c" (L: ^lua.State) -> c.int {
 	context = runtime.default_context()
 	// fmt.eprintln("DEBUG: open_base start")
@@ -507,10 +507,14 @@ open_base :: proc "c" (L: ^lua.State) -> c.int {
 	// set global _G
 	lua.lua_pushvalue(L, lua.LUA_GLOBALSINDEX)
 	lua.lua_setglobal(L, "_G")
-	// fmt.eprintln("DEBUG: open_base _G set")
 
-	lua.luaL_register(L, "_G", &base_funcs[0])
-	// fmt.eprintln("DEBUG: open_base registered")
+	// Manual registration to bypass luaL_register issues
+	for i := 0; base_funcs[i].name != nil; i += 1 {
+		// fmt.printf("DEBUG: manual register %s\n", base_funcs[i].name)
+		lua.lua_pushcfunction(L, base_funcs[i].func)
+		lua.lua_setglobal(L, base_funcs[i].name)
+	}
+	// lua.luaL_register(L, "_G", &base_funcs[0])
 
 	lua.lua_pushliteral(L, lua.LUA_VERSION)
 	lua.lua_setglobal(L, "_VERSION")
@@ -525,10 +529,8 @@ open_base :: proc "c" (L: ^lua.State) -> c.int {
 	lua.pushcfunction(L, base_next)
 	lua.lua_pushcclosure(L, base_pairs, 1)
 	lua.lua_setglobal(L, "pairs")
-	// fmt.eprintln("DEBUG: open_base pairs set")
 
 	lua.luaL_register(L, "coroutine", &co_funcs[0])
-	// fmt.eprintln("DEBUG: open_base end")
 
 	return 2
 }

@@ -13,7 +13,7 @@ make clean
 make o a MYCFLAGS="-DLUA_USE_LINUX -fPIC"
 # Strip objects now implemented in Odin
 # Strip objects now implemented in Odin
-ar d ../obj/liblua.a lfunc.o ltable.o lvm.o lstring.o lopcodes.o ltm.o
+ar d ../obj/liblua.a lfunc.o ltable.o lvm.o lstring.o lopcodes.o ltm.o lparser.o lcode.o llex.o
 cd ..
 
 # Ensure build directory exists

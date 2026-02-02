@@ -11,7 +11,6 @@ import "core"
 // This will just transfer control to the existing C implementation for now
 
 main :: proc() {
-	fmt.printf("DEBUG: Odin main starting...\n")
 	args := os.args
 	argc := i32(len(args))
 

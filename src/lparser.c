@@ -264,8 +264,9 @@ static int singlevaraux(FuncState *fs, TString *n, expdesc *var, int base) {
 static void singlevar(LexState *ls, expdesc *var) {
   TString *varname = str_checkname(ls);
   FuncState *fs = ls->fs;
-  if (singlevaraux(fs, varname, var, 1) == VGLOBAL)
+  if (singlevaraux(fs, varname, var, 1) == VGLOBAL) {
     var->u.s.info = luaK_stringK(fs, varname); /* info points to global name */
+  }
 }
 
 static void adjust_assign(LexState *ls, int nvars, int nexps, expdesc *e) {
@@ -391,7 +392,7 @@ static void close_func(LexState *ls) {
   L->top -= 2; /* remove table and prototype from the stack */
 }
 
-Proto *luaY_parser(lua_State *L, ZIO *z, Mbuffer *buff, const char *name) {
+Proto *luamY_parser(lua_State *L, ZIO *z, Mbuffer *buff, const char *name) {
   struct LexState lexstate;
   struct FuncState funcstate;
 

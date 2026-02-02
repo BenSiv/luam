@@ -4,6 +4,7 @@ package core
 
 import "base:runtime"
 import "core:c"
+import libc "core:c/libc"
 import "core:mem"
 
 // Max size of array part is 2^MAXBITS
@@ -200,7 +201,6 @@ luaH_new :: proc "c" (L: ^lua_State, narray: c.int, nhash: c.int) -> ^Table {
 	t.lsizenode = 0
 	t.node = dummynode
 	t.gclist = nil // Initialize missing field
-	fmt.printf("DEBUG: luaH_new t=%p narray=%d nhash=%d\n", t, narray, nhash)
 	setarrayvector(L, t, int(narray))
 	setnodevector(L, t, int(nhash))
 	return t
@@ -223,14 +223,6 @@ luaH_free :: proc "c" (L: ^lua_State, t: ^Table) {
 @(export, link_name = "luaH_getnum")
 luaH_getnum :: proc "c" (t: ^Table, key: c.int) -> ^TValue {
 	context = runtime.default_context()
-	fmt.printf(
-		"DEBUG: luaH_getnum t=%p key=%d sizearray=%d lsizenode=%d\n",
-		t,
-		key,
-		t.sizearray,
-		t.lsizenode,
-	)
-
 	// Check array part first
 	if u32(key - 1) < u32(t.sizearray) {
 		return &t.array[key - 1]
@@ -241,7 +233,6 @@ luaH_getnum :: proc "c" (t: ^Table, key: c.int) -> ^TValue {
 	n := hashnum(t, nk)
 
 	if n == dummynode {
-		fmt.printf("DEBUG: luaH_getnum key=%d -> dummynode\n", key)
 		return nilobject
 	}
 
@@ -251,28 +242,13 @@ luaH_getnum :: proc "c" (t: ^Table, key: c.int) -> ^TValue {
 
 	for n != nil {
 		if count > 1000 {
-			fmt.printf("CRITICAL: luaH_getnum loop > 1000 for key %d t=%p! Breaking.\n", key, t)
 			break
 		}
 
 		// Bounds check
 		offset := (cast(uintptr)n - cast(uintptr)nodes) / size_of(Node)
-		fmt.printf(
-			"DEBUG: luaH_getnum it=%d n=%p idx=%d key_tt=%d\n",
-			count,
-			n,
-			offset,
-			gkey(n).tt,
-		)
 
 		if offset >= uintptr(num_nodes) {
-			fmt.printf(
-				"CRITICAL: luaH_getnum OOB n=%p (idx %d) for t=%p (max %d)!\n",
-				n,
-				offset,
-				t,
-				num_nodes,
-			)
 			break
 		}
 
@@ -280,12 +256,10 @@ luaH_getnum :: proc "c" (t: ^Table, key: c.int) -> ^TValue {
 		k := gkey(n)
 
 		if ttisnumber(k) && k.value.n == nk {
-			fmt.printf("DEBUG: luaH_getnum it=%d found key=%d\n", count, key)
 			return gval(n)
 		}
 
 		next_n := gnext(n)
-		fmt.printf("DEBUG: luaH_getnum it=%d following next_n=%p\n", count, next_n)
 		n = next_n
 	}
 
@@ -299,8 +273,23 @@ luaH_getstr :: proc "c" (t: ^Table, key: ^TString) -> ^TValue {
 	n := hashstr(t, key)
 	for n != nil {
 		k := gkey(n)
-		if ttisstring(k) && rawtsvalue(k) == key {
-			return gval(n)
+		if ttisstring(k) {
+			if rawtsvalue(k) == key {
+				fmt.printf("DEBUG: luaH_getstr found '%s'\n", getstr(key))
+				return gval(n)
+			}
+			// Fallback check for debug - if hits, interning is broken
+			s1 := getstr(rawtsvalue(k))
+			s2 := getstr(key)
+			if libc.strcmp(s1, s2) == 0 {
+				fmt.printf(
+					"CRITICAL: String interning failure! different pointers for '%s': %p vs %p\n",
+					s1,
+					rawtsvalue(k),
+					key,
+				)
+				return gval(n)
+			}
 		}
 		n = gnext(n)
 	}
@@ -325,10 +314,6 @@ luaH_get :: proc "c" (t: ^Table, key: ^TValue) -> ^TValue {
 		// Fall through to generic hash lookup
 		fallthrough
 	case:
-		// Debug generic lookup
-		if t != nil { 	// Always print to catch nil keys
-			fmt.printf("DEBUG: luaH_get generic key.tt=%d t=%p\n", key.tt, t)
-		}
 		node := mainposition(t, key)
 		for node != nil {
 			if rawequalObj(key2tval(node), key) {
@@ -362,7 +347,6 @@ newkey :: proc(L: ^lua_State, t: ^Table, key: ^TValue) -> ^TValue {
 	if !ttisnil(gval(mp)) || mp == dummynode {
 		n := getfreepos(t)
 		if n == nil {
-			// fmt.printf("DEBUG: newkey table full, rehash\n")
 			rehash(L, t, key)
 			return luaH_set(L, t, key)
 		}
@@ -392,7 +376,13 @@ newkey :: proc(L: ^lua_State, t: ^Table, key: ^TValue) -> ^TValue {
 	k := gkey(mp)
 	k.value = key.value
 	k.tt = key.tt
-	// fmt.printf("DEBUG: newkey set key in mp=%p tt=%d\n", mp, k.tt)
+	/*
+	if k.tt == LUA_TSTRING {
+		fmt.printf("DEBUG: newkey set key '%s' in mp=%p\n", getstr(rawtsvalue(k)), mp)
+	} else {
+		fmt.printf("DEBUG: newkey set key in mp=%p tt=%d\n", mp, k.tt)
+	}
+	*/
 	luaC_barriert(L, t, key)
 
 	return gval(mp)
@@ -634,7 +624,6 @@ luaH_getn :: proc "c" (t: ^Table) -> c.int {
 	// Search in hash part
 	// fmt.printf("DEBUG: luaH_getn t=%p sizearray=%d lsizenode=%d node=%p entering unbound_search\n", t, t.sizearray, t.lsizenode, t.node)
 	res := c.int(unbound_search(t, u32(j)))
-	fmt.printf("DEBUG: luaH_getn t=%p returning %d\n", t, res)
 	return res
 }
 
@@ -645,7 +634,6 @@ unbound_search :: proc(t: ^Table, j: u32) -> int {
 
 	// Find bounds
 	for !ttisnil(luaH_getnum(t, c.int(new_j))) {
-		fmt.printf("DEBUG: unbound_search find loop i=%d new_j=%d\n", i, new_j)
 		i = new_j
 		new_j *= 2
 		if new_j > u32(2147483647) / 2 { 	// Use literal for MAX_INT to be safe
@@ -662,7 +650,6 @@ unbound_search :: proc(t: ^Table, j: u32) -> int {
 			i = m
 		}
 	}
-	fmt.printf("DEBUG: unbound_search returning %d\n", i)
 	return int(i)
 }
 
@@ -670,6 +657,7 @@ unbound_search :: proc(t: ^Table, j: u32) -> int {
 @(export, link_name = "luaH_next")
 luaH_next :: proc "c" (L: ^lua_State, t: ^Table, key: StkId) -> c.int {
 	context = runtime.default_context()
+	fmt.printf("DEBUG: luaH_next entry t=%p key=%p tt=%d\n", t, key, key.tt)
 	i := findindex(L, t, key)
 
 	// Search array part
@@ -685,6 +673,13 @@ luaH_next :: proc "c" (L: ^lua_State, t: ^Table, key: StkId) -> c.int {
 	for i -= int(t.sizearray); i < sizenode(t); i += 1 {
 		n := gnode(t, i)
 		if !ttisnil(gval(n)) {
+			fmt.printf(
+				"DEBUG: luaH_next found hash entry at %d, key type %d, key addr %p, top_val addr %p\n",
+				i,
+				key2tval(n).tt,
+				key,
+				cast(^TValue)(cast(uintptr)key + size_of(TValue)),
+			)
 			setobj(key, key2tval(n))
 			setobj(cast(^TValue)(cast(uintptr)key + size_of(TValue)), gval(n))
 			return 1

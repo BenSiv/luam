@@ -1105,7 +1105,7 @@ createmetatable :: proc "c" (L: ^lua.State) {
 }
 
 
-@(export)
+@(export, link_name = "luaopen_string")
 open_string :: proc "c" (L: ^lua.State) -> c.int {
 	context = runtime.default_context()
 	strlib := [?]lua.Reg {

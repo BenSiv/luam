@@ -80,7 +80,6 @@ luaV_execute :: proc "c" (L: ^lua_State, nexeccalls: libc.int) {
 		ra := cast(StkId)(cast(uintptr)base + uintptr(getarg_a(i)) * size_of(TValue))
 
 		op := get_opcode(i)
-		// fmt.printf("DEBUG: VM op=%v a=%d b=%d c=%d\n", op, getarg_a(i), getarg_b(i), getarg_c(i))
 
 		switch op {
 		case .OP_MOVE:
@@ -382,7 +381,7 @@ luaV_execute :: proc "c" (L: ^lua_State, nexeccalls: libc.int) {
 			less := luaV_lessthan(L, rb, rc)
 			base = L.base
 
-			if int(less) == int(a) {
+			if int(less) != int(a) {
 				next_i := pc[0]
 				sbx := getarg_sbx(next_i)
 				pc = mem.ptr_offset(pc, int(sbx) + 1)
@@ -406,7 +405,7 @@ luaV_execute :: proc "c" (L: ^lua_State, nexeccalls: libc.int) {
 			le := lessequal(L, rb, rc)
 			base = L.base
 
-			if le == getarg_a(i) {
+			if int(le) != getarg_a(i) {
 				next_i := pc[0]
 				sbx := getarg_sbx(next_i)
 				pc = mem.ptr_offset(pc, int(sbx) + 1)
@@ -609,6 +608,12 @@ luaV_execute :: proc "c" (L: ^lua_State, nexeccalls: libc.int) {
 			L.top = cast(StkId)(cast(uintptr)cb + 3 * size_of(TValue))
 
 			L.savedpc = pc
+			fmt.printf(
+				"DEBUG: OP_TFORLOOP calling function at %p (type %d), nresults=%d\n",
+				ra,
+				ra.tt,
+				getarg_c(i),
+			)
 			luaD_call_pure(L, cb, libc.int(getarg_c(i)))
 			base = L.base
 			L.top = L.ci.top
@@ -618,6 +623,7 @@ luaV_execute :: proc "c" (L: ^lua_State, nexeccalls: libc.int) {
 			ra = cast(StkId)(cast(uintptr)base + uintptr(getarg_a(i)) * size_of(TValue))
 			cb = cast(StkId)(cast(uintptr)ra + 3 * size_of(TValue))
 
+			fmt.printf("DEBUG: OP_TFORLOOP returned, first result type %d\n", cb.tt)
 			if !ttisnil(cb) {
 				setobjs2s(L, cast(StkId)(cast(uintptr)cb - size_of(TValue)), cb)
 				sbx := getarg_sbx(pc[0])
