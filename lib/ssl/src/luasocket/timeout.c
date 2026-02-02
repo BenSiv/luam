@@ -7,7 +7,7 @@
 #include <float.h>
 
 #include "lua.h"
-#include "lauxlib.h"
+#include "auxlib.h"
 
 #include "timeout.h"
 

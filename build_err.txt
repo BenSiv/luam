@@ -1,0 +1,137 @@
+- Building lfs...
+- Building yaml...
+bin/yaml_blob.c: In function ‘yaml_string_join’:
+bin/yaml_blob.c:98:71: warning: unused parameter ‘b_end’ [-Wunused-parameter]
+   98 |         yaml_char_t **b_start, yaml_char_t **b_pointer, yaml_char_t **b_end)
+      |                                                         ~~~~~~~~~~~~~~^~~~~
+bin/yaml_blob.c: In function ‘yaml_document_delete’:
+bin/yaml_blob.c:1122:7: warning: variable ‘context’ set but not used [-Wunused-but-set-variable]
+ 1122 |     } context;
+      |       ^~~~~~~
+bin/yaml_blob.c: In function ‘yaml_emitter_generate_anchor’:
+bin/yaml_blob.c:1739:46: warning: unused parameter ‘emitter’ [-Wunused-parameter]
+ 1739 | yaml_emitter_generate_anchor(yaml_emitter_t *emitter, int anchor_id)
+      |                              ~~~~~~~~~~~~~~~~^~~~~~~
+bin/yaml_blob.c: In function ‘yaml_emitter_emit_stream_start’:
+bin/yaml_blob.c:2405:35: error: ‘INT_MAX’ undeclared (first use in this function)
+ 2405 |             emitter->best_width = INT_MAX;
+      |                                   ^~~~~~~
+bin/yaml_blob.c:1400:1: note: ‘INT_MAX’ is defined in header ‘<limits.h>’; did you forget to ‘#include <limits.h>’?
+ 1399 | #include "b64.h"
+  +++ |+#include <limits.h>
+ 1400 | 
+bin/yaml_blob.c:2405:35: note: each undeclared identifier is reported only once for each function it appears in
+ 2405 |             emitter->best_width = INT_MAX;
+      |                                   ^~~~~~~
+bin/yaml_blob.c: In function ‘yaml_emitter_emit_alias’:
+bin/yaml_blob.c:2892:64: warning: unused parameter ‘event’ [-Wunused-parameter]
+ 2892 | yaml_emitter_emit_alias(yaml_emitter_t *emitter, yaml_event_t *event)
+      |                                                  ~~~~~~~~~~~~~~^~~~~
+bin/yaml_blob.c: In function ‘yaml_emitter_check_empty_document’:
+bin/yaml_blob.c:2977:51: warning: unused parameter ‘emitter’ [-Wunused-parameter]
+ 2977 | yaml_emitter_check_empty_document(yaml_emitter_t *emitter)
+      |                                   ~~~~~~~~~~~~~~~~^~~~~~~
+bin/yaml_blob.c: In function ‘yaml_emitter_write_plain_scalar’:
+bin/yaml_blob.c:1915:6: warning: value computed is not used [-Wunused-value]
+ 1915 |      && ((emitter->line_break == YAML_CR_BREAK ?                                \
+      |      ^~
+bin/yaml_blob.c:1943:11: note: in expansion of macro ‘PUT_BREAK’
+ 1943 |          (PUT_BREAK(emitter),                                                   \
+      |           ^~~~~~~~~
+bin/yaml_blob.c:3818:18: note: in expansion of macro ‘WRITE_BREAK’
+ 3818 |             if (!WRITE_BREAK(emitter, string)) return 0;
+      |                  ^~~~~~~~~~~
+bin/yaml_blob.c: In function ‘yaml_emitter_write_single_quoted_scalar’:
+bin/yaml_blob.c:1915:6: warning: value computed is not used [-Wunused-value]
+ 1915 |      && ((emitter->line_break == YAML_CR_BREAK ?                                \
+      |      ^~
+bin/yaml_blob.c:1943:11: note: in expansion of macro ‘PUT_BREAK’
+ 1943 |          (PUT_BREAK(emitter),                                                   \
+      |           ^~~~~~~~~
+bin/yaml_blob.c:3879:18: note: in expansion of macro ‘WRITE_BREAK’
+ 3879 |             if (!WRITE_BREAK(emitter, string)) return 0;
+      |                  ^~~~~~~~~~~
+bin/yaml_blob.c: In function ‘yaml_emitter_write_literal_scalar’:
+bin/yaml_blob.c:1915:6: warning: value computed is not used [-Wunused-value]
+ 1915 |      && ((emitter->line_break == YAML_CR_BREAK ?                                \
+      |      ^~
+bin/yaml_blob.c:1943:11: note: in expansion of macro ‘PUT_BREAK’
+ 1943 |          (PUT_BREAK(emitter),                                                   \
+      |           ^~~~~~~~~
+bin/yaml_blob.c:4142:18: note: in expansion of macro ‘WRITE_BREAK’
+ 4142 |             if (!WRITE_BREAK(emitter, string)) return 0;
+      |                  ^~~~~~~~~~~
+bin/yaml_blob.c: In function ‘yaml_emitter_write_folded_scalar’:
+bin/yaml_blob.c:1915:6: warning: value computed is not used [-Wunused-value]
+ 1915 |      && ((emitter->line_break == YAML_CR_BREAK ?                                \
+      |      ^~
+bin/yaml_blob.c:1943:11: note: in expansion of macro ‘PUT_BREAK’
+ 1943 |          (PUT_BREAK(emitter),                                                   \
+      |           ^~~~~~~~~
+bin/yaml_blob.c:4191:18: note: in expansion of macro ‘WRITE_BREAK’
+ 4191 |             if (!WRITE_BREAK(emitter, string)) return 0;
+      |                  ^~~~~~~~~~~
+bin/yaml_blob.c: In function ‘generate_error_message’:
+bin/yaml_blob.c:4751:44: warning: format ‘%d’ expects argument of type ‘int’, but argument 4 has type ‘size_t’ {aka ‘long unsigned int’} [-Wformat=]
+ 4751 |       snprintf(buf, sizeof(buf), ", line: %d, column: %d\n",
+      |                                           ~^
+      |                                            |
+      |                                            int
+      |                                           %ld
+ 4752 |          loader->parser.problem_mark.line + 1,
+      |          ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+      |                                           |
+      |                                           size_t {aka long unsigned int}
+bin/yaml_blob.c:4751:56: warning: format ‘%d’ expects argument of type ‘int’, but argument 5 has type ‘size_t’ {aka ‘long unsigned int’} [-Wformat=]
+ 4751 |       snprintf(buf, sizeof(buf), ", line: %d, column: %d\n",
+      |                                                       ~^
+      |                                                        |
+      |                                                        int
+      |                                                       %ld
+ 4752 |          loader->parser.problem_mark.line + 1,
+ 4753 |          loader->parser.problem_mark.column + 1);
+      |          ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~         
+      |                                             |
+      |                                             size_t {aka long unsigned int}
+bin/yaml_blob.c:4760:48: warning: format ‘%d’ expects argument of type ‘int’, but argument 5 has type ‘size_t’ {aka ‘long unsigned int’} [-Wformat=]
+ 4760 |       snprintf(buf, sizeof(buf), "%s at line: %d, column: %d\n",
+      |                                               ~^
+      |                                                |
+      |                                                int
+      |                                               %ld
+ 4761 |          loader->parser.context,
+ 4762 |          loader->parser.context_mark.line + 1,
+      |          ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~   
+      |                                           |
+      |                                           size_t {aka long unsigned int}
+bin/yaml_blob.c:4760:60: warning: format ‘%d’ expects argument of type ‘int’, but argument 6 has type ‘size_t’ {aka ‘long unsigned int’} [-Wformat=]
+ 4760 |       snprintf(buf, sizeof(buf), "%s at line: %d, column: %d\n",
+      |                                                           ~^
+      |                                                            |
+      |                                                            int
+      |                                                           %ld
+......
+ 4763 |          loader->parser.context_mark.column + 1);
+      |          ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~             
+      |                                             |
+      |                                             size_t {aka long unsigned int}
+bin/yaml_blob.c: In function ‘yaml_parser_parse_block_sequence_entry’:
+bin/yaml_blob.c:6181:21: warning: variable ‘dummy_mark’ set but not used [-Wunused-but-set-variable]
+ 6181 |         yaml_mark_t dummy_mark;     /* Used to eliminate a compiler warning. */
+      |                     ^~~~~~~~~~
+bin/yaml_blob.c: In function ‘yaml_parser_parse_block_mapping_key’:
+bin/yaml_blob.c:6291:21: warning: variable ‘dummy_mark’ set but not used [-Wunused-but-set-variable]
+ 6291 |         yaml_mark_t dummy_mark;     /* Used to eliminate a compiler warning. */
+      |                     ^~~~~~~~~~
+bin/yaml_blob.c: In function ‘yaml_parser_parse_flow_sequence_entry’:
+bin/yaml_blob.c:6374:17: warning: variable ‘dummy_mark’ set but not used [-Wunused-but-set-variable]
+ 6374 |     yaml_mark_t dummy_mark;     /* Used to eliminate a compiler warning. */
+      |                 ^~~~~~~~~~
+bin/yaml_blob.c: In function ‘yaml_parser_parse_flow_mapping_key’:
+bin/yaml_blob.c:6526:17: warning: variable ‘dummy_mark’ set but not used [-Wunused-but-set-variable]
+ 6526 |     yaml_mark_t dummy_mark;     /* Used to eliminate a compiler warning. */
+      |                 ^~~~~~~~~~
+bin/yaml_blob.c: In function ‘yaml_parser_decrease_flow_level’:
+bin/yaml_blob.c:8453:23: warning: variable ‘dummy_key’ set but not used [-Wunused-but-set-variable]
+ 8453 |     yaml_simple_key_t dummy_key;    /* Used to eliminate a compiler warning. */
+      |                       ^~~~~~~~~

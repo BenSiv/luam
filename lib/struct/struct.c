@@ -30,7 +30,7 @@
 #include <stddef.h>
 #include <string.h>
 
-#include "lauxlib.h"
+#include "auxlib.h"
 #include "lua.h"
 
 #if (LUA_VERSION_NUM >= 502)

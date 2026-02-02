@@ -1,4 +1,4 @@
-#include <lauxlib.h>
+#include <auxlib.h>
 #include <lua.h>
 #include <lualib.h>
 #include <stdio.h>

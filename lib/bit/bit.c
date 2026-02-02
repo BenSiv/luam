@@ -9,7 +9,7 @@
 
 #include "lua.h"
 
-#include "lauxlib.h"
+#include "auxlib.h"
 #include "lualib.h"
 
 /* Number of bits to consider: default is 32 */

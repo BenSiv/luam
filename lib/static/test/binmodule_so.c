@@ -1,6 +1,6 @@
 // Fails without -rdynamic flag to cc
 
-#include <lauxlib.h>
+#include <auxlib.h>
 #include <lua.h>
 #include <lualib.h>
 

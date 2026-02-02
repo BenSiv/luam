@@ -31,7 +31,7 @@
 #include <assert.h>
 
 #include "lua.h"
-#include "lauxlib.h"
+#include "auxlib.h"
 
 #include "sqlite3.h"
 

@@ -1,155 +1,152 @@
 #!/bin/bash
-# Build script for external modules
+set -e
 
-echo "Building modules..."
-
-# Ensure lib directory exists
-mkdir -p lib
-mkdir -p lib/socket
-mkdir -p lib/mime
-mkdir -p lib/ssl
-
-# 1. LuaFileSystem (lfs)
-if [ -d "lib/lfs/src" ]; then
-    echo "Compiling lfs.so..."
-    gcc -O2 -shared -fPIC -Isrc/ -o lib/lfs/lfs.so lib/lfs/src/lfs.c
-    if [ $? -eq 0 ]; then
-        echo "lfs.so built successfully."
-    else
-        echo "Failed to build lfs.so"
-    fi
-else
-    echo "Skipping lfs (source not found)"
+VERBOSE=0
+if [[ "$1" == "-v" || "$1" == "--verbose" ]]; then
+    VERBOSE=1
 fi
 
-# 2. Lua-ML
-if [ -d "lib/yaml" ]; then
-    echo "Compiling yaml.so..."
-    gcc -O2 -shared -fPIC -Isrc/ -Ilib/yaml -o lib/yaml/yaml.so lib/yaml/*.c
-    if [ $? -eq 0 ]; then
-        echo "yaml.so built successfully."
-    else
-        echo "Failed to build yaml.so"
+status() {
+    echo "- $@"
+}
+
+log() {
+    if [ $VERBOSE -eq 1 ]; then
+        echo "$@"
     fi
-else
-    echo "Skipping yaml (source not found)"
-fi
+}
 
-# 3. SQLite (lsqlite3)
-if [ -d "lib/sqlite" ]; then
-    echo "Compiling lsqlite3.so..."
-    gcc -O2 -shared -fPIC -Isrc/ -o lib/sqlite/lsqlite3.so lib/sqlite/lsqlite3.c -lsqlite3
-    if [ $? -eq 0 ]; then
-        echo "lsqlite3.so built successfully."
-    else
-        echo "Failed to build lsqlite3.so (-lsqlite3 missing?)"
-    fi
-else
-    echo "Skipping sqlite (source not found)"
-fi
+mkdir -p bin
 
-# 4. LuaSocket
-if [ -d "lib/socket/src" ]; then
-    echo "Compiling socket.core.so..."
-    # Copy Lua files to lib/ structure
-    cp lib/socket/src/socket.lua lib/socket/init.lua
-    cp lib/socket/src/mime.lua lib/mime/init.lua
-    cp lib/socket/src/ltn12.lua lib/ltn12/init.lua
-    cp lib/socket/src/{ftp,http,smtp,tp,url,headers,mbox}.lua lib/socket/
-
-    # Compile Socket Core (Linux files)
-    gcc -O2 -shared -fPIC -Isrc/ -Ilib/socket/src \
-        -DLUASOCKET_DEBUG \
-        -o lib/socket/core.so \
-        lib/socket/src/{luasocket,timeout,buffer,io,auxiliar,compat,options,inet,tcp,udp,except,select,usocket}.c
+# Helper for Unity Build of Libs
+build_lib() {
+    local name=$1
+    local output=$2
+    local src_pattern=$3
+    local extra_flags=$4
+    local includes=$5
     
-    if [ $? -eq 0 ]; then
-        echo "socket.core.so built successfully."
-    else
-        echo "Failed to build socket.core.so"
-    fi
-
-    echo "Compiling mime.core.so..."
-    gcc -O2 -shared -fPIC -Isrc/ -Ilib/socket/src \
-        -DLUASOCKET_DEBUG \
-        -o lib/mime/core.so \
-        lib/socket/src/{mime,compat}.c
+    status "Building $name..."
+    local blob="bin/${name}_blob.c"
+    echo "/* Unity Build for $name */" > "$blob"
     
-    if [ $? -eq 0 ]; then
-        echo "mime.core.so built successfully."
-    else
-        echo "Failed to build mime.core.so"
-    fi
-else
-    echo "Skipping socket (source not found)"
-fi
-
-# 5. LuaSec (ssl)
-if [ -d "lib/ssl/src" ]; then
-    echo "Compiling ssl.core.so..."
-
-    # Vendor OpenSSL
-    OPENSSL_VER="1.1.1w"
-    OPENSSL_DIR="$(pwd)/dep/openssl-${OPENSSL_VER}"
-    OPENSSL_TAR="openssl-${OPENSSL_VER}.tar.gz"
-    
-    mkdir -p dep
-    if [ ! -d "$OPENSSL_DIR" ]; then
-        echo "Downloading OpenSSL ${OPENSSL_VER}..."
-        if [ ! -f "dep/$OPENSSL_TAR" ]; then
-            cd dep
-            wget "https://www.openssl.org/source/$OPENSSL_TAR" || curl -O "https://www.openssl.org/source/$OPENSSL_TAR"
-            cd ..
+    > "$blob"
+    for f in $src_pattern; do
+        if [ -f "$f" ]; then
+             log "Processing $f"
+             echo "/* SOURCE: $f */" >> "$blob"
+             # Do NOT comment out includes, so external headers are found.
+             cat "$f" >> "$blob"
+             echo "" >> "$blob"
         fi
-        echo "Extracting OpenSSL..."
-        cd dep
-        tar -xzf "$OPENSSL_TAR"
-        cd "openssl-${OPENSSL_VER}"
-        echo "Configuring OpenSSL (static)..."
-        ./config no-shared no-tests
-        echo "Building OpenSSL..."
-        make -j$(nproc)
-        cd ../..
-    fi
+    done
 
-    # Copy Lua files
-    cp lib/ssl/src/ssl.lua lib/ssl/init.lua
-    cp lib/ssl/src/https.lua lib/ssl/
-
-
-    # Compile SSL Core
-    # Link against local OpenSSL static libs
-    gcc -O2 -shared -fPIC -Isrc/ -Ilib/ssl/src -Ilib/socket/src \
-        -I"$OPENSSL_DIR/include" \
-        -o lib/ssl/core.so \
-        lib/ssl/src/{options,x509,context,ssl,config,ec}.c \
-        "$OPENSSL_DIR/libssl.a" "$OPENSSL_DIR/libcrypto.a" \
-        lib/socket/core.so -ldl -lpthread
-
+    # Allow custom includes via flags
+    gcc -std=gnu99 -O2 -shared -fPIC -Wall -Wextra \
+        -Isrc/ -Isrc/core/defs -Isrc/api/aux -Isrc/api/lua \
+        $includes \
+        $extra_flags \
+        -o "$output" \
+        "$blob"
+        
     if [ $? -eq 0 ]; then
-        echo "ssl.core.so built successfully."
-        # Create symlinks for context, x509, config
-        cd lib/ssl
-        ln -sf core.so context.so
-        ln -sf core.so x509.so
-        ln -sf core.so config.so
-        cd ../..
-        echo "Symlinks created for ssl modules."
+        log "$name built successfully."
     else
-        echo "Failed to build ssl.core.so (openssl dev libs missing?)"
+        status "Failed to build $name"
     fi
+    rm -f "$blob"
+}
+
+# Helper for Object-based Build (Avoids Unity Build conflicts)
+build_lib_objs() {
+    local name=$1
+    local output=$2
+    local src_pattern=$3
+    local extra_flags=$4
+    local includes=$5
+    
+    status "Building $name (via objects)..."
+    local objs=""
+    
+    for f in $src_pattern; do
+        if [ -f "$f" ]; then
+             local obj="bin/${name}_$(basename "$f" .c).o"
+             # Compile object
+             gcc -std=gnu99 -O2 -fPIC -Wall -Wextra \
+                -Isrc/ -Isrc/core/defs -Isrc/api/aux -Isrc/api/lua \
+                $includes \
+                $extra_flags \
+                -c "$f" -o "$obj" > /dev/null 2>&1
+             
+             if [ $? -ne 0 ]; then
+                status "Failed to compile $f"
+                # Retry verbose
+                gcc -std=gnu99 -O2 -fPIC -Wall -Wextra \
+                    -Isrc/ -Isrc/core/defs -Isrc/api/aux -Isrc/api/lua \
+                    $includes \
+                    $extra_flags \
+                    -c "$f" -o "$obj"
+                return 1
+             fi
+             objs="$objs $obj"
+        fi
+    done
+
+    # Link objects
+    gcc -std=gnu99 -shared -fPIC \
+        -o "$output" \
+        $objs \
+        $extra_flags
+        
+    if [ $? -eq 0 ]; then
+        log "$name built successfully."
+    else
+        status "Failed to link $name"
+    fi
+    rm -f $objs
+}
+
+# 1. LuaFileSystem
+build_lib "lfs" "bin/lfs.so" "lib/lfs/src/lfs.c" "" "-Ilib/lfs/src"
+
+# 2. YAML
+YAML_SRC="lib/yaml/api.c lib/yaml/b64.c lib/yaml/dumper.c lib/yaml/emitter.c lib/yaml/loader.c lib/yaml/lyaml.c lib/yaml/parser.c lib/yaml/reader.c lib/yaml/scanner.c lib/yaml/writer.c"
+# Add -include limits.h to fix INT_MAX error in Unity Build
+build_lib "yaml" "bin/yaml.so" "$YAML_SRC" "-include limits.h" "-Ilib/yaml"
+
+# 3. SQLite
+if [ -f "lib/sqlite/sqlite3.c" ]; then
+    build_lib "sqlite3" "bin/lsqlite3.so" "lib/sqlite/lsqlite3.c lib/sqlite/sqlite3.c" "-lpthread -ldl -D_GNU_SOURCE" "-Ilib/sqlite"
 else
-    echo "Skipping ssl (source not found)"
+    build_lib "sqlite3" "bin/lsqlite3.so" "lib/sqlite/lsqlite3.c" "-lsqlite3" "-Ilib/sqlite"
 fi
 
-# 6. Static ool
-if [ -d "lib/static" ]; then
-    echo "nstalling static tool..."
-    cp lib/static/static.lua lib/static/init.lua
-    chmod +x lib/static/init.lua
-    echo "static tool installed to lib/static/init.lua"
-else
-    echo "Skipping static tool (source not found)"
-fi
+# 4. LuaSocket - Use build_lib_objs to avoid static symbol conflicts
+# Core
+SOCKET_SRC="lib/socket/src/luasocket.c lib/socket/src/timeout.c lib/socket/src/buffer.c lib/socket/src/io.c lib/socket/src/auxiliar.c lib/socket/src/compat.c lib/socket/src/options.c lib/socket/src/inet.c lib/socket/src/tcp.c lib/socket/src/udp.c lib/socket/src/except.c lib/socket/src/select.c lib/socket/src/usocket.c"
+mkdir -p bin/socket
+build_lib_objs "socket.core" "bin/socket/core.so" "$SOCKET_SRC" "-DLUASOCKET_DEBUG" "-Ilib/socket/src"
 
-echo "Build complete."
+# Mime
+MIME_SRC="lib/socket/src/mime.c lib/socket/src/compat.c"
+mkdir -p bin/mime
+build_lib_objs "mime.core" "bin/mime/core.so" "$MIME_SRC" "-DLUASOCKET_DEBUG" "-Ilib/socket/src"
+
+# 5. Struct
+build_lib "struct" "bin/struct.so" "lib/struct/struct.c" "" "-Ilib/struct"
+
+# Copy lua files for libs
+status "Installing Lua files for libs"
+mkdir -p bin/socket bin/mime bin/ssl
+cp lib/socket/src/socket.lua bin/socket.lua 2>/dev/null || true
+cp lib/socket/src/ftp.lua bin/socket/ 2>/dev/null || true
+cp lib/socket/src/http.lua bin/socket/ 2>/dev/null || true
+cp lib/socket/src/smtp.lua bin/socket/ 2>/dev/null || true
+cp lib/socket/src/tp.lua bin/socket/ 2>/dev/null || true
+cp lib/socket/src/url.lua bin/socket/ 2>/dev/null || true
+cp lib/socket/src/headers.lua bin/socket/ 2>/dev/null || true
+cp lib/socket/src/mbox.lua bin/socket/ 2>/dev/null || true
+cp lib/socket/src/ltn12.lua bin/ltn12.lua 2>/dev/null || true
+cp lib/socket/src/mime.lua bin/mime.lua 2>/dev/null || true
+
+status "Library build complete"

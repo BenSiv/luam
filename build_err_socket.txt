@@ -1,0 +1,399 @@
+- Building lfs...
+- Building yaml...
+bin/yaml_blob.c: In function ‘yaml_string_join’:
+bin/yaml_blob.c:98:71: warning: unused parameter ‘b_end’ [-Wunused-parameter]
+   98 |         yaml_char_t **b_start, yaml_char_t **b_pointer, yaml_char_t **b_end)
+      |                                                         ~~~~~~~~~~~~~~^~~~~
+bin/yaml_blob.c: In function ‘yaml_document_delete’:
+bin/yaml_blob.c:1122:7: warning: variable ‘context’ set but not used [-Wunused-but-set-variable]
+ 1122 |     } context;
+      |       ^~~~~~~
+bin/yaml_blob.c: In function ‘yaml_emitter_generate_anchor’:
+bin/yaml_blob.c:1739:46: warning: unused parameter ‘emitter’ [-Wunused-parameter]
+ 1739 | yaml_emitter_generate_anchor(yaml_emitter_t *emitter, int anchor_id)
+      |                              ~~~~~~~~~~~~~~~~^~~~~~~
+bin/yaml_blob.c: In function ‘yaml_emitter_emit_alias’:
+bin/yaml_blob.c:2892:64: warning: unused parameter ‘event’ [-Wunused-parameter]
+ 2892 | yaml_emitter_emit_alias(yaml_emitter_t *emitter, yaml_event_t *event)
+      |                                                  ~~~~~~~~~~~~~~^~~~~
+bin/yaml_blob.c: In function ‘yaml_emitter_check_empty_document’:
+bin/yaml_blob.c:2977:51: warning: unused parameter ‘emitter’ [-Wunused-parameter]
+ 2977 | yaml_emitter_check_empty_document(yaml_emitter_t *emitter)
+      |                                   ~~~~~~~~~~~~~~~~^~~~~~~
+bin/yaml_blob.c: In function ‘yaml_emitter_write_plain_scalar’:
+bin/yaml_blob.c:1915:6: warning: value computed is not used [-Wunused-value]
+ 1915 |      && ((emitter->line_break == YAML_CR_BREAK ?                                \
+      |      ^~
+bin/yaml_blob.c:1943:11: note: in expansion of macro ‘PUT_BREAK’
+ 1943 |          (PUT_BREAK(emitter),                                                   \
+      |           ^~~~~~~~~
+bin/yaml_blob.c:3818:18: note: in expansion of macro ‘WRITE_BREAK’
+ 3818 |             if (!WRITE_BREAK(emitter, string)) return 0;
+      |                  ^~~~~~~~~~~
+bin/yaml_blob.c: In function ‘yaml_emitter_write_single_quoted_scalar’:
+bin/yaml_blob.c:1915:6: warning: value computed is not used [-Wunused-value]
+ 1915 |      && ((emitter->line_break == YAML_CR_BREAK ?                                \
+      |      ^~
+bin/yaml_blob.c:1943:11: note: in expansion of macro ‘PUT_BREAK’
+ 1943 |          (PUT_BREAK(emitter),                                                   \
+      |           ^~~~~~~~~
+bin/yaml_blob.c:3879:18: note: in expansion of macro ‘WRITE_BREAK’
+ 3879 |             if (!WRITE_BREAK(emitter, string)) return 0;
+      |                  ^~~~~~~~~~~
+bin/yaml_blob.c: In function ‘yaml_emitter_write_literal_scalar’:
+bin/yaml_blob.c:1915:6: warning: value computed is not used [-Wunused-value]
+ 1915 |      && ((emitter->line_break == YAML_CR_BREAK ?                                \
+      |      ^~
+bin/yaml_blob.c:1943:11: note: in expansion of macro ‘PUT_BREAK’
+ 1943 |          (PUT_BREAK(emitter),                                                   \
+      |           ^~~~~~~~~
+bin/yaml_blob.c:4142:18: note: in expansion of macro ‘WRITE_BREAK’
+ 4142 |             if (!WRITE_BREAK(emitter, string)) return 0;
+      |                  ^~~~~~~~~~~
+bin/yaml_blob.c: In function ‘yaml_emitter_write_folded_scalar’:
+bin/yaml_blob.c:1915:6: warning: value computed is not used [-Wunused-value]
+ 1915 |      && ((emitter->line_break == YAML_CR_BREAK ?                                \
+      |      ^~
+bin/yaml_blob.c:1943:11: note: in expansion of macro ‘PUT_BREAK’
+ 1943 |          (PUT_BREAK(emitter),                                                   \
+      |           ^~~~~~~~~
+bin/yaml_blob.c:4191:18: note: in expansion of macro ‘WRITE_BREAK’
+ 4191 |             if (!WRITE_BREAK(emitter, string)) return 0;
+      |                  ^~~~~~~~~~~
+bin/yaml_blob.c: In function ‘generate_error_message’:
+bin/yaml_blob.c:4751:44: warning: format ‘%d’ expects argument of type ‘int’, but argument 4 has type ‘size_t’ {aka ‘long unsigned int’} [-Wformat=]
+ 4751 |       snprintf(buf, sizeof(buf), ", line: %d, column: %d\n",
+      |                                           ~^
+      |                                            |
+      |                                            int
+      |                                           %ld
+ 4752 |          loader->parser.problem_mark.line + 1,
+      |          ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+      |                                           |
+      |                                           size_t {aka long unsigned int}
+bin/yaml_blob.c:4751:56: warning: format ‘%d’ expects argument of type ‘int’, but argument 5 has type ‘size_t’ {aka ‘long unsigned int’} [-Wformat=]
+ 4751 |       snprintf(buf, sizeof(buf), ", line: %d, column: %d\n",
+      |                                                       ~^
+      |                                                        |
+      |                                                        int
+      |                                                       %ld
+ 4752 |          loader->parser.problem_mark.line + 1,
+ 4753 |          loader->parser.problem_mark.column + 1);
+      |          ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~         
+      |                                             |
+      |                                             size_t {aka long unsigned int}
+bin/yaml_blob.c:4760:48: warning: format ‘%d’ expects argument of type ‘int’, but argument 5 has type ‘size_t’ {aka ‘long unsigned int’} [-Wformat=]
+ 4760 |       snprintf(buf, sizeof(buf), "%s at line: %d, column: %d\n",
+      |                                               ~^
+      |                                                |
+      |                                                int
+      |                                               %ld
+ 4761 |          loader->parser.context,
+ 4762 |          loader->parser.context_mark.line + 1,
+      |          ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~   
+      |                                           |
+      |                                           size_t {aka long unsigned int}
+bin/yaml_blob.c:4760:60: warning: format ‘%d’ expects argument of type ‘int’, but argument 6 has type ‘size_t’ {aka ‘long unsigned int’} [-Wformat=]
+ 4760 |       snprintf(buf, sizeof(buf), "%s at line: %d, column: %d\n",
+      |                                                           ~^
+      |                                                            |
+      |                                                            int
+      |                                                           %ld
+......
+ 4763 |          loader->parser.context_mark.column + 1);
+      |          ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~             
+      |                                             |
+      |                                             size_t {aka long unsigned int}
+bin/yaml_blob.c: In function ‘yaml_parser_parse_block_sequence_entry’:
+bin/yaml_blob.c:6181:21: warning: variable ‘dummy_mark’ set but not used [-Wunused-but-set-variable]
+ 6181 |         yaml_mark_t dummy_mark;     /* Used to eliminate a compiler warning. */
+      |                     ^~~~~~~~~~
+bin/yaml_blob.c: In function ‘yaml_parser_parse_block_mapping_key’:
+bin/yaml_blob.c:6291:21: warning: variable ‘dummy_mark’ set but not used [-Wunused-but-set-variable]
+ 6291 |         yaml_mark_t dummy_mark;     /* Used to eliminate a compiler warning. */
+      |                     ^~~~~~~~~~
+bin/yaml_blob.c: In function ‘yaml_parser_parse_flow_sequence_entry’:
+bin/yaml_blob.c:6374:17: warning: variable ‘dummy_mark’ set but not used [-Wunused-but-set-variable]
+ 6374 |     yaml_mark_t dummy_mark;     /* Used to eliminate a compiler warning. */
+      |                 ^~~~~~~~~~
+bin/yaml_blob.c: In function ‘yaml_parser_parse_flow_mapping_key’:
+bin/yaml_blob.c:6526:17: warning: variable ‘dummy_mark’ set but not used [-Wunused-but-set-variable]
+ 6526 |     yaml_mark_t dummy_mark;     /* Used to eliminate a compiler warning. */
+      |                 ^~~~~~~~~~
+bin/yaml_blob.c: In function ‘yaml_parser_decrease_flow_level’:
+bin/yaml_blob.c:8453:23: warning: variable ‘dummy_key’ set but not used [-Wunused-but-set-variable]
+ 8453 |     yaml_simple_key_t dummy_key;    /* Used to eliminate a compiler warning. */
+      |                       ^~~~~~~~~
+- Building sqlite3...
+bin/sqlite3_blob.c: In function ‘vm_push_column’:
+bin/sqlite3_blob.c:101:26: warning: pointer targets in passing argument 2 of ‘lua_pushlstring’ differ in signedness [-Wpointer-sign]
+  101 |       lua_pushlstring(L, sqlite3_column_text(vm, idx),
+      |                          ^~~~~~~~~~~~~~~~~~~~~~~~~~~~
+      |                          |
+      |                          const unsigned char *
+In file included from bin/sqlite3_blob.c:34:
+src/core/defs/lua.h:143:57: note: expected ‘const char *’ but argument is of type ‘const unsigned char *’
+  143 | LUA_API void(lua_pushlstring)(lua_State *L, const char *s, size_t l);
+      |                                             ~~~~~~~~~~~~^
+bin/sqlite3_blob.c:108:24: warning: pointer targets in passing argument 2 of ‘lua_pushlstring’ differ in signedness [-Wpointer-sign]
+  108 |     lua_pushlstring(L, sqlite3_column_text(vm, idx),
+      |                        ^~~~~~~~~~~~~~~~~~~~~~~~~~~~
+      |                        |
+      |                        const unsigned char *
+src/core/defs/lua.h:143:57: note: expected ‘const char *’ but argument is of type ‘const unsigned char *’
+  143 | LUA_API void(lua_pushlstring)(lua_State *L, const char *s, size_t l);
+      |                                             ~~~~~~~~~~~~^
+bin/sqlite3_blob.c: In function ‘db_push_value’:
+bin/sqlite3_blob.c:884:24: warning: pointer targets in passing argument 2 of ‘lua_pushlstring’ differ in signedness [-Wpointer-sign]
+  884 |     lua_pushlstring(L, sqlite3_value_text(value), sqlite3_value_bytes(value));
+      |                        ^~~~~~~~~~~~~~~~~~~~~~~~~
+      |                        |
+      |                        const unsigned char *
+src/core/defs/lua.h:143:57: note: expected ‘const char *’ but argument is of type ‘const unsigned char *’
+  143 | LUA_API void(lua_pushlstring)(lua_State *L, const char *s, size_t l);
+      |                                             ~~~~~~~~~~~~^
+bin/sqlite3_blob.c:893:26: warning: pointer targets in passing argument 2 of ‘lua_pushlstring’ differ in signedness [-Wpointer-sign]
+  893 |       lua_pushlstring(L, sqlite3_value_text(value), sqlite3_value_bytes(value));
+      |                          ^~~~~~~~~~~~~~~~~~~~~~~~~
+      |                          |
+      |                          const unsigned char *
+src/core/defs/lua.h:143:57: note: expected ‘const char *’ but argument is of type ‘const unsigned char *’
+  143 | LUA_API void(lua_pushlstring)(lua_State *L, const char *s, size_t l);
+      |                                             ~~~~~~~~~~~~^
+bin/sqlite3_blob.c: In function ‘sqlite3VdbeExec’:
+bin/sqlite3_blob.c:98101:50: warning: this statement may fall through [-Wimplicit-fallthrough=]
+98101 |                    zPayload[6] = (u8)(v&0xff); v >>= 8;
+      |                                                ~~^~~~~
+bin/sqlite3_blob.c:98102:11: note: here
+98102 |           case 6:  zPayload[5] = (u8)(v&0xff); v >>= 8;
+      |           ^~~~
+bin/sqlite3_blob.c:98103:50: warning: this statement may fall through [-Wimplicit-fallthrough=]
+98103 |                    zPayload[4] = (u8)(v&0xff); v >>= 8;
+      |                                                ~~^~~~~
+bin/sqlite3_blob.c:98104:11: note: here
+98104 |           case 4:  zPayload[3] = (u8)(v&0xff); v >>= 8;
+      |           ^~~~
+bin/sqlite3_blob.c:98104:50: warning: this statement may fall through [-Wimplicit-fallthrough=]
+98104 |           case 4:  zPayload[3] = (u8)(v&0xff); v >>= 8;
+      |                                                ~~^~~~~
+bin/sqlite3_blob.c:98105:11: note: here
+98105 |           case 3:  zPayload[2] = (u8)(v&0xff); v >>= 8;
+      |           ^~~~
+bin/sqlite3_blob.c:98105:50: warning: this statement may fall through [-Wimplicit-fallthrough=]
+98105 |           case 3:  zPayload[2] = (u8)(v&0xff); v >>= 8;
+      |                                                ~~^~~~~
+bin/sqlite3_blob.c:98106:11: note: here
+98106 |           case 2:  zPayload[1] = (u8)(v&0xff); v >>= 8;
+      |           ^~~~
+bin/sqlite3_blob.c:98106:50: warning: this statement may fall through [-Wimplicit-fallthrough=]
+98106 |           case 2:  zPayload[1] = (u8)(v&0xff); v >>= 8;
+      |                                                ~~^~~~~
+bin/sqlite3_blob.c:98107:11: note: here
+98107 |           case 1:  zPayload[0] = (u8)(v&0xff);
+      |           ^~~~
+bin/sqlite3_blob.c: In function ‘jsonTranslateTextToBlob’:
+bin/sqlite3_blob.c:206985:7: warning: this statement may fall through [-Wimplicit-fallthrough=]
+206985 |     if( strncmp(z+i,"null",4)==0 && !sqlite3Isalnum(z[i+4]) ){
+       |       ^
+bin/sqlite3_blob.c:206991:3: note: here
+206991 |   default: {
+       |   ^~~~~~~
+- Building socket.core...
+bin/socket.core_blob.c:142:17: error: redefinition of ‘func’
+  142 | static luaL_Reg func[] = {
+      |                 ^~~~
+bin/socket.core_blob.c:48:17: note: previous definition of ‘func’ with type ‘luaL_Reg[3]’
+   48 | static luaL_Reg func[] = {
+      |                 ^~~~
+bin/socket.core_blob.c:1369:17: error: redefinition of ‘func’
+ 1369 | static luaL_Reg func[] = {
+      |                 ^~~~
+bin/socket.core_blob.c:142:17: note: previous definition of ‘func’ with type ‘luaL_Reg[3]’
+  142 | static luaL_Reg func[] = {
+      |                 ^~~~
+bin/socket.core_blob.c:2012:17: error: redefinition of ‘func’
+ 2012 | static luaL_Reg func[] = {
+      |                 ^~~~
+bin/socket.core_blob.c:1369:17: note: previous definition of ‘func’ with type ‘luaL_Reg[6]’
+ 1369 | static luaL_Reg func[] = {
+      |                 ^~~~
+bin/socket.core_blob.c:2442:14: error: redefinition of ‘optset’
+ 2442 | static t_opt optset[] = {
+      |              ^~~~~~
+bin/socket.core_blob.c:1980:14: note: previous definition of ‘optset’ with type ‘t_opt[16]’
+ 1980 | static t_opt optset[] = {
+      |              ^~~~~~
+bin/socket.core_blob.c:2464:14: error: redefinition of ‘optget’
+ 2464 | static t_opt optget[] = {
+      |              ^~~~~~
+bin/socket.core_blob.c:1958:14: note: previous definition of ‘optget’ with type ‘t_opt[13]’
+ 1958 | static t_opt optget[] = {
+      |              ^~~~~~
+bin/socket.core_blob.c:2482:17: error: redefinition of ‘func’
+ 2482 | static luaL_Reg func[] = {
+      |                 ^~~~
+bin/socket.core_blob.c:2012:17: note: previous definition of ‘func’ with type ‘luaL_Reg[5]’
+ 2012 | static luaL_Reg func[] = {
+      |                 ^~~~
+bin/socket.core_blob.c:2523:12: error: redefinition of ‘meth_send’
+ 2523 | static int meth_send(lua_State *L) {
+      |            ^~~~~~~~~
+bin/socket.core_blob.c:2044:12: note: previous definition of ‘meth_send’ with type ‘int(lua_State *)’
+ 2044 | static int meth_send(lua_State *L) {
+      |            ^~~~~~~~~
+bin/socket.core_blob.c:2603:12: error: redefinition of ‘meth_receive’
+ 2603 | static int meth_receive(lua_State *L) {
+      |            ^~~~~~~~~~~~
+bin/socket.core_blob.c:2049:12: note: previous definition of ‘meth_receive’ with type ‘int(lua_State *)’
+ 2049 | static int meth_receive(lua_State *L) {
+      |            ^~~~~~~~~~~~
+bin/socket.core_blob.c:2676:12: error: redefinition of ‘meth_getfamily’
+ 2676 | static int meth_getfamily(lua_State *L) {
+      |            ^~~~~~~~~~~~~~
+bin/socket.core_blob.c:2199:12: note: previous definition of ‘meth_getfamily’ with type ‘int(lua_State *)’
+ 2199 | static int meth_getfamily(lua_State *L)
+      |            ^~~~~~~~~~~~~~
+bin/socket.core_blob.c:2690:12: error: redefinition of ‘meth_getfd’
+ 2690 | static int meth_getfd(lua_State *L) {
+      |            ^~~~~~~~~~
+bin/socket.core_blob.c:2082:12: note: previous definition of ‘meth_getfd’ with type ‘int(lua_State *)’
+ 2082 | static int meth_getfd(lua_State *L)
+      |            ^~~~~~~~~~
+bin/socket.core_blob.c:2697:12: error: redefinition of ‘meth_setfd’
+ 2697 | static int meth_setfd(lua_State *L) {
+      |            ^~~~~~~~~~
+bin/socket.core_blob.c:2090:12: note: previous definition of ‘meth_setfd’ with type ‘int(lua_State *)’
+ 2090 | static int meth_setfd(lua_State *L)
+      |            ^~~~~~~~~~
+bin/socket.core_blob.c:2703:12: error: redefinition of ‘meth_dirty’
+ 2703 | static int meth_dirty(lua_State *L) {
+      |            ^~~~~~~~~~
+bin/socket.core_blob.c:2097:12: note: previous definition of ‘meth_dirty’ with type ‘int(lua_State *)’
+ 2097 | static int meth_dirty(lua_State *L)
+      |            ^~~~~~~~~~
+bin/socket.core_blob.c:2713:12: error: redefinition of ‘meth_getpeername’
+ 2713 | static int meth_getpeername(lua_State *L) {
+      |            ^~~~~~~~~~~~~~~~
+bin/socket.core_blob.c:2250:12: note: previous definition of ‘meth_getpeername’ with type ‘int(lua_State *)’
+ 2250 | static int meth_getpeername(lua_State *L)
+      |            ^~~~~~~~~~~~~~~~
+bin/socket.core_blob.c:2718:12: error: redefinition of ‘meth_getsockname’
+ 2718 | static int meth_getsockname(lua_State *L) {
+      |            ^~~~~~~~~~~~~~~~
+bin/socket.core_blob.c:2256:12: note: previous definition of ‘meth_getsockname’ with type ‘int(lua_State *)’
+ 2256 | static int meth_getsockname(lua_State *L)
+      |            ^~~~~~~~~~~~~~~~
+bin/socket.core_blob.c:2726:12: error: redefinition of ‘meth_setoption’
+ 2726 | static int meth_setoption(lua_State *L) {
+      |            ^~~~~~~~~~~~~~
+bin/socket.core_blob.c:2073:12: note: previous definition of ‘meth_setoption’ with type ‘int(lua_State *)’
+ 2073 | static int meth_setoption(lua_State *L)
+      |            ^~~~~~~~~~~~~~
+bin/socket.core_blob.c:2734:12: error: redefinition of ‘meth_getoption’
+ 2734 | static int meth_getoption(lua_State *L) {
+      |            ^~~~~~~~~~~~~~
+bin/socket.core_blob.c:2067:12: note: previous definition of ‘meth_getoption’ with type ‘int(lua_State *)’
+ 2067 | static int meth_getoption(lua_State *L)
+      |            ^~~~~~~~~~~~~~
+bin/socket.core_blob.c:2742:12: error: redefinition of ‘meth_settimeout’
+ 2742 | static int meth_settimeout(lua_State *L) {
+      |            ^~~~~~~~~~~~~~~
+bin/socket.core_blob.c:2265:12: note: previous definition of ‘meth_settimeout’ with type ‘int(lua_State *)’
+ 2265 | static int meth_settimeout(lua_State *L)
+      |            ^~~~~~~~~~~~~~~
+bin/socket.core_blob.c:2747:12: error: redefinition of ‘meth_gettimeout’
+ 2747 | static int meth_gettimeout(lua_State *L) {
+      |            ^~~~~~~~~~~~~~~
+bin/socket.core_blob.c:2271:12: note: previous definition of ‘meth_gettimeout’ with type ‘int(lua_State *)’
+ 2271 | static int meth_gettimeout(lua_State *L)
+      |            ^~~~~~~~~~~~~~~
+bin/socket.core_blob.c:2789:12: error: redefinition of ‘meth_close’
+ 2789 | static int meth_close(lua_State *L) {
+      |            ^~~~~~~~~~
+bin/socket.core_blob.c:2188:12: note: previous definition of ‘meth_close’ with type ‘int(lua_State *)’
+ 2188 | static int meth_close(lua_State *L)
+      |            ^~~~~~~~~~
+bin/socket.core_blob.c:2847:12: error: redefinition of ‘global_create’
+ 2847 | static int global_create(lua_State *L) {
+      |            ^~~~~~~~~~~~~
+bin/socket.core_blob.c:2309:12: note: previous definition of ‘global_create’ with type ‘int(lua_State *)’
+ 2309 | static int global_create(lua_State *L) {
+      |            ^~~~~~~~~~~~~
+bin/socket.core_blob.c:2851:12: error: redefinition of ‘global_create4’
+ 2851 | static int global_create4(lua_State *L) {
+      |            ^~~~~~~~~~~~~~
+bin/socket.core_blob.c:2313:12: note: previous definition of ‘global_create4’ with type ‘int(lua_State *)’
+ 2313 | static int global_create4(lua_State *L) {
+      |            ^~~~~~~~~~~~~~
+bin/socket.core_blob.c:2855:12: error: redefinition of ‘global_create6’
+ 2855 | static int global_create6(lua_State *L) {
+      |            ^~~~~~~~~~~~~~
+bin/socket.core_blob.c:2317:12: note: previous definition of ‘global_create6’ with type ‘int(lua_State *)’
+ 2317 | static int global_create6(lua_State *L) {
+      |            ^~~~~~~~~~~~~~
+bin/socket.core_blob.c:2887:17: error: redefinition of ‘func’
+ 2887 | static luaL_Reg func[] = {
+      |                 ^~~~
+bin/socket.core_blob.c:2482:17: note: previous definition of ‘func’ with type ‘luaL_Reg[4]’
+ 2482 | static luaL_Reg func[] = {
+      |                 ^~~~
+bin/socket.core_blob.c:3017:17: error: redefinition of ‘func’
+ 3017 | static luaL_Reg func[] = {
+      |                 ^~~~
+bin/socket.core_blob.c:2887:17: note: previous definition of ‘func’ with type ‘luaL_Reg[3]’
+ 2887 | static luaL_Reg func[] = {
+      |                 ^~~~
+bin/socket.core_blob.c:3675:23: error: redefinition of ‘mod’
+ 3675 | static const luaL_Reg mod[] = {
+      |                       ^~~
+bin/socket.core_blob.c:36:23: note: previous definition of ‘mod’ with type ‘const luaL_Reg[9]’
+   36 | static const luaL_Reg mod[] = {
+      |                       ^~~
+bin/socket.core_blob.c:2855:12: warning: ‘global_create6’ defined but not used [-Wunused-function]
+ 2855 | static int global_create6(lua_State *L) {
+      |            ^~~~~~~~~~~~~~
+bin/socket.core_blob.c:2851:12: warning: ‘global_create4’ defined but not used [-Wunused-function]
+ 2851 | static int global_create4(lua_State *L) {
+      |            ^~~~~~~~~~~~~~
+bin/socket.core_blob.c:2847:12: warning: ‘global_create’ defined but not used [-Wunused-function]
+ 2847 | static int global_create(lua_State *L) {
+      |            ^~~~~~~~~~~~~
+bin/socket.core_blob.c:2789:12: warning: ‘meth_close’ defined but not used [-Wunused-function]
+ 2789 | static int meth_close(lua_State *L) {
+      |            ^~~~~~~~~~
+bin/socket.core_blob.c:2747:12: warning: ‘meth_gettimeout’ defined but not used [-Wunused-function]
+ 2747 | static int meth_gettimeout(lua_State *L) {
+      |            ^~~~~~~~~~~~~~~
+bin/socket.core_blob.c:2742:12: warning: ‘meth_settimeout’ defined but not used [-Wunused-function]
+ 2742 | static int meth_settimeout(lua_State *L) {
+      |            ^~~~~~~~~~~~~~~
+bin/socket.core_blob.c:2734:12: warning: ‘meth_getoption’ defined but not used [-Wunused-function]
+ 2734 | static int meth_getoption(lua_State *L) {
+      |            ^~~~~~~~~~~~~~
+bin/socket.core_blob.c:2726:12: warning: ‘meth_setoption’ defined but not used [-Wunused-function]
+ 2726 | static int meth_setoption(lua_State *L) {
+      |            ^~~~~~~~~~~~~~
+bin/socket.core_blob.c:2718:12: warning: ‘meth_getsockname’ defined but not used [-Wunused-function]
+ 2718 | static int meth_getsockname(lua_State *L) {
+      |            ^~~~~~~~~~~~~~~~
+bin/socket.core_blob.c:2713:12: warning: ‘meth_getpeername’ defined but not used [-Wunused-function]
+ 2713 | static int meth_getpeername(lua_State *L) {
+      |            ^~~~~~~~~~~~~~~~
+bin/socket.core_blob.c:2703:12: warning: ‘meth_dirty’ defined but not used [-Wunused-function]
+ 2703 | static int meth_dirty(lua_State *L) {
+      |            ^~~~~~~~~~
+bin/socket.core_blob.c:2697:12: warning: ‘meth_setfd’ defined but not used [-Wunused-function]
+ 2697 | static int meth_setfd(lua_State *L) {
+      |            ^~~~~~~~~~
+bin/socket.core_blob.c:2690:12: warning: ‘meth_getfd’ defined but not used [-Wunused-function]
+ 2690 | static int meth_getfd(lua_State *L) {
+      |            ^~~~~~~~~~
+bin/socket.core_blob.c:2676:12: warning: ‘meth_getfamily’ defined but not used [-Wunused-function]
+ 2676 | static int meth_getfamily(lua_State *L) {
+      |            ^~~~~~~~~~~~~~
+bin/socket.core_blob.c:2603:12: warning: ‘meth_receive’ defined but not used [-Wunused-function]
+ 2603 | static int meth_receive(lua_State *L) {
+      |            ^~~~~~~~~~~~
+bin/socket.core_blob.c:2523:12: warning: ‘meth_send’ defined but not used [-Wunused-function]
+ 2523 | static int meth_send(lua_State *L) {
+      |            ^~~~~~~~~

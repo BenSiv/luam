@@ -22,14 +22,14 @@
  * THE SOFTWARE.
  * 
  * Portions of this software were inspired by Perl's YAML::LibYAML module by 
- * Ingy döt Net <ingy@cpan.org>
+ * Ingy dt Net <ingy@cpan.org>
  * 
  */
 
 #include <string.h>
 #include <stdlib.h>
 
-#include <lauxlib.h>
+#include <auxlib.h>
 #include <lua.h>
 #include <lualib.h>
 

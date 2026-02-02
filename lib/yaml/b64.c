@@ -1,5 +1,5 @@
 #include <lua.h>
-#include <lauxlib.h>
+#include <auxlib.h>
 
 #include "b64.h"
 

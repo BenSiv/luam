@@ -28,7 +28,7 @@
 #include <openssl/bn.h>
 
 #include <lua.h>
-#include <lauxlib.h>
+#include <auxlib.h>
 
 #include "x509.h"
 

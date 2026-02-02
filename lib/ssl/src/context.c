@@ -20,7 +20,7 @@
 #include <openssl/dh.h>
 
 #include <lua.h>
-#include <lauxlib.h>
+#include <auxlib.h>
 
 #include "compat.h"
 #include "context.h"

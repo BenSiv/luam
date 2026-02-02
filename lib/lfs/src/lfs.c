@@ -69,7 +69,7 @@
 #endif
 
 #include <lua.h>
-#include <lauxlib.h>
+#include <auxlib.h>
 #include <lualib.h>
 
 #include "lfs.h"
