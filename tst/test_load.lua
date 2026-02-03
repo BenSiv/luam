@@ -1,18 +1,18 @@
-print("esting unified load...")
+print("Testing unified load")
 
 passed = true
 
 -- est load with string (formerly loadstring)
 f, err = load("return 'loaded from string'")
-if f then
+if f != nil then
     if f() == 'loaded from string' then
-        print("load(string): PSS")
+        print("load(string): PASS")
     else
-        print("load(string): FL (wrong return)")
+        print("load(string): FAIL (wrong return)")
         passed = false
     end
 else
-    print("load(string): FL (error: " .. tostring(err) .. ")")
+    print("load(string): FAIL (error: " .. tostring(err) .. ")")
     passed = false
 end
 
@@ -25,20 +25,20 @@ func_reader = function()
 end
 
 f, err = load(func_reader, "myfuncs")
-if f then
+if f != nil then
     if f() == 'loaded from function' then
-        print("load(function): PSS")
+        print("load(function): PASS")
     else
-        print("load(function): FL (wrong return)")
+        print("load(function): FAIL (wrong return)")
         passed = false
     end
 else
-    print("load(function): FL (error: " .. tostring(err) .. ")")
+    print("load(function): FAIL (error: " .. tostring(err) .. ")")
     passed = false
 end
 
 if passed then
-    print("EFCO SUCCESS")
+    print("PASS")
 else
     os.exit(1)
 end

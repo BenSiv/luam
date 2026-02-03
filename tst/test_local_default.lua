@@ -1,3 +1,4 @@
+_ = {}
 print("esting local by default")
 a = 10
 if _.a == nil then 

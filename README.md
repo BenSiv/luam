@@ -12,31 +12,18 @@ t retains the speed and simplicity of Lua 5.1 while adopting features from later
     function f()  -- Local function
     end
     ```
-*   **mmutable by Default**: mplicitly declared variables are immutable. eassignment causes a compile-time error.
+*   **Constants**: Use the `const` keyword to define immutable variables. Reassignment to a `const` variable results in a compile-time error.
     ```lua
-    x = 10
-    x = 20 -- Error: attempt to assign to immutable variable
-    ```
-*   **Explicit Mutability**: Use the `mutable` keyword for variables that need to change.
-    ```lua
-    mutable y = 10
-    y = 20 -- OK
+    const y = 20
+    y = 30 -- Error: attempt to assign to const variable
     ```
 
 ### 2. Modern Operators & Control Flow
-*   **nequality**: Use `!=` instead of `~=`.
+*   **Inequality**: Use `!=` instead of `~=`.
     ```lua
     if x != y then ... end
     ```
-*   **Else f**: Use `else if` instead of `elseif`.
-    ```lua
-    if x == 1 then
-        ...
-    else if x == 2 then
-        ...
-    end
-    ```
-*   **emoved Keywords**: `repeat`, `until`, and `local` have been removed to simplify the language. Use `while` loops instead.
+*   **Removed Keywords**: `repeat`, `until`, and `local` have been removed to simplify the language. Use `while` loops instead.
 
 ### 3. Enhanced String & Data Support
 *   **riple Quoted Strings**: Use `"""` for multiline strings (replacing `[[...]]`).
@@ -55,7 +42,7 @@ t retains the speed and simplicity of Lua 5.1 while adopting features from later
     mt = { __len = function(t) return 42 end }
     ```
 
-### 4. mproved Standard Library
+### 4. Improved Standard Library
 *   **`xpcall` with rguments**: `xpcall` now accepts arguments to pass to the function (from Lua 5.2).
     ```lua
     xpcall(func, handler, arg1, arg2)
@@ -72,28 +59,40 @@ t retains the speed and simplicity of Lua 5.1 while adopting features from later
     *   `os.exit(boolean)`: Pass `true` (success) or `false` (failure).
     *   `package.searchers`: lias for `package.loaders` for 5.2 compatibility.
 
-## Build & nstall
+## Build & Install
 
-LuaM is implemented in strict S C (C89) and compiles on almost any platform.
+LuaM uses [xmake](https://xmake.io) as its build system.
 
 ### Building
-Use `make` with your platform (e.g., `linux`, `macosx`, `posix`, `ansi`):
+To build LuaM, run:
 
 ```sh
-make linux
+xmake f -o bld -y
+xmake
 ```
 
-his will produce the binaries in `bld/`:
-*   `bld/lua`: he interpreter
-*   `bld/luac`: he compiler
+This will produce all build artifacts (including intermediate files) in the `bld/` directory:
+*   `bld/luam`: The interpreter
+*   `bld/luamc`: The compiler
+*   `bld/sqlite3.so`: The SQLite3 module
 
-### unning ests
-o run the full regression suite:
+### Running Tests
+To run the full regression suite:
 
 ```sh
-make test
+xmake test
+```
+
+## Documentation
+The `doc` directory contains detailed information about LuaM features and changes. Additionally, Unix manual pages are provided:
+*   `doc/lua.1`: Manual page for the `luam` interpreter.
+*   `doc/luac.1`: Manual page for the `luamc` compiler.
+
+These can be viewed using `man`:
+```sh
+man doc/lua.1
 ```
 
 ## License
 LuaM is free software, released under the M license (same as Lua 5.1).
-See [COPH](COPH) for details.
+See [COPYRIGHT.md](COPYRIGHT.md) for details.

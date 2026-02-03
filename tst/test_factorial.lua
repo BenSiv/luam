@@ -1,7 +1,7 @@
 -- function closures are powerful
 
 -- traditional fixed-point operator from functional programming
- = function (g)
+Y = function (g)
       a = function (f) return f(f) end
       return a(function (f)
                  return g(function (x)
@@ -20,7 +20,7 @@ F = function (f)
              end
     end
 
-factorial = (F)   -- factorial is the fixed point of F
+factorial = Y(F)   -- factorial is the fixed point of F
 
 -- now test it
 function test(x)

@@ -4,8 +4,8 @@ passed = true
 
 -- est basic hex escape
 s = "\x41"
-if s == "" then
-    print("\x41 == : PSS")
+if s == "A" then
+    print("\\x41 == A: PSS")
 else
     print("\x41 !=  (got " .. s .. "): FL")
     passed = false

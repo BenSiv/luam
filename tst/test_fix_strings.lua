@@ -10,7 +10,7 @@ triple_quote = string.char(34, 34, 34)
 
 while true do
     line = io.read(fin, "*line")
-    if not line then break end
+    if line == nil then break end
     
     -- eplace [[ with """
     line = string.gsub(line, "%[%[", triple_quote)
@@ -22,3 +22,5 @@ end
 
 io.close(fin)
 io.close(fout)
+
+os.remove(output_path)

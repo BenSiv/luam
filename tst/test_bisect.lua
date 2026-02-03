@@ -1,3 +1,4 @@
+_ = {}
 -- bisection method for solving non-linear equations
 
 delta=1e-6	-- tolerance

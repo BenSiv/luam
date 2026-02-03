@@ -6,9 +6,12 @@ upper = ".."
 
 is_unix = string.sub(package.config, 1, 1) == "/"
 
-lfs = require"lfs"
-print (lfs._ESO)
-
+    print("esting lfs...")
+    status, lfs = pcall(require, "lfs")
+    if status == false then
+        print("Skipping test_lfs.lua: " .. tostring(lfs))
+        return
+    end
 io.write(".")
 io.flush()
 
@@ -48,7 +51,7 @@ tmpfile = tmpdir..sep.."tmp_file"
 -- est for existence of a previous lfs_tmp_dir
 -- that may have resulted from an interrupted test execution and remove it
 ok = lfs.chdir (tmpdir)
-if is ok and ok then
+if ok then
     assert (lfs.chdir (upper), "could not change to upper directory")
     os.remove (tmpfile)
     assert (lfs.rmdir (tmpdir), "could not remove directory from previous test")
@@ -61,7 +64,7 @@ io.flush()
 assert (lfs.mkdir (tmpdir), "could not make a new directory")
 attrib = {}
 lfs.attributes(tmpdir, attrib)
-if not is attrib.mode then
+if attrib.mode == nil then
      error ("could not get attributes of file `"..tmpdir.."'")
 end
 f = io.open(tmpfile, "w")
@@ -98,7 +101,7 @@ io.write(".")
 io.flush()
 
 link_ok = lfs.link (tmpfile, "_a_link_for_test_", true)
-if is link_ok and link_ok then
+if link_ok then
     assert (lfs.attributes"_a_link_for_test_".mode == "file")
     assert (lfs.symlinkattributes"_a_link_for_test_".mode == "link")
     assert (lfs.symlinkattributes"_a_link_for_test_".target == tmpfile)

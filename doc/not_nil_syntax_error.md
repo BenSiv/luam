@@ -72,7 +72,7 @@ end
 
 -- COEC - Check the variable
 function is_valid(x)
-    return not is x  -- ✓ ctually checks if x is not nil
+    return x == nil  -- ✓ Actually checks if x is nil
 end
 ```
 
@@ -99,7 +99,7 @@ if true then          -- For literal true
 x = true              -- For literal true
 
 value = get_value()
-if not is value then  -- Check if variable is nil
+if value == nil then  -- Check if variable is nil
     return nil
 end
 ```
@@ -108,4 +108,4 @@ end
 
 f you have code using `not nil` (unlikely), replace:
 - `not nil` → `true`
-- o check a variable: `not is x` instead of `not nil`
+- o check a variable: `x == nil` instead of `not nil`

@@ -1,58 +1,58 @@
 -- port_project.lua
 -- Usage: lua tst/port_project.lua <directory_or_file>
 
-local target = arg[1]
-if not target then
+target = arg[1]
+if target == nil then
     print("Usage: port_project.lua <target>")
     os.exit(1)
 end
 
 function process_file(path)
     -- print("Processing " .. path)
-    local fin = io.open(path, "r")
-    if not fin then
+    fin = io.open(path, "r")
+    if fin == nil then
         print("Error opening " .. path)
         return
     end
-    local content = fin:read("*all")
+    content = io.read(fin, "*all")
     io.close(fin)
 
-    local original_content = content
-    local q3 = string.char(34, 34, 34)
+    original_content = content
+    q3 = string.char(34, 34, 34)
 
     -- 1. Shebang
     content = string.gsub(content, "^#!.-\n", "")
 
-    -- 2. Multiline strings [[...]] -> """..."""
+    -- 2. Multiline strings """...""" -> """..."""
     content = string.gsub(content, "%[%[", q3)
     content = string.gsub(content, "%]%]", q3)
 
     -- 3. Comments
-    -- Handle --""" comment blocks (converted from --[[)
+    -- Handle  comment blocks (converted from --)
     content = string.gsub(content, "%-%-" .. q3 .. "(.-)" .. q3, function(match)
         return string.gsub(match, "\n", "\n-- ")
     end)
     
     -- 4. Local Keyword emoval / nitialization
     
-    -- Handle functions: local function -> function
+    -- Handle functions: function -> function
     content = string.gsub(content, "local%s+function", "function")
 
-    -- Handle assignments: local x = ... -> x = ...
+    -- Handle assignments: x = ... -> x = ...
     content = string.gsub(content, "local%s+([^=\n]+)=", "%1=")
 
-    -- Handle pure declarations: local x -> x = nil
+    -- Handle pure declarations: x -> x = nil
     content = string.gsub(content, "local%s+([^=\n]+)%s*(\n)", "%1 = nil%2")
     content = string.gsub(content, "local%s+([^=\n]+)%s*(%-%-[^\n]*\n)", "%1 = nil%2")
 
-    -- Cleanup any remaining "local " just in case (e.g. at EOF)
+    -- Cleanup any remaining "" just in case (e.g. at EOF) = nil
     content = string.gsub(content, "local%s+([^=\n]+)$", "%1 = nil")
-    -- Final sweep for any straggling 'local ' not caught (e.g. in list)
+    -- Final sweep for any straggling '' not caught (e.g. in list) = nil
     -- But be careful not to break strings? egex is naive.
     -- ssuming well-formatted code.
     
     -- 5. Operators
-    content = string.gsub(content, "~=", "!=")
+    content = string.gsub(content, "!=", "!=")
 
     -- 6. epeat-Until -> While rue (generic)
     content = string.gsub(content, "repeat%s+(.-)%s+until%s+(.-)\n", "while true do %1 if %2 then break end end\n")
@@ -81,10 +81,10 @@ function process_file(path)
     -- 8. dkjson/lanes check (manual or via regex)
     -- Just ensure we don't break requires.
 
-    if content ~= original_content then
+    if content != original_content then
         print("Updating " .. path)
-        local fout = io.open(path, "w")
-        fout:write(content)
+        fout = io.open(path, "w")
+        io.write(fout, content)
         io.close(fout)
     end
 end

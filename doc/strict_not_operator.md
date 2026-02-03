@@ -15,31 +15,23 @@ his prevents common logical errors where non-boolean values (like `0` or empty s
 - **`not "text"`** → **Error**
 
 ## Migration
-o check if a value is `nil` (or "falsey" in legacy Lua terms), use the `is` operator combined with `not`.
-he `is` keyword checks if a value is **not nil**.
+To check if a value is `nil` (or "falsey" in legacy Lua terms), compare it explicitly against `nil`.
 
-### il Check
+### Nil Check
 ```lua
 -- Legacy
 if not variable then ... end
 
 -- Strict LuaM
-if not is variable then ... end
+if variable == nil then ... end
 ```
-f `variable` is `nil`:
-- `is variable` returns `false`.
-- `not is variable` returns `true`.
-
-f `variable` is `5` (or any non-nil value):
-- `is variable` returns `true`.
-- `not is variable` returns `false`.
 
 ### Boolean Check
-f `variable` is guaranteed to be a boolean (e.g. a flag):
+If `variable` is guaranteed to be a boolean (e.g. a flag):
 ```lua
 if not flag then ... end
 ```
-his works correctly as long as `flag` is `true` or `false`. f `flag` can be `nil`, use `if not is flag` (which treats nil as false).
+This works correctly as long as `flag` is `true` or `false`. If `flag` can be `nil`, use `if flag == nil` (or `if flag == false`).
 
 ## Error Messages
 - Parse-time: `'not' requires a boolean value, got <type>` (for literals)

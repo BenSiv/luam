@@ -40,17 +40,17 @@ end
 function show(m,x)
  io.write(m,"\n\t")
  i=1
- while x[i] do
+ while x[i] != nil do
   io.write(x[i])
   i=i+1
-  if x[i] then io.write(",") end
+  if x[i] != nil then io.write(",") end
  end
  io.write("\n")
 end
 
 function testsorts(x)
  n=1
- while x[n] do n=n+1 end; n=n-1		-- count elements
+ while x[n] != nil do n=n+1 end; n=n-1		-- count elements
  show("original",x)
  qsort(x,1,n,function (x,y) return x<y end)
  show("after quicksort",x)

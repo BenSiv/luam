@@ -8,7 +8,7 @@ print("OK")
 -- 2. est file O with explicit handle
 fname = "test_io.txt"
 f = io.open(fname, "w")
-if not f then
+if f == nil then
     print("Failed to open file")
     os.exit(1)
 end
@@ -29,7 +29,7 @@ io.close(f)
 -- We expect f.read to be nil (userdata has no meta methods)
 val = nil
 ok, err = pcall(function() val = f.read end)
-if not ok then
+if ok == false then
    print("ndexing userdata failed as expected: " .. tostring(err))
 elseif val == nil then
    print("f.read is nil as expected")

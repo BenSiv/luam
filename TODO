@@ -1,9 +1,0 @@
-TODO:
-- generate dev dir with syntax highlighting for vscode and micro
-- improve core library
-- import enhancments from luajit
-- improve REPL usability:
-  - fix error color (only specific errors red)
-  - rename startup banner to "Luam"
-  - implement implicit return (auto-print expressions)
-  - investigate `const` behavior and `nil` assignment
