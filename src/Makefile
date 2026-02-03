@@ -53,48 +53,48 @@ a:	$(ALL_A)
 
 $(LUA_A): $(CORE_O) $(LIB_O)
 	@echo "  AR    $@"
-	@$(AR) $@ $(CORE_O) $(LIB_O) >> ../build.log 2>&1
-	@$(RANLIB) $@ >> ../build.log 2>&1
+	@$(AR) $@ $(CORE_O) $(LIB_O) >> ../log/build.log 2>&1
+	@$(RANLIB) $@ >> ../log/build.log 2>&1
 
 $(LUA_T): $(LUA_O) $(LUA_A)
 	@echo "  LINK  $@"
 	@$(MKDIR) $(BIN_DIR)
-	@$(CC) -o $@ $(MYLDFLAGS) $(LUA_O) $(LUA_A) $(LIBS) >> ../build.log 2>&1
+	@$(CC) -o $@ $(MYLDFLAGS) $(LUA_O) $(LUA_A) $(LIBS) >> ../log/build.log 2>&1
 
 $(LUAC_T): $(LUAC_O) $(LUA_A)
 	@echo "  LINK  $@"
 	@$(MKDIR) $(BIN_DIR)
-	@$(CC) -o $@ $(MYLDFLAGS) $(LUAC_O) $(LUA_A) $(LIBS) >> ../build.log 2>&1
+	@$(CC) -o $@ $(MYLDFLAGS) $(LUAC_O) $(LUA_A) $(LIBS) >> ../log/build.log 2>&1
 
 $(OBJ_DIR)/sqlite3.o: ../lib/sqlite/sqlite3.c ../lib/sqlite/sqlite3.h
 	@echo "  CC    $@"
 	@$(MKDIR) $(OBJ_DIR)
-	@$(CC) $(CFLAGS) -DSQLITE_ENABLE_FTS3 -DSQLITE_ENABLE_RTREE -fPIC -c -o $@ $< >> ../build.log 2>&1
+	@$(CC) $(CFLAGS) -DSQLITE_ENABLE_FTS3 -DSQLITE_ENABLE_RTREE -fPIC -c -o $@ $< >> ../log/build.log 2>&1
 
 $(OBJ_DIR)/libluasqlite3.o: ../lib/sqlite/lsqlite3.c
 	@echo "  CC    $@"
 	@$(MKDIR) $(OBJ_DIR)
-	@$(CC) $(CFLAGS) -I../lib/sqlite -I. -fPIC -c -o $@ $< >> ../build.log 2>&1
+	@$(CC) $(CFLAGS) -I../lib/sqlite -I. -fPIC -c -o $@ $< >> ../log/build.log 2>&1
 
 $(BIN_DIR)/sqlite3.so: $(OBJ_DIR)/libluasqlite3.o $(OBJ_DIR)/sqlite3.o
 	@echo "  LINK  $@"
 	@$(MKDIR) $(BIN_DIR)
-	@$(CC) -shared -o $@ $^ -lpthread -ldl >> ../build.log 2>&1
+	@$(CC) -shared -o $@ $^ -lpthread -ldl >> ../log/build.log 2>&1
 
 $(OBJ_DIR)/bit.o: ../lib/bit/bit.c
 	@echo "  CC    $@"
 	@$(MKDIR) $(OBJ_DIR)
-	@$(CC) $(CFLAGS) -I. -fPIC -c -o $@ $< >> ../build.log 2>&1
+	@$(CC) $(CFLAGS) -I. -fPIC -c -o $@ $< >> ../log/build.log 2>&1
 
 $(OBJ_DIR)/struct.o: ../lib/struct/struct.c
 	@echo "  CC    $@"
 	@$(MKDIR) $(OBJ_DIR)
-	@$(CC) $(CFLAGS) -I. -fPIC -c -o $@ $< >> ../build.log 2>&1
+	@$(CC) $(CFLAGS) -I. -fPIC -c -o $@ $< >> ../log/build.log 2>&1
 
 $(OBJ_DIR)/%.o: %.c
 	@echo "  CC    $@"
 	@$(MKDIR) $(OBJ_DIR)
-	@$(CC) $(CFLAGS) -I. -fPIC -c -o $@ $< >> ../build.log 2>&1
+	@$(CC) $(CFLAGS) -I. -fPIC -c -o $@ $< >> ../log/build.log 2>&1
 
 clean:
 	$(RM) $(ALL_T) $(ALL_O)

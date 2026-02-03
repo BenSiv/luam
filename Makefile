@@ -53,11 +53,13 @@ R= 5.1.5
 all:	$(PL) banner
 
 clean:
-	@rm -f build.log
+	@mkdir -p log
+	@rm -f log/build.log
 	@cd src && $(MAKE) $@
 
 $(PLS):
-	@rm -f build.log
+	@mkdir -p log
+	@rm -f log/build.log
 	@cd src && $(MAKE) $@
 	@$(MAKE) banner
 

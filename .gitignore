@@ -8,4 +8,5 @@ dep/
 *.a
 *.so
 *.log
+log/
 luac.out
