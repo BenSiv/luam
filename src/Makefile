@@ -4,6 +4,8 @@
 
 # == CHANGE THE SETTINGS BELOW TO SUIT YOUR ENVIRONMENT =======================
 
+MAKEFLAGS += --no-print-directory
+
 # Your platform. See PLATS for possible values.
 PLAT= none
 
@@ -17,6 +19,15 @@ LIBS= -lm $(MYLIBS)
 MYCFLAGS=
 MYLDFLAGS=
 MYLIBS=
+
+# Verbosity control
+ifeq ($(V),1)
+  Q=
+  REDIRECT=
+else
+  Q=@
+  REDIRECT= >> ../log/build.log 2>&1
+endif
 
 # == END OF USER SETTINGS. NO NEED TO CHANGE ANYTHING BELOW THIS LINE =========
 
@@ -53,51 +64,51 @@ a:	$(ALL_A)
 
 $(LUA_A): $(CORE_O) $(LIB_O)
 	@echo "  AR    $@"
-	@$(AR) $@ $(CORE_O) $(LIB_O) >> ../log/build.log 2>&1
-	@$(RANLIB) $@ >> ../log/build.log 2>&1
+	$(Q)$(AR) $@ $(CORE_O) $(LIB_O) $(REDIRECT)
+	$(Q)$(RANLIB) $@ $(REDIRECT)
 
 $(LUA_T): $(LUA_O) $(LUA_A)
 	@echo "  LINK  $@"
-	@$(MKDIR) $(BIN_DIR)
-	@$(CC) -o $@ $(MYLDFLAGS) $(LUA_O) $(LUA_A) $(LIBS) >> ../log/build.log 2>&1
+	$(Q)$(MKDIR) $(BIN_DIR)
+	$(Q)$(CC) -o $@ $(MYLDFLAGS) $(LUA_O) $(LUA_A) $(LIBS) $(REDIRECT)
 
 $(LUAC_T): $(LUAC_O) $(LUA_A)
 	@echo "  LINK  $@"
-	@$(MKDIR) $(BIN_DIR)
-	@$(CC) -o $@ $(MYLDFLAGS) $(LUAC_O) $(LUA_A) $(LIBS) >> ../log/build.log 2>&1
+	$(Q)$(MKDIR) $(BIN_DIR)
+	$(Q)$(CC) -o $@ $(MYLDFLAGS) $(LUAC_O) $(LUA_A) $(LIBS) $(REDIRECT)
 
 $(OBJ_DIR)/sqlite3.o: ../lib/sqlite/sqlite3.c ../lib/sqlite/sqlite3.h
 	@echo "  CC    $@"
-	@$(MKDIR) $(OBJ_DIR)
-	@$(CC) $(CFLAGS) -DSQLITE_ENABLE_FTS3 -DSQLITE_ENABLE_RTREE -fPIC -c -o $@ $< >> ../log/build.log 2>&1
+	$(Q)$(MKDIR) $(OBJ_DIR)
+	$(Q)$(CC) $(CFLAGS) -DSQLITE_ENABLE_FTS3 -DSQLITE_ENABLE_RTREE -fPIC -c -o $@ $< $(REDIRECT)
 
 $(OBJ_DIR)/libluasqlite3.o: ../lib/sqlite/lsqlite3.c
 	@echo "  CC    $@"
-	@$(MKDIR) $(OBJ_DIR)
-	@$(CC) $(CFLAGS) -I../lib/sqlite -I. -fPIC -c -o $@ $< >> ../log/build.log 2>&1
+	$(Q)$(MKDIR) $(OBJ_DIR)
+	$(Q)$(CC) $(CFLAGS) -I../lib/sqlite -I. -fPIC -c -o $@ $< $(REDIRECT)
 
 $(BIN_DIR)/sqlite3.so: $(OBJ_DIR)/libluasqlite3.o $(OBJ_DIR)/sqlite3.o
 	@echo "  LINK  $@"
-	@$(MKDIR) $(BIN_DIR)
-	@$(CC) -shared -o $@ $^ -lpthread -ldl >> ../log/build.log 2>&1
+	$(Q)$(MKDIR) $(BIN_DIR)
+	$(Q)$(CC) -shared -o $@ $^ -lpthread -ldl $(REDIRECT)
 
 $(OBJ_DIR)/bit.o: ../lib/bit/bit.c
 	@echo "  CC    $@"
-	@$(MKDIR) $(OBJ_DIR)
-	@$(CC) $(CFLAGS) -I. -fPIC -c -o $@ $< >> ../log/build.log 2>&1
+	$(Q)$(MKDIR) $(OBJ_DIR)
+	$(Q)$(CC) $(CFLAGS) -I. -fPIC -c -o $@ $< $(REDIRECT)
 
 $(OBJ_DIR)/struct.o: ../lib/struct/struct.c
 	@echo "  CC    $@"
-	@$(MKDIR) $(OBJ_DIR)
-	@$(CC) $(CFLAGS) -I. -fPIC -c -o $@ $< >> ../log/build.log 2>&1
+	$(Q)$(MKDIR) $(OBJ_DIR)
+	$(Q)$(CC) $(CFLAGS) -I. -fPIC -c -o $@ $< $(REDIRECT)
 
 $(OBJ_DIR)/%.o: %.c
 	@echo "  CC    $@"
-	@$(MKDIR) $(OBJ_DIR)
-	@$(CC) $(CFLAGS) -I. -fPIC -c -o $@ $< >> ../log/build.log 2>&1
+	$(Q)$(MKDIR) $(OBJ_DIR)
+	$(Q)$(CC) $(CFLAGS) -I. -fPIC -c -o $@ $< $(REDIRECT)
 
 clean:
-	$(RM) $(ALL_T) $(ALL_O)
+	$(Q)$(RM) $(ALL_T) $(ALL_O)
 
 depend:
 	@$(CC) $(CFLAGS) -MM l*.c print.c
@@ -120,40 +131,40 @@ none:
 	@echo "   $(PLATS)"
 
 aix:
-	$(MAKE) all CC="xlc" CFLAGS="-O2 -DLUA_USE_POSIX -DLUA_USE_DLOPEN" MYLIBS="-ldl" MYLDFLAGS="-brtl -bexpall"
+	$(Q)$(MAKE) all CC="xlc" CFLAGS="-O2 -DLUA_USE_POSIX -DLUA_USE_DLOPEN" MYLIBS="-ldl" MYLDFLAGS="-brtl -bexpall"
 
 ansi:
-	$(MAKE) all MYCFLAGS=-DLUA_ANSI
+	$(Q)$(MAKE) all MYCFLAGS=-DLUA_ANSI
 
 bsd:
-	$(MAKE) all MYCFLAGS="-DLUA_USE_POSIX -DLUA_USE_DLOPEN" MYLIBS="-Wl,-E"
+	$(Q)$(MAKE) all MYCFLAGS="-DLUA_USE_POSIX -DLUA_USE_DLOPEN" MYLIBS="-Wl,-E"
 
 freebsd:
-	$(MAKE) all MYCFLAGS="-DLUA_USE_LINUX" MYLIBS="-Wl,-E -lreadline"
+	$(Q)$(MAKE) all MYCFLAGS="-DLUA_USE_LINUX" MYLIBS="-Wl,-E -lreadline"
 
 generic:
-	$(MAKE) all MYCFLAGS=
+	$(Q)$(MAKE) all MYCFLAGS=
 
 linux:
-	$(MAKE) all MYCFLAGS=-DLUA_USE_LINUX MYLIBS="-Wl,-E -ldl -lreadline -lhistory -lncurses"
-	$(MAKE) $(BIN_DIR)/sqlite3.so
+	$(Q)$(MAKE) all MYCFLAGS=-DLUA_USE_LINUX MYLIBS="-Wl,-E -ldl -lreadline -lhistory -lncurses"
+	$(Q)$(MAKE) $(BIN_DIR)/sqlite3.so
 
 macosx:
-	$(MAKE) all MYCFLAGS=-DLUA_USE_LINUX MYLIBS="-lreadline"
+	$(Q)$(MAKE) all MYCFLAGS=-DLUA_USE_LINUX MYLIBS="-lreadline"
 # use this on Mac OS X 10.3-
 #	$(MAKE) all MYCFLAGS=-DLUA_USE_MACOSX
 
 mingw:
-	$(MAKE) "LUA_A=lua51.dll" "LUA_T=luam.exe" \
+	$(Q)$(MAKE) "LUA_A=lua51.dll" "LUA_T=luam.exe" \
 	"AR=$(CC) -shared -o" "RANLIB=strip --strip-unneeded" \
 	"MYCFLAGS=-DLUA_BUILD_AS_DLL" "MYLIBS=" "MYLDFLAGS=-s" luam.exe
-	$(MAKE) "LUAC_T=luamc.exe" luamc.exe
+	$(Q)$(MAKE) "LUAC_T=luamc.exe" luamc.exe
 
 posix:
-	$(MAKE) all MYCFLAGS=-DLUA_USE_POSIX
+	$(Q)$(MAKE) all MYCFLAGS=-DLUA_USE_POSIX
 
 solaris:
-	$(MAKE) all MYCFLAGS="-DLUA_USE_POSIX -DLUA_USE_DLOPEN" MYLIBS="-ldl"
+	$(Q)$(MAKE) all MYCFLAGS="-DLUA_USE_POSIX -DLUA_USE_DLOPEN" MYLIBS="-ldl"
 
 # list targets that do not create files (but not all makes understand .PHONY)
 .PHONY: all $(PLATS) default o a clean depend echo none

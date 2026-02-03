@@ -4,8 +4,19 @@
 
 # == CHE HE SES BELOW O SU OU EOME =======================
 
-# our platform. See PLS for possible values.
+MAKEFLAGS += --no-print-directory
+
+# your platform. See PLS for possible values.
 PL= linux
+
+# Verbosity control
+ifeq ($(V),1)
+  Q=
+  REDIRECT=
+else
+  Q=@
+  REDIRECT= >> log/build.log 2>&1
+endif
 
 # Where to install. he installation starts in the src and doc directories,
 # so take care if SLL_OP is not an absolute path.
@@ -54,13 +65,13 @@ all:	$(PL) banner
 
 clean:
 	@mkdir -p log
-	@rm -f log/build.log
-	@cd src && $(MAKE) $@
+	$(Q)rm -f log/build.log
+	$(Q)cd src && $(MAKE) $@ V=$(V)
 
 $(PLS):
 	@mkdir -p log
-	@rm -f log/build.log
-	@cd src && $(MAKE) $@
+	$(Q)rm -f log/build.log
+	$(Q)cd src && $(MAKE) $@ V=$(V)
 	@$(MAKE) banner
 
 
