@@ -100,7 +100,7 @@ function writedlm(data, filename, delimiter, header, append, column_order)
 
     -- Determine the column order (use the first row's keys if not provided)
     if column_order == nil then
-        -- et the keys from the first row to determine the column order
+        -- Get the keys from the first row to determine the column order
         column_order = {}
         for k, v in pairs(data[1]) do table.insert(column_order, k) end
     end

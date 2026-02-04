@@ -33,33 +33,41 @@ function local_query(db_path, query)
     result_rows = {}
     column_names = {}
 
-    -- Handle rows iterator. Assuming sqlite.stmt.rows exists based on previous code.
-    -- If it fails, we might need to fix this.
+    -- Try to get column names from statement metadata if available
+    if sqlite.stmt != nil and sqlite.stmt.get_names != nil then
+        column_names = sqlite.stmt.get_names(stmt) or {}
+    end
+
+    -- Use nrows (map with names) if available, otherwise rows (indexed values)
     iterator_choice = nil
-    if sqlite.stmt != nil and sqlite.stmt.rows != nil then
+    
+    if sqlite.stmt != nil and sqlite.stmt.nrows != nil then
+        iterator_choice = sqlite.stmt.nrows
+    elseif sqlite.stmt != nil and sqlite.stmt.rows != nil then
         iterator_choice = sqlite.stmt.rows
     elseif stmt.rows != nil then
-        iterator_choice = function(s) 
-            return s.rows(s)
-        end
+        iterator_choice = function(s) return s.rows(s) end
     end
 
     if iterator_choice != nil then
         for row in iterator_choice(stmt) do
             table.insert(result_rows, row)
-            for col_name, _ in pairs(row) do
-                table.insert(column_names, col_name)
+            if #column_names == 0 then
+                for k, _ in pairs(row) do
+                     table.insert(column_names, k)
+                end
             end
         end
     end
 
     sqlite.close(db)
 
-    if utils.length(result_rows) == 0 then
+    if #result_rows == 0 then
         -- print("Query executed successfully, but no rows were returned.")
-        return nil
+        return nil, column_names
     end
 
+    -- ensure all columns are present (fill nils)
     for _, row in ipairs(result_rows) do
         for _, col_name in ipairs(column_names) do
             if row[col_name] == nil then
@@ -68,7 +76,7 @@ function local_query(db_path, query)
         end
     end
 
-    return result_rows
+    return result_rows, column_names
 end
 
 function local_update(db_path, statement)
@@ -137,7 +145,7 @@ function import_delimited(db_path, file_path, table_name, delimiter)
 end
 
 function export_delimited(db_path, query, file_path, delimiter, header)
-    results = local_query(db_path, query)
+    results, col_names = local_query(db_path, query)
 
     if results == nil then
         print("Failed query")
@@ -149,7 +157,7 @@ function export_delimited(db_path, query, file_path, delimiter, header)
         return nil
     end
 
-    delimited_files.writedlm(results, file_path, delimiter, header)
+    delimited_files.writedlm(results, file_path, delimiter, header, false, col_names)
     return true
 end
 
