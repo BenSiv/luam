@@ -1,6 +1,6 @@
-# LuaM
+# Luam
 
-**LuaM** is a modernized fork of **Lua 5.1**, featuring a stricter, safer, and more concise syntax. It preserves the speed and simplicity of Lua 5.1 while selectively adopting features from later Lua versions and modern programming paradigms.
+**Luam** is a modernized fork of **Lua 5.1**, featuring a stricter, safer, and more concise syntax. It preserves the speed and simplicity of Lua 5.1 while selectively adopting features from later Lua versions and modern programming paradigms.
 
 ---
 
@@ -100,7 +100,7 @@ xpcall(func, handler, arg1, arg2)
 
 ## Build & Install
 
-LuaM provides a simplified build process via a dedicated shell script.
+Luam provides a simplified build process via a dedicated shell script.
 
 ### Building
 
@@ -128,4 +128,4 @@ Manual pages are provided in the `doc/` directory:
 
 ## License
 
-LuaM is free software, released under the **MIT License**, matching Lua 5.1.
+Luam is free software, released under the **MIT License**, matching Lua 5.1.
