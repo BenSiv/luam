@@ -108,7 +108,7 @@ for i, name in ipairs(arg) do
 	extension = string.match(name, "%.(%a+)$")
 	if i == 1 or (is_source_file(extension) or is_binary_library(extension)) then
 		if not file_exists(name) then
-			io.io.write(stderr, "file does not exist: " .. name .. "\n")
+			io.write(io.stderr, "file does not exist: " .. name .. "\n")
 			os.exit(1)
 		end
 
@@ -129,7 +129,7 @@ for i, name in ipairs(arg) do
 			-- The library is either a Lua module or a library dependency.
 			nmout = shellout(NM .. " " .. info.path)
 			if nmout == nil then
-				io.io.write(stderr, "nm not found\n")
+				io.write(io.stderr, "nm not found\n")
 				os.exit(1)
 			end
 			is_module = false
@@ -430,7 +430,7 @@ if os.getenv("CC") == "" then
 end
 
 if not execute(CC .. " --version 1>/dev/null 2>/dev/null") then
-	io.io.write(stderr, "C compiler not found.\n")
+	io.write(io.stderr, "C compiler not found.\n")
 	os.exit(1)
 end
 
