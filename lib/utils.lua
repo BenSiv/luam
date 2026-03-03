@@ -685,36 +685,38 @@ function get_line_length()
     return 80 
 end
 
-function exec_command(command)
-    -- Try popen
-    if io.popen != nil then
-        ok, process = pcall(io.popen, command)
-        if ok and process != nil and type(process) == 'userdata' then
-            curr = io.input()
-            io.input(process)
-            output = io.read("*a")
-            io.input(curr)
-            success = io.close(process)
-            return output, success
-        end
+function command_succeeded(ok, why, code)
+    if type(ok) == "number" then
+        return ok == 0
     end
-    
-    -- Fallback via temp file
-    tmpfile = os.tmpname()
-    if os.execute(command .. " > " .. tmpfile .. " 2>&1") == 0 then
-        file = io.open(tmpfile, "r")
-        if file != nil then
-             curr = io.input()
-             io.input(file)
-             output = io.read("*a")
-             io.input(curr)
-             io.close(file)
-             os.remove(tmpfile)
-             return output, true
+    if type(ok) == "boolean" then
+        if why == "exit" and type(code) == "number" then
+            return ok and code == 0
         end
+        return ok
+    end
+    return false
+end
+
+function exec_command(command)
+    tmpfile = os.tmpname()
+    ok, why, code = os.execute(command .. " > " .. tmpfile .. " 2>&1")
+
+    output = ""
+    file = io.open(tmpfile, "r")
+    if file != nil then
+         curr = io.input()
+         io.input(file)
+         output = io.read("*a")
+         if output == nil then
+             output = ""
+         end
+         io.input(curr)
+         io.close(file)
     end
     os.remove(tmpfile)
-    return "", false -- Failed
+
+    return output, command_succeeded(ok, why, code)
 end
 
 function breakpoint()
