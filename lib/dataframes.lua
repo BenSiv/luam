@@ -95,7 +95,7 @@ function transpose(data_table)
     return transposed_table
 end
 
-function get_columns(data_table)
+function df_get_columns(data_table)
     -- Check if the data table is empty or not a valid dataframe
     if utils.isempty(data_table) then
         print("Empty table")
@@ -107,95 +107,164 @@ function get_columns(data_table)
 
     -- etrieve the column names from the first row
     columns = {}
-    for col_name, _ in pairs(data_table[1]) do
+    first_key = utils.keys(data_table)[1]
+    for col_name, _ in pairs(data_table[first_key]) do
         table.insert(columns, col_name)
     end
 
     return columns
 end
 
--- Pretty print a dataframe
-function view(data_table, args)
-	args = args or {}
-    -- Extract keyword arguments
-    limit = args.limit
-    columns = args.columns
-
-    if utils.isempty(data_table) then
-        print("Empty table")
-        return
-    elseif not is_dataframe(data_table) then
-        print("ot a valid dataframe")
-        return
+function df_get_cell_value(row, col_name, col_idx)
+    cell_value = row[col_name]
+    if cell_value == nil then
+        cell_value = row[col_idx]
     end
-
-    -- et terminal line length
-    line_length = utils.get_line_length()
-
-    -- f no specific columns are provided, use all columns from the first row
-    if columns == nil or #columns == 0 then
-        columns = {}
-        for col_name, _ in pairs(data_table[1]) do
-            table.insert(columns, col_name)
-        end
+    if cell_value == nil then
+        return ""
     end
+    return cell_value
+end
 
-    -- Calculate column widths
+function df_get_view_columns(data_table, columns)
+    if columns != nil and #columns > 0 then
+        return columns
+    end
+    return df_get_columns(data_table)
+end
+
+function df_get_column_widths(data_table, columns, limit)
     column_widths = {}
-    for _, row in pairs(data_table) do
-        for col_idx, col_name in ipairs(columns) do
-            col_width = #tostring(col_name)
-            -- Support both named and numeric column access
-            cell_value = row[col_name] or row[col_idx] or ""
-            val_width = #tostring(cell_value)
-            column_widths[col_name] = math.max(column_widths[col_name] or 0, col_width, val_width)
-        end
-    end
-
-    -- djust column widths to fit within terminal line length
-    total_width = 0
-    for _, width in pairs(column_widths) do
-        total_width = total_width + width + 1 -- dd 1 for spacing
-    end
-
-    -- Constrain total width to line length
-    if total_width > line_length then
-        available_width = line_length - #columns -- Subtract space for separators
-        width_per_column = math.floor(available_width / #columns)
-        for _, col_name in ipairs(columns) do
-            column_widths[col_name] = math.min(column_widths[col_name], width_per_column)
-        end
-    end
-
-    -- Print column headers in bold
     for _, col_name in ipairs(columns) do
-        io.write("\27[1m")
-        padded_key = tostring(col_name)
-        padded_key = padded_key .. string.rep(" ", column_widths[col_name] - #padded_key)
-        io.write(padded_key .. "\27[0m\t")
+        column_widths[col_name] = #tostring(col_name)
     end
-    io.write("\n")
 
-    -- Print rows
     row_count = 0
-    for _, row in pairs(data_table) do
-        if limit and row_count >= limit then
+    for _, row in ipairs(data_table) do
+        if limit != nil and row_count >= limit then
             break
         end
         for col_idx, col_name in ipairs(columns) do
-            -- Support both named and numeric column access
-            cell_value = row[col_name] or row[col_idx] or ""
-            value = tostring(cell_value)
-            width = column_widths[col_name]
-            if #value > width then
-                value = string.sub(value, 1, width - 3) .. "..."
-            end
-            value = value .. string.rep(" ", width - #value)
-            io.write(value .. "\t")
+            cell_value = df_get_cell_value(row, col_name, col_idx)
+            val_width = #tostring(cell_value)
+            column_widths[col_name] = math.max(column_widths[col_name] or 0, #tostring(col_name), val_width)
         end
-        io.write("\n")
         row_count = row_count + 1
     end
+
+    return column_widths
+end
+
+function df_fit_column_widths(column_widths, columns, line_length)
+    if line_length == nil or line_length <= 0 then
+        return column_widths
+    end
+
+    total_width = 0
+    for _, col_name in ipairs(columns) do
+        total_width = total_width + column_widths[col_name]
+    end
+    total_width = total_width + math.max(#columns - 1, 0)
+
+    if total_width <= line_length then
+        return column_widths
+    end
+
+    available_width = line_length - math.max(#columns - 1, 0)
+    if available_width < #columns then
+        available_width = #columns
+    end
+    width_per_column = math.max(math.floor(available_width / #columns), 1)
+    for _, col_name in ipairs(columns) do
+        column_widths[col_name] = math.min(column_widths[col_name], width_per_column)
+    end
+    return column_widths
+end
+
+function df_fit_cell(value, width)
+    value = tostring(value)
+    if width <= 0 then
+        return ""
+    end
+    if #value > width then
+        if width <= 3 then
+            return string.sub(value, 1, width)
+        end
+        return string.sub(value, 1, width - 3) .. "..."
+    end
+    return value .. string.rep(" ", width - #value)
+end
+
+function df_format_header(columns, column_widths, bold_headers)
+    parts = {}
+    for _, col_name in ipairs(columns) do
+        header_value = df_fit_cell(col_name, column_widths[col_name])
+        if bold_headers == true then
+            header_value = "\27[1m" .. header_value .. "\27[0m"
+        end
+        table.insert(parts, header_value)
+    end
+    return table.concat(parts, "\t")
+end
+
+function df_format_row(row, columns, column_widths)
+    parts = {}
+    for col_idx, col_name in ipairs(columns) do
+        cell_value = df_get_cell_value(row, col_name, col_idx)
+        table.insert(parts, df_fit_cell(cell_value, column_widths[col_name]))
+    end
+    return table.concat(parts, "\t")
+end
+
+function df_render_lines(data_table, args)
+    args = args or {}
+    if utils.isempty(data_table) then
+        return {"Empty table"}
+    elseif not is_dataframe(data_table) then
+        return {"ot a valid dataframe"}
+    end
+
+    columns = df_get_view_columns(data_table, args.columns)
+    if columns == nil or #columns == 0 then
+        return {"Empty table"}
+    end
+
+    limit = args.limit
+    line_length = args.line_length
+    if line_length == nil then
+        line_length = utils.get_line_length()
+    end
+
+    column_widths = df_get_column_widths(data_table, columns, limit)
+    column_widths = df_fit_column_widths(column_widths, columns, line_length)
+
+    lines = {}
+    table.insert(lines, df_format_header(columns, column_widths, args.bold_headers == true))
+
+    row_count = 0
+    for _, row in ipairs(data_table) do
+        if limit and row_count >= limit then
+            break
+        end
+        table.insert(lines, df_format_row(row, columns, column_widths))
+        row_count = row_count + 1
+    end
+
+    return lines
+end
+
+function df_render(data_table, args)
+    lines = df_render_lines(data_table, args)
+    return table.concat(lines, "\n")
+end
+
+-- Pretty print a dataframe
+function df_view(data_table, args)
+	args = args or {}
+    if args.bold_headers == nil then
+        args.bold_headers = true
+    end
+    print(df_render(data_table, args))
 end
 
 function array_to_df(array)
@@ -592,8 +661,11 @@ function innerjoin_multiple(tables, columns, prefixes)
 end
 
 dataframes.is_dataframe = is_dataframe
-dataframes.get_columns = get_columns
-dataframes.view = view
+dataframes.get_columns = df_get_columns
+dataframes.get_cell_value = df_get_cell_value
+dataframes.render_lines = df_render_lines
+dataframes.render = df_render
+dataframes.view = df_view
 dataframes.transpose = transpose
 dataframes.group_by = group_by
 dataframes.sum_values = sum_values
