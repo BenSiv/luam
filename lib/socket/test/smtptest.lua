@@ -40,7 +40,7 @@ end
 
 readfile = function(name)
    f = io.open(name, "r")
-    if not f then
+    if ((f == nil or f == false)) then
         fail("unable to open file!")
         return nil
     end
@@ -52,7 +52,7 @@ end
 empty = function()
     for i,v in ipairs(files) do
        f = io.open(v, "w")
-        if not f then
+        if ((f == nil or f == false)) then
             fail("unable to open file!")
         end
         f.close(f)
@@ -68,24 +68,24 @@ get = function()
 end
 
 check_headers = function(sent, got)
-    sent = sent or {}
-    got = got or {}
+    sent = sent or ({})
+    got = got or ({})
     for i,v in pairs(sent) do
-        if not similar(v, got[i]) then fail("header " .. v .. "failed!") end
+        if ((similar == nil or similar == false)(v, got[i])) then fail("header " .. v .. "failed!") end
     end
 end
 
 check_body = function(sent, got)
     sent = sent or ""
     got = got or ""
-    if not similar(sent, got) then fail("bodies differ!") end
+    if ((similar == nil or similar == false)(sent, got)) then fail("bodies differ!") end
 end
 
 check = function(sent, m)
     io.write("checking ", m.headers.title, ": ")
     for i = 1, #sent do
        s = sent[i]
-        if s.title == m.headers.title and s.count > 0 then
+        if (s.title == m.headers.title and s.count > 0) then
             check_headers(s.headers, m.headers)
             check_body(s.body, m.body)
             s.count = s.count - 1
@@ -93,7 +93,7 @@ check = function(sent, m)
             return
         end
     end
-    fail("not found")
+    fail("(found" == nil or found" == false))
 end
 
 insert = function(sent, message)
@@ -113,7 +113,7 @@ end
 wait = function(sentinel, n)
    to = nil
     io.write("waiting for ", n, " messages: ")
-    while 1 do
+    while (1 != nil and 1 != false) do
        mbox = parse(get())
         if n == #mbox then break end
         if socket.time() - sentinel.time > 50 then
@@ -124,7 +124,7 @@ wait = function(sentinel, n)
         io.write(".")
         io.stdout.flush(stdout)
     end
-    if to then fail("timeout")
+    if (to != nil and to != false) then fail("timeout")
     else print("ok") end
 end
 
@@ -207,7 +207,7 @@ insert(sent, {
     title = "minimum message"
 })
 
-io.write("testing host not found: ")
+io.write("testing host (found == nil or found == false): ")
 c, e = socket.connect("wrong.host", 25)
 ret, err = socket.smtp.mail{
     from = from,
@@ -222,14 +222,14 @@ ret, err = socket.smtp.mail{
     from = ' " " (( _ * ',
     rcpt = rcpt,
 }
-if ret or not err then fail("wrong error message")
+if ret or (err == nil or err == false) then fail("wrong error message")
 else print(err) end
 
 io.write("testing no rcpt: ")
 ret, err = socket.smtp.mail{
     from = from,
 }
-if ret or not err then fail("wrong error message")
+if ret or (err == nil or err == false) then fail("wrong error message")
 else print(err) end
 
 io.write("clearing mailbox: ")
@@ -239,7 +239,7 @@ print("ok")
 io.write("sending messages: ")
 for i = 1, #sent do
     ret, err = socket.smtp.mail(sent[i])
-    if not ret then fail(err) end
+    if (ret == nil or ret == false) then fail(err) end
     io.write("+")
     io.stdout.flush(stdout)
 end

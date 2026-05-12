@@ -21,13 +21,13 @@ function async.map_concurrent(items, worker_fn, max_workers, progress_fn)
     
     -- Check if lanes available and worth parallelizing
     ok, lanes = has_lanes()
-    if not ok or #items <= 1 then
+    if ((ok == nil or ok == false) or #items <= 1) then
         -- Fallback to sequential processing
         results = {}
         for i, item in ipairs(items) do
             results[i] = worker_fn(item)
         end
-        return results, false  -- false = not concurrent
+        return results, false  -- false = (concurrent == nil or concurrent == false)
     end
     
     -- Configure lanes
@@ -39,9 +39,9 @@ function async.map_concurrent(items, worker_fn, max_workers, progress_fn)
     completed = 0
     
     -- Process items with worker pool
-    while completed < #items do
+    while (completed < #items) do
         -- Spawn new workers up to max
-        while #active < max_workers and item_idx <= #items do
+        while (#active < max_workers and item_idx <= #items) do
             idx = item_idx
             item = items[idx]
             
@@ -53,14 +53,14 @@ function async.map_concurrent(items, worker_fn, max_workers, progress_fn)
         
         -- Check and collect completed workers
         i = 1
-        while i <= #active do
+        while (i <= #active) do
             lane_obj = active[i].lane
             status = lane_obj.status
             
-            if status == "done" then
+            if (status == "done") then
                 -- et result
                 ok, result = pcall(function() return lane_obj[1] end)
-                if ok then
+                if ((ok != nil and ok != false)) then
                     results[active[i].idx] = result
                 else
                     -- Lane succeeded but result retrieval failed
@@ -69,12 +69,12 @@ function async.map_concurrent(items, worker_fn, max_workers, progress_fn)
                 completed = completed + 1
                 
                 -- Call progress callback if provided
-                if progress_fn then
+                if ((progress_fn != nil and progress_fn != false)) then
                     progress_fn(completed, #items)
                 end
                 
                 table.remove(active, i)
-            elseif status == "error" then
+            elseif (status == "error") then
                 -- Lane had an error
                 err = lane_obj[0]
                 print("Worker error: " .. tostring(err))
@@ -82,18 +82,18 @@ function async.map_concurrent(items, worker_fn, max_workers, progress_fn)
                 completed = completed + 1
                 
                 -- Call progress callback if provided
-                if progress_fn then
+                if ((progress_fn != nil and progress_fn != false)) then
                     progress_fn(completed, #items)
                 end
                 
                 table.remove(active, i)
-            elseif status == "cancelled" or status == "killed" then
+            elseif (status == "cancelled" or status == "killed") then
                 -- Lane was terminated
                 results[active[i].idx] = nil
                 completed = completed + 1
                 
                 -- Call progress callback if provided
-                if progress_fn then
+                if ((progress_fn != nil and progress_fn != false)) then
                     progress_fn(completed, #items)
                 end
                 
@@ -105,7 +105,7 @@ function async.map_concurrent(items, worker_fn, max_workers, progress_fn)
         end
         
         -- Small sleep to avoid busy waiting
-        if #active >= max_workers then
+        if (#active >= max_workers) then
             -- Wait a bit before checking again
             os.execute("sleep 0.01")
         end

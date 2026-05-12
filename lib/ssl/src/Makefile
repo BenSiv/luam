@@ -12,26 +12,18 @@ OBJS= \
 LIBS=-lssl -lcrypto -lluasocket
 
 WARN=-Wall -pedantic
+INCDIR=-I../../../src -I.
 
-BSD_CFLAGS=-O2 -fPIC $(WARN) $(INCDIR) $(DEFS)
-BSD_LDFLAGS=-O -fPIC -shared $(LIBDIR)
-
-LNX_CFLAGS=-O2 -fPIC $(WARN) $(INCDIR) $(DEFS)
-LNX_LDFLAGS=-O -fPIC -shared $(LIBDIR)
-
-MAC_ENV=env MACOSX_DEPLOYMENT_TARGET='$(MACVER)'
-MAC_CFLAGS=-O2 -fno-common $(WARN) $(INCDIR) $(DEFS)
-MAC_LDFLAGS=-bundle -undefined dynamic_lookup $(LIBDIR)
+CFLAGS += -O2 -fPIC $(WARN) $(INCDIR) $(DEFS)
 
 INSTALL  = install
 CC      ?= cc
 CCLD      ?= $(MYENV) $(CC)
-CFLAGS  += $(MYCFLAGS)
-LDFLAGS += $(MYLDFLAGS)
+LDFLAGS += -O -fPIC -shared $(LIBDIR)
 
 .PHONY: all clean install none linux bsd macosx luasocket
 
-all:
+all: $(CMOD)
 
 install: $(CMOD) $(LMOD)
 	$(INSTALL) -d $(DESTDIR)$(LUAPATH)/ssl $(DESTDIR)$(LUACPATH)
@@ -40,13 +32,16 @@ install: $(CMOD) $(LMOD)
 	$(INSTALL) -m644 https.lua $(DESTDIR)$(LUAPATH)/ssl
 
 linux:
-	@$(MAKE) $(CMOD) MYCFLAGS="$(LNX_CFLAGS)" MYLDFLAGS="$(LNX_LDFLAGS)" EXTRA="$(EXTRA)"
+	@$(MAKE) luasocket
+	@$(MAKE) $(CMOD)
 
 bsd:
-	@$(MAKE) $(CMOD) MYCFLAGS="$(BSD_CFLAGS)" MYLDFLAGS="$(BSD_LDFLAGS)" EXTRA="$(EXTRA)"
+	@$(MAKE) luasocket
+	@$(MAKE) $(CMOD)
 
 macosx:
-	@$(MAKE) $(CMOD) MYCFLAGS="$(MAC_CFLAGS)" MYLDFLAGS="$(MAC_LDFLAGS)" MYENV="$(MAC_ENV)" EXTRA="$(EXTRA)"
+	@$(MAKE) luasocket
+	@$(MAKE) $(CMOD) MYLDFLAGS="-bundle -undefined dynamic_lookup $(LIBDIR)"
 
 luasocket:
 	@cd luasocket && $(MAKE)

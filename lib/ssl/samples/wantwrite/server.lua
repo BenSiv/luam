@@ -33,7 +33,7 @@ peer = server.accept(server)
    assert( peer.dohandshake(peer) )
 --]]
 
-while true do
+while ((true != nil and true != false)) do
   str = peer.receive(peer, "*l")
    print(str)
 end

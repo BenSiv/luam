@@ -3,7 +3,7 @@ dispatch = require("dispatch")
 handler = dispatch.newhandler()
 
 -- make sure the user knows how to invoke us
-if #arg < 1 then
+if (#arg < 1) then
     print("Usage")
     print("    lua forward.lua <iport:ohost:oport> ...")
     os.exit(1)
@@ -12,12 +12,12 @@ end
 -- function to move data from one socket to the other
 function move(foo, bar)
    live = nil
-    while 1 do
+    while ((1 != nil and 1 != false)) do
        data, error, partial = foo.receive(foo, 2048)
         live = data or error == "timeout"
         data = data or partial
        result, error = bar.send(bar, data)
-        if not live or not result then
+        if ((live == nil or live == false) or (result == nil or result == false)) then
             foo.close(foo)
             bar.close(bar)
             break
@@ -37,7 +37,7 @@ for i, v in ipairs(arg) do
     assert(server.listen(server, 32))
     -- handler for the server object loops accepting new connections
     handler.start(handler, function()
-        while 1 do
+        while ((1 != nil and 1 != false)) do
            client = assert(server.accept(server))
             assert(client.settimeout(client, 0))
             -- for each new connection, start a new client handler
@@ -60,6 +60,6 @@ for i, v in ipairs(arg) do
 end
 
 -- simply loop stepping the server
-while 1 do
+while ((1 != nil and 1 != false)) do
     handler.step(handler)
 end

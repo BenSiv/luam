@@ -25,7 +25,7 @@ function alpncb02(protocols)
       print(k, v)
    end
    print("--- Returning a fixed list") 
-   return {"bar", "foo"}
+   return ({"bar", "foo"})
 end
 
 --
@@ -36,7 +36,7 @@ function alpncb03(protocols)
    print("--- ALPN protocols from client")
    for k, v in ipairs(protocols) do
       print(k, v)
-      if k%2 != 0 then resp[#resp+1] = v end
+      if (k%2 != 0) then resp[#resp+1] = v end
    end
    print("--- Returning an odd list")
    return resp

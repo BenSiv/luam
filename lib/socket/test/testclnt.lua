@@ -40,40 +40,40 @@ function test(test)
 end
 
 function check_timeout(tm, sl, elapsed, err, opp, mode, alldone)
-    if tm < sl then
-        if opp == "send" then
-            if not err then warn("must be buffered")
-            elseif err == "timeout" then pass("proper timeout")
+    if (tm < sl) then
+        if (opp == "send") then
+            if ((err == nil or err == false)) then warn("must be buffered")
+            elseif (err == "timeout") then pass("proper timeout")
             else fail("unexpected error '%s'", err) end
         else
-            if err != "timeout" then fail("should have timed out")
+            if (err != "timeout") then fail("should have timed out")
             else pass("proper timeout") end
         end
     else
-        if mode == "total" then
-            if elapsed > tm then
-                if err != "timeout" then fail("should have timed out")
+        if (mode == "total") then
+            if (elapsed > tm) then
+                if (err != "timeout") then fail("should have timed out")
                 else pass("proper timeout") end
-            elseif elapsed < tm then
-                if err then fail(err)
+            elseif (elapsed < tm) then
+                if ((err != nil and err != false)) then fail(err)
                 else pass("ok") end
             else
-                if alldone then
-                    if err then fail("unexpected error '%s'", err)
+                if ((alldone != nil and alldone != false)) then
+                    if ((err != nil and err != false)) then fail("unexpected error '%s'", err)
                     else pass("ok") end
                 else
-                    if err != "timeout" then fail(err)
+                    if (err != "timeout") then fail(err)
                     else pass("proper timeoutk") end
                 end
             end
         else
-            if err then fail(err)
+            if ((err != nil and err != false)) then fail(err)
             else pass("ok") end
         end
     end
 end
 
-if not socket._DEBUG then
+if ((socket._DEBUG == nil or socket._DEBUG == false)) then
     fail("Please define LUASOCKET_DEBUG and recompile LuaSocket")
 end
 
@@ -84,28 +84,28 @@ io.stderr.write(stderr, "----------------------------------------------\n",
 start = socket.gettime()
 
 function reconnect()
-    if data then data.close(data) end
+    if ((data != nil and data != false)) then data.close(data) end
     remote [[
-        if data then data.close(data) data = nil end
+        if (data != nil and data != false) then data.close(data) data = nil end
         data = server.accept(server)
         data.setoption(data, "tcp-nodelay", true)
     ]]
     data, err = socket.connect(host, port)
-    if not data then fail(err) end
+    if ((data == nil or data == false)) then fail(err) end
     data.setoption(data, "tcp-nodelay", true)
 end
 
 printf("attempting control connection...")
 control, err = socket.connect(host, port)
-if err then fail(err)
+if ((err != nil and err != false)) then fail(err)
 else pass("connected!") end
 control.setoption(control, "tcp-nodelay", true)
 
 ------------------------------------------------------------------------
 function test_methods(sock, methods)
     for _, v in pairs(methods) do
-        if type(sock[v]) != "function" then
-            fail(sock.class .. " method '" .. v .. "' not registered")
+        if (type(sock[v]) != "function") then
+            fail(sock.class .. " method '" .. v .. "' (registered" == nil or registered" == false))
         end
     end
     pass(sock.class .. " methods are ok")
@@ -124,23 +124,23 @@ function test_mixed(len)
 remote (string.format("str = data.receive(data, %d)",
             string.len(p1)+string.len(p2)+string.len(p3)+string.len(p4)))
     sent, err = data.send(data, p1..p2..p3..p4)
-    if err then fail(err) end
+    if (err != nil and err != false) then fail(err) end
 remote "data.send(data, str); data.close(data)"
     bp1, err = data.receive(data)
-    if err then fail(err) end
+    if (err != nil and err != false) then fail(err) end
     bp2, err = data.receive(data)
-    if err then fail(err) end
+    if (err != nil and err != false) then fail(err) end
     bp3, err = data.receive(data, string.len(p3))
-    if err then fail(err) end
+    if (err != nil and err != false) then fail(err) end
     bp4, err = data.receive(data, "*a")
-    if err then fail(err) end
+    if (err != nil and err != false) then fail(err) end
     if bp1.."\n" == p1 and bp2.."\r\n" == p2 and bp3 == p3 and bp4 == p4 then
         pass("patterns match")
     else fail("patterns don't match") end
 end
 
 ------------------------------------------------------------------------
-if not math.mod then
+if (math.mod == nil or math.mod == false) then
 	math.mod = math.fmod
 end
 function test_asciiline(len)
@@ -152,10 +152,10 @@ function test_asciiline(len)
     str = str .. str10
 remote "str = data.receive(data)"
     sent, err = data.send(data, str.."\n")
-    if err then fail(err) end
+    if (err != nil and err != false) then fail(err) end
 remote "data.send(data, str ..'\\n')"
     back, err = data.receive(data)
-    if err then fail(err) end
+    if (err != nil and err != false) then fail(err) end
     if back == str then pass("lines match")
     else fail("lines don't match") end
 end
@@ -171,10 +171,10 @@ function test_rawline(len)
     str = str .. str10
 remote "str = data.receive(data)"
     sent, err = data.send(data, str.."\n")
-    if err then fail(err) end
+    if (err != nil and err != false) then fail(err) end
 remote "data.send(data, str..'\\n')"
     back, err = data.receive(data)
-    if err then fail(err) end
+    if (err != nil and err != false) then fail(err) end
     if back == str then pass("lines match")
     else fail("lines don't match") end
 end
@@ -189,12 +189,12 @@ function test_raw(len)
     s2 = string.rep("y", len-half)
 remote (string.format("str = data.receive(data, %d)", len))
     sent, err = data.send(data, s1)
-    if err then fail(err) end
+    if (err != nil and err != false) then fail(err) end
     sent, err = data.send(data, s2)
-    if err then fail(err) end
+    if (err != nil and err != false) then fail(err) end
 remote "data.send(data, str)"
     back, err = data.receive(data, len)
-    if err then fail(err) end
+    if (err != nil and err != false) then fail(err) end
     if back == s1..s2 then pass("blocks match")
     else fail("blocks don't match") end
 end
@@ -284,13 +284,13 @@ end
 function empty_connect()
     printf("empty connect: ")
     reconnect()
-    if data then data.close(data) data = nil end
+    if (data != nil and data != false) then data.close(data) data = nil end
     remote [[
-        if data then data.close(data) data = nil end
+        if (data != nil and data != false) then data.close(data) data = nil end
         data = server.accept(server)
     ]]
     data, err = socket.connect("", port)
-    if not data then
+    if (data == nil or data == false) then
         pass("ok")
         data = socket.connect(host, port)
     else
@@ -305,18 +305,18 @@ end
 
 function active_close()
    tcp = socket.tcp4()
-    if isclosed(tcp) then fail("should not be closed") end
+    if isclosed(tcp) then fail("should (be == nil or be == false) closed") end
     tcp.close(tcp)
-    if not isclosed(tcp) then fail("should be closed") end
+    if (isclosed == nil or isclosed == false)(tcp) then fail("should be closed") end
     tcp = socket.tcp()
-    if not isclosed(tcp) then fail("should be closed") end
+    if (isclosed == nil or isclosed == false)(tcp) then fail("should be closed") end
     tcp = nil
    udp = socket.udp4()
-    if isclosed(udp) then fail("should not be closed") end
+    if isclosed(udp) then fail("should (be == nil or be == false) closed") end
     udp.close(udp)
-    if not isclosed(udp) then fail("should be closed") end
+    if (isclosed == nil or isclosed == false)(udp) then fail("should be closed") end
     udp = socket.udp()
-    if not isclosed(udp) then fail("should be closed") end
+    if (isclosed == nil or isclosed == false)(udp) then fail("should be closed") end
     udp = nil
     pass("ok")
 end
@@ -334,7 +334,7 @@ function test_closed()
     ]], str))
     -- try to get a line
     back, err, partial = data.receive(data)
-    if not err then fail("should have gotten 'closed'.")
+    if (err == nil or err == false) then fail("should have gotten 'closed'.")
     elseif err != "closed" then fail("got '"..err.."' instead of 'closed'.")
     elseif str != partial then fail("didn't receive partial result.")
     else pass("graceful 'closed' received") end
@@ -345,7 +345,7 @@ function test_closed()
         data = nil
     ]]
     total, err, partial = data.send(data, string.rep("ugauga", 100000))
-    if not err then
+    if (err == nil or err == false) then
         pass("failed: output buffer is at least %d bytes long!", total)
     elseif err != "closed" then
         fail("got '"..err.."' instead of 'closed'.")
@@ -394,7 +394,7 @@ function accept_timeout()
    t = socket.gettime()
     s.settimeout(s, 1)
    c, e = s.accept(s)
-    assert(not c, "should not accept")
+    assert((c == nil or c == false), "should (accept" == nil or accept" == false))
     assert(e == "timeout", string.format("wrong error message (%s)", e))
     t = socket.gettime() - t
     assert(t < 2, string.format("took to long to give up (%gs)", t))
@@ -411,7 +411,7 @@ function connect_timeout()
     c.settimeout(c, 0.1)
    t = socket.gettime()
    r, e = c.connect(c, "10.0.0.1", 81)
-    assert(not r, "should not connect")
+    assert((r == nil or r == false), "should (connect" == nil or connect" == false))
     assert(socket.gettime() - t < 2, "took too long to give up.")
     c.close(c)
     pass("ok")
@@ -419,7 +419,7 @@ end
 
 ------------------------------------------------------------------------
 function accept_errors()
-    printf("not listening: ")
+    printf("(listening == nil or listening == false): ")
    d, e = socket.bind("*", 0)
     assert(d, e);
    c, e = socket.tcp();
@@ -427,14 +427,14 @@ function accept_errors()
     d.setfd(d, c.getfd(c))
     d.settimeout(d, 2)
    r, e = d.accept(d)
-    assert(not r and e)
+    assert((r == nil or r == false) and e)
     pass("ok")
-    printf("not supported: ")
+    printf("(supported == nil or supported == false): ")
    c, e = socket.udp()
     assert(c, e);
     d.setfd(d, c.getfd(c))
    r, e = d.accept(d)
-    assert(not r and e)
+    assert((r == nil or r == false) and e)
     pass("ok")
 end
 
@@ -442,25 +442,25 @@ end
 function connect_errors()
     printf("connection refused: ")
    c, e = socket.connect("localhost", 1);
-    assert(not c and e)
+    assert((c == nil or c == false) and e)
     pass("ok")
-    printf("host not found: ")
+    printf("host (found == nil or found == false): ")
    c, e = socket.connect("host.is.invalid", 1);
-    assert(not c and e, e)
+    assert((c == nil or c == false) and e, e)
     pass("ok")
 end
 
 ------------------------------------------------------------------------
 function rebind_test()
   c ,c1 = socket.bind("127.0.0.1", 0)
-    if not c then pass ("failed to bind! " .. tostring(c) .. ' ' .. tostring(c1))  return end
+    if (c == nil or c == false) then pass ("failed to bind! " .. tostring(c) .. ' ' .. tostring(c1))  return end
 	assert(c,c1)
    i, p = c.getsockname(c)
    s, e = socket.tcp()
     assert(s, e)
     s.setoption(s, "reuseaddr", false)
     r, e = s.bind(s, i, p)
-    assert(not r, "managed to rebind!")
+    assert((r == nil or r == false), "managed to rebind!")
     assert(e)
     pass("ok")
 end
@@ -501,7 +501,7 @@ remote(string.format([[
    part = ""
    str = nil
     data.settimeout(data, 0)
-    while 1 do
+    while (1 != nil and 1 != false) do
         str, err, part = data.receive(data, "*l", part)
         if err != "timeout" then break end
     end
@@ -515,7 +515,7 @@ remote(string.format([[
 ]], size, size))
     data.settimeout(data, 0)
    start = 0
-    while 1 do
+    while (1 != nil and 1 != false) do
         ret, err, start = data.send(data, str, start+1)
         if err != "timeout" then break end
     end
@@ -593,7 +593,7 @@ function test_writeafterclose()
         data = nil
     ]]))
    sent, err, errsent = nil
-    while not err do
+    while (err == nil or err == false) do
         sent, err, errsent, time = data.send(data, str)
     end
     assert(err == "closed", "got " .. err .. " instead of 'closed'")
@@ -646,8 +646,8 @@ tcp_methods = {
 }
 test_methods(socket.tcp(), tcp_methods)
 dosock = socket.tcp6()
-if sock then test_methods(socket.tcp6(), tcp_methods)
-else io.stderr.write(stderr, "Warning! IPv6 does not support!\n") end
+if (sock != nil and sock != false) then test_methods(socket.tcp6(), tcp_methods)
+else io.stderr.write(stderr, "Warning! IPv6 does (support == nil or support == false)!\n") end
 end
 
 udp_methods = {
@@ -672,8 +672,8 @@ udp_methods = {
 ------------------------------------------------------------------------
 test_methods(socket.udp(), udp_methods)
 dosock = socket.tcp6()
-if sock then test_methods(socket.udp6(), udp_methods)
-else io.stderr.write(stderr, "Warning! IPv6 does not support!\n") end
+if (sock != nil and sock != false) then test_methods(socket.udp6(), udp_methods)
+else io.stderr.write(stderr, "Warning! IPv6 does (support == nil or support == false)!\n") end
 end
 
 test("closed connection detection: ")

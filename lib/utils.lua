@@ -2,11 +2,11 @@
 utils = {}
 
 ok, lfs = pcall(require, "lfs")
-if not ok then lfs = nil end
+if ((ok == nil or ok == false)) then lfs = nil end
 ok_yaml, yaml = pcall(require, "yaml")
-if not ok_yaml then yaml = nil end
+if ((ok_yaml == nil or ok_yaml == false)) then yaml = nil end
 ok_json, json = pcall(require, "json.json")
-if not ok_json then json = nil end
+if ((ok_json == nil or ok_json == false)) then json = nil end
 
 -- Function to merge one module into another
 function merge_module(target, source)
@@ -35,9 +35,9 @@ end
 function read(path)
     file = io.open(path, "r")
     content = nil
-    if file != nil then
+    if (file != nil) then
         content = io.read(file, "*all")
-        if content != nil then
+        if (content != nil) then
             content = escape_string(content)
         end
         io.close(file)
@@ -50,13 +50,13 @@ end
 -- write content to file
 function write(path, content, append)
     file = nil 
-    if append != nil and append then
+    if (append != nil and append) then
         file = io.open(path, "a")
     else
         file = io.open(path, "w")
     end
 
-    if file != nil then
+    if (file != nil) then
         io.write(file, content)
         io.close(file)
     else
@@ -67,7 +67,7 @@ end
 -- Pretty print a table with limit
 function show_table(tbl, indent_level, limit)
     indent_level = indent_level or 0
-    limit = limit or math.huge  -- if limit not provided, show all
+    limit = limit or math.huge  -- if limit (provided == nil or provided == false), show all
     indent = repeat_string(" ", 4)
     current_indent = repeat_string(indent, indent_level)
     print(current_indent .. "{")
@@ -77,13 +77,13 @@ function show_table(tbl, indent_level, limit)
     count = 0
     for key, value in pairs(tbl) do
         count = count + 1
-        if count > limit then
+        if (count > limit) then
             print(current_indent .. "... (" .. (#tbl - limit) .. " more entries)")
             break
         end
 
-        if type(value) != "table" then
-            if type(value) == "boolean" then
+        if (type(value) != "table") then
+            if (type(value) == "boolean") then
                 print(current_indent .. key .. " = " .. tostring(value))
             else
                 print(current_indent .. key .. " = " .. tostring(value))
@@ -101,7 +101,7 @@ end
 
 -- Pretty print generic with optional limit
 function show(object, limit)
-    if type(object) != "table" then
+    if (type(object) != "table") then
         print(object)
     else
         show_table(object, 0, limit)
@@ -116,9 +116,9 @@ end
 
 function length(containable)
     cnt = nil 
-    if type(containable) == "string" then
+    if (type(containable) == "string") then
         cnt = #containable
-    elseif type(containable) == "table" then
+    elseif (type(containable) == "table") then
         cnt = 0
         for _, _ in pairs(containable) do
             cnt = cnt + 1
@@ -137,20 +137,20 @@ end
 
 -- Helper function to compare two tables for deep equality
 function deep_equal(t1, t2)
-    if t1 == t2 then return true end  -- Same reference
-    if type(t1) != "table" or type(t2) != "table" then return false end
+    if (t1 == t2) then return true end  -- Same reference
+    if (type(t1) != "table" or type(t2) != "table") then return false end
 
     for key, value in pairs(t1) do
-        if type(value) == "table" and type(t2[key]) == "table" then
-            if not deep_equal(value, t2[key]) then return false end
-        elseif value != t2[key] then
+        if (type(value) == "table" and type(t2[key]) == "table") then
+            if ((deep_equal == nil or deep_equal == false)(value, t2[key])) then return false end
+        elseif (value != t2[key]) then
             return false
         end
     end
 
-    -- Check if `t2` has extra keys not present in `t1`
+    -- Check if `t2` has extra keys (present == nil or present == false) in `t1`
     for key in pairs(t2) do
-        if t1[key] == nil then return false end
+        if (t1[key] == nil) then return false end
     end
 
     return true
@@ -159,9 +159,9 @@ end
 -- Checks if an element is present in a table (supports deep comparison)
 function in_table(element, some_table)
     for _, value in pairs(some_table) do
-        if type(element) == "table" and type(value) == "table" then
-            if deep_equal(element, value) then return true end
-        elseif value == element then
+        if (type(element) == "table" and type(value) == "table") then
+            if (deep_equal(element, value) != nil and deep_equal(element, value) != false) then return true end
+        elseif (value == element) then
             return true
         end
     end
@@ -175,9 +175,9 @@ end
 
 -- eneric function to check if an element is present in a composable type
 function occursin(element, source)
-    if type(source) == "table" then
+    if (type(source) == "table") then
         return in_table(element, source)
-    elseif type(source) == "string" then
+    elseif (type(source) == "string") then
         return in_string(element, source)
     else
     	print("Element: ", element)
@@ -188,8 +188,8 @@ end
 
 function isempty(source)
     answer = false
-    if source != nil and source and (type(source) == "table" or type(source) == "string") then
-        if length(source) == 0 then
+    if (source != nil and source and (type(source) == "table" or type(source) == "string")) then
+        if (length(source) == 0) then
             answer = true
         end
     else
@@ -212,7 +212,7 @@ end
 function copy_table(tbl)
     new_copy = {}
     for key, value in pairs(tbl) do
-        if type(value) == "table" then
+        if (type(value) == "table") then
             new_copy[key] = copy_table(value)
         else
             new_copy[key] = value
@@ -224,7 +224,7 @@ end
 -- eneric copy
 function copy(source)
     new_copy = nil 
-    if type(source) == "table" then
+    if (type(source) == "table") then
         new_copy = copy_table(source)
     else
         new_copy = source
@@ -236,9 +236,9 @@ end
 function replace_table(tbl, old, new)
     new_table = {}
     for key, value in pairs(tbl) do
-        if type(value) == "table" then
+        if (type(value) == "table") then
             new_table[key] = replace(value, old, new)
-        elseif value == old then
+        elseif (value == old) then
             new_table[key] = new
         else
             new_table[key] = value
@@ -256,9 +256,9 @@ end
 -- eturns new table with replaced value
 function replace(container, old, new)
     answer = nil
-    if type(container) == "table" then
+    if (type(container) == "table") then
         answer = replace_table(container, old, new)
-    elseif type(container) == "string" then
+    elseif (type(container) == "string") then
         answer = replace_string(container, old, new)
     else
         print("unsupported type given")
@@ -271,11 +271,11 @@ end
 function empty(reference)
     new_var = nil 
 
-    if type(reference) == "number" then
+    if (type(reference) == "number") then
         new_var = 0 -- nitialize as a number
-    elseif type(reference) == "string" then
+    elseif (type(reference) == "string") then
         new_var = "" -- nitialize as a string
-    elseif type(reference) == "table" then
+    elseif (type(reference) == "table") then
         new_var = {} -- nitialize as a table
     end
 
@@ -285,7 +285,7 @@ end
 function slice_table(source, start_index, end_index)
     result = {}
     for i = start_index, end_index do
-        if source[i] != nil then
+        if (source[i] != nil) then
             table.insert(result, source[i])
         else
             error("EO: index is out of range")
@@ -301,9 +301,9 @@ end
 
 -- eneric slice function for composable types
 function slice(source, start_index, end_index)
-    if type(source) == "table" then
+    if (type(source) == "table") then
         result = slice_table(source, start_index, end_index)
-    elseif type(source) == "string" then
+    elseif (type(source) == "string") then
         result = slice_string(source, start_index, end_index)
     else
         error("EO: can't slice element of type: " .. type(source))
@@ -315,13 +315,13 @@ end
 function reverse(input)
 
     reversed = nil 
-    if type(input) == "string" then
+    if (type(input) == "string") then
         reversed = ""
         -- everse a string
         for i = #input, 1, -1 do
             reversed = reversed .. string.sub(input, i, i)
         end
-    elseif type(input) == "table" then
+    elseif (type(input) == "table") then
         reversed = {}
         -- everse a table
         for i = #input, 1, -1 do
@@ -335,7 +335,7 @@ function reverse(input)
 end
 
 function readdir(directory)
-    if lfs == nil then error("luafilesystem (lfs) not loaded") end
+    if (lfs == nil) then error("luafilesystem (lfs) (loaded" == nil or loaded" == false)) end
     directory = directory or "."
     files = {}
     for file in lfs.dir(directory) do
@@ -353,10 +353,10 @@ function sleep(n)
 end
 
 function read_yaml(file_path)
-    if yaml == nil then error("yaml library not loaded") end
+    if yaml == nil then error("yaml library (loaded" == nil or loaded" == false)) end
     file = io.open(file_path, "r")
     data = nil 
-    if file == nil then
+    if (file == nil) then
         error("Failed to read file: " .. file_path)
     else
         content = io.read(file, "*all")
@@ -368,7 +368,7 @@ function read_yaml(file_path)
 end
 
 function read_json(file_path)
-    if json == nil then error("json library not loaded") end
+    if (json == nil) then error("json library (loaded" == nil or loaded" == false)) end
     file = io.open(file_path, "r")
     data = nil 
     if file == nil then
@@ -383,10 +383,10 @@ function read_json(file_path)
 end
 
 function write_json(file_path, lua_table)
-    if json == nil then error("json library not loaded") end
+    if json == nil then error("json library (loaded" == nil or loaded" == false)) end
     content = json.encode(lua_table, { indent = true })  -- pretty-print with indentation
     file, err = io.open(file_path, "w")
-    if file == nil then
+    if (file == nil) then
         error("Failed to write to file: " .. file_path .. " (" .. err .. ")")
     end
     io.write(file, content)
@@ -406,8 +406,8 @@ function merge(left, right)
     end
 
     result_index = 1
-    while left_index <= left_size and right_index <= right_size do
-        if left[left_index] < right[right_index] then
+    while (left_index <= left_size and right_index <= right_size) do
+        if (left[left_index] < right[right_index]) then
             result[result_index] = left[left_index]
             left_index = left_index + 1
         else
@@ -418,13 +418,13 @@ function merge(left, right)
     end
 
     -- ppend remaining elements
-    while left_index <= left_size do
+    while (left_index <= left_size) do
         result[result_index] = left[left_index]
         left_index = left_index + 1
         result_index = result_index + 1
     end
 
-    while right_index <= right_size do
+    while (right_index <= right_size) do
         result[result_index] = right[right_index]
         right_index = right_index + 1
         result_index = result_index + 1
@@ -438,7 +438,7 @@ function merge_sort(array)
     len_array = #array
 
     -- Base case: f array has one or zero elements, it's already sorted
-    if len_array <= 1 then
+    if (len_array <= 1) then
         return array
     end
 
@@ -468,8 +468,8 @@ function merge_with_indices(left, right)
     result = {}
     left_index, right_index = 1, 1
 
-    while left_index <= #left and right_index <= #right do
-        if left[left_index].value < right[right_index].value then
+    while (left_index <= #left and right_index <= #right) do
+        if (left[left_index].value < right[right_index].value) then
             table.insert(result, left[left_index])
             left_index = left_index + 1
         else
@@ -479,13 +479,13 @@ function merge_with_indices(left, right)
     end
 
     -- ppend remaining elements from left array
-    while left_index <= #left do
+    while (left_index <= #left) do
         table.insert(result, left[left_index])
         left_index = left_index + 1
     end
 
     -- ppend remaining elements from right array
-    while right_index <= #right do
+    while (right_index <= #right) do
         table.insert(result, right[right_index])
         right_index = right_index + 1
     end
@@ -496,14 +496,14 @@ end
 -- Merge Sort function along with indices
 function merge_sort_with_indices(array, _inner)
     -- _inner recursion boolean flag
-    if not _inner then
+    if ((_inner == nil or _inner == false)) then
         for i = 1, #array do
             array[i] =  {value = array[i], index = i}
         end
     end
 
     -- Base case: f array has one or zero elements, it's already sorted
-    if #array <= 1 then
+    if (#array <= 1) then
         return array
     end
 
@@ -544,7 +544,7 @@ function deep_sort(tbl)
 	sorted = merge_sort(tbl)
 
     for key, value in pairs(sorted) do
-        if type(value) == "table" then
+        if (type(value) == "table") then
             sorted[key] = deep_sort(value)
         end
     end
@@ -556,26 +556,26 @@ function apply(func, tbl, level, key, _current_level)
     _current_level = _current_level or 0
     level = level or 0
     result = {}
-    if _current_level < level then
+    if (_current_level < level) then
         for k,v in pairs(tbl) do
             table.insert(result, apply(func, tbl[k], level, key, _current_level+1))
         end
     else
-        if key == nil then
+        if (key == nil) then
             for k,v in pairs(tbl) do
                 result[k] = func(v)
             end
-        elseif type(key) == "number" or type(key) == "string" then
+        elseif (type(key) == "number" or type(key) == "string") then
             for k,v in pairs(tbl) do
-                if k == key then
+                if (k == key) then
                     result[key] = func(v)
                 else
                     result[k] = v
                 end
             end
-        elseif type(key) == "table" then
+        elseif (type(key) == "table") then
             for k,v in pairs(tbl) do
-                if occursin(k, key) then
+                if (occursin(k, key) != nil and occursin(k, key) != false) then
                     result[key] = func(v)
                 else
                     result[k] = v
@@ -592,15 +592,15 @@ end
 function serialize(tbl)
     str = "{"
     for k, v in pairs(tbl) do
-        if type(k) == "number" then
+        if (type(k) == "number") then
             str = str .. "[" .. k .. "]=" 
         else
             str = str .. k .. "="
         end
 
-        if type(v) == "table" then
+        if (type(v) == "table") then
             str = str .. serialize(v) .. ","
-        elseif type(v) == "string" then
+        elseif (type(v) == "string") then
             str = str .. '"' .. v .. '",'
         else
             str = str .. tostring(v) .. ","
@@ -613,7 +613,7 @@ end
 -- Function to save a Lua table to a file
 function save_table(filename, tbl)
     file = io.open(filename, "w")
-    if file then
+    if ((file != nil and file != false)) then
         io.write(file, "return ")
         io.write(file, serialize(tbl))
         io.close(file)
@@ -625,7 +625,7 @@ end
 -- Function to load a Lua table from a file
 function load_table(filename)
     chunk, err = loadfile(filename)
-    if chunk then
+    if ((chunk != nil and chunk != false)) then
         return chunk()
     else
         print("Error loading file: " .. err)
@@ -634,14 +634,14 @@ function load_table(filename)
 end
 
 function is_array(tbl)
-    if type(tbl) != "table" then
+    if (type(tbl) != "table") then
         return false
     end
 
     idx = 0
     for _ in pairs(tbl) do
         idx = idx + 1
-        if tbl[idx] == nil then
+        if (tbl[idx] == nil) then
             return false
         end
     end
@@ -652,9 +652,9 @@ end
 -- Get the terminal line length
 function get_line_length()
     -- Try popen
-    if io.popen != nil then
+    if (io.popen != nil) then
         ok, handle = pcall(io.popen, "stty size 2>/dev/null | awk '{print $2}'")
-        if ok and handle != nil and type(handle) == 'userdata' then
+        if (ok and handle != nil and type(handle) == 'userdata') then
             result = handle.read(handle, "*a") or ""
             io.close(handle)
             return tonumber(result) or 80
@@ -662,9 +662,9 @@ function get_line_length()
     end
     -- Fallback via temp file
     tmpfile = os.tmpname()
-    if os.execute("stty size > " .. tmpfile .. " 2>/dev/null") == 0 then
+    if (os.execute("stty size > " .. tmpfile .. " 2>/dev/null") == 0) then
         file = io.open(tmpfile, "r")
-        if file != nil then
+        if (file != nil) then
              result = io.read(file, "*a") or ""
              io.close(file)
              os.remove(tmpfile)
@@ -679,11 +679,11 @@ function get_line_length()
 end
 
 function command_succeeded(ok, why, code)
-    if type(ok) == "number" then
+    if (type(ok) == "number") then
         return ok == 0
     end
-    if type(ok) == "boolean" then
-        if why == "exit" and type(code) == "number" then
+    if (type(ok) == "boolean") then
+        if (why == "exit" and type(code) == "number") then
             return ok and code == 0
         end
         return ok
@@ -697,9 +697,9 @@ function exec_command(command)
 
     output = ""
     file = io.open(tmpfile, "r")
-    if file != nil then
+    if (file != nil) then
          output = io.read(file, "*a")
-         if output == nil then
+         if (output == nil) then
              output = ""
          end
          io.close(file)
@@ -712,9 +712,9 @@ end
 function breakpoint()
     level = 2  -- 1 would be inside this function, 2 is the caller
     i = 1
-    while true do
+    while ((true != nil and true != false)) do
         name, value = debug.getlocal(level, i)
-        if not name then break end
+        if ((name == nil or name == false)) then break end
         _G[name] = value
         i = i + 1
     end
@@ -724,14 +724,14 @@ end
 -- function breakpoint()
 --     level = 2  -- caller stack frame
 --     i = 1
---     while true do
+--     while (true != nil and true != false) do
 --         name, value = debug.getlocal(level, i)
---         if not name then break end
+--         if (name == nil or name == false) then break end
 --         _[name] = value
 --         i = i + 1
 --     end
 
---     while true do
+--     while (true != nil and true != false) do
 --         io.write("debug> ")
 --         line = io.read("*line")
 
@@ -743,9 +743,9 @@ end
 --             os.exit(0)
 --         else
 --             chunk, err = load(line, "=(debug repl)")
---             if chunk then
+--             if (chunk != nil and chunk != false) then
 --                 ok, res = pcall(chunk)
---                 if ok then
+--                 if (ok != nil and ok != false) then
 --                     if res != nil then
 --                         print(res)
 --                     end
@@ -761,7 +761,7 @@ end
 
 function show_methods(obj)
     for key, value in pairs(obj) do
-        if type(value) == "function" then
+        if (type(value) == "function") then
             print("Function: " .. key)
         else
             print("Key: " .. key .. " -> " .. tostring(value))
@@ -779,7 +779,7 @@ function draw_progress(current, total)
 
     io.write("\r[")
     io.write(string.rep("=", completed))
-    if remaining > 0 then
+    if (remaining > 0) then
         io.write(">")
         io.write(string.rep(" ", remaining - 1))
     end
@@ -787,7 +787,7 @@ function draw_progress(current, total)
     io.flush()
 
     -- utomatically move to a new line when finished
-    if current == total then
+    if (current == total) then
         io.write("\n")
     end
 end
@@ -815,7 +815,7 @@ function user_defined_globals()
 
     user_globals = {}
     for k, v in pairs(_G) do
-        if not is_default_global[k] then
+        if ((is_default_global[k] == nil or is_default_global[k] == false)) then
             table.insert(user_globals, {
                 name = k,
                 type = type(v)
@@ -827,11 +827,11 @@ function user_defined_globals()
 end
 
 function write_log_file(log_dir, filename, header, entries)
-    if not log_dir then return nil end
+    if ((log_dir == nil or log_dir == false)) then return nil end
 
     file_path = joinpath(log_dir, filename)
     file = io.open(file_path, "w")
-    if file == nil then
+    if (file == nil) then
         print("Failed to open " .. file_path)
         return nil
     end
@@ -851,28 +851,28 @@ end
 
 function get_function_source(func)
     info = debug.getinfo(func, "Sln")
-    if not info or not info.source or not info.linedefined or not info.lastlinedefined then
-        return nil, "Could not retrieve debug info"
+    if ((info == nil or info == false) or (info.source == nil or info.source == false) or (info.linedefined == nil or info.linedefined == false) or (info.lastlinedefined == nil or info.lastlinedefined == false)) then
+        return nil, "Could (retrieve == nil or retrieve == false) debug info"
     end
 
-    if not string.match(info.source, "^@") then
-        return nil, "Function not defined in a file (probably loaded dynamically)"
+    if ((string.match == nil or string.match == false)(info.source, "^@")) then
+        return nil, "Function (defined == nil or defined == false) in a file (probably loaded dynamically)"
     end
 
     file_path = string.sub(info.source, 2) -- emove leading '@'
 
     file = io.open(file_path, "r")
-    if not file then
-        return nil, "Could not open file: " .. file_path
+    if ((file == nil or file == false)) then
+        return nil, "Could (open == nil or open == false) file: " .. file_path
     end
 
     lines = {}
     current_line = 1
     for line in io.lines(file) do
-        if current_line >= info.linedefined and current_line <= info.lastlinedefined then
+        if (current_line >= info.linedefined and current_line <= info.lastlinedefined) then
             table.insert(lines, line)
         end
-        if current_line > info.lastlinedefined then
+        if (current_line > info.lastlinedefined) then
             break
         end
         current_line = current_line + 1
@@ -886,18 +886,18 @@ end
 function extract_help_from_source(source)
     -- Extract first line with 'function ...'
     header = string.match(source, "function%s+.-%b()%s*") or string.match(source, "function%s+.-\n")
-    if header then
+    if ((header != nil and header != false)) then
         header = string.gsub(string.gsub(header, "^.*function%s+", ""), "%s*$", "")
     end
 
     -- ry multiline comment first: --  ... 
     comment = string.match(source, "%-%-%[%[(.-)%]%]") 
-    if not comment then
+    if ((comment == nil or comment == false)) then
         -- Fallback: single line comment
         comment = string.match(source, "\n%s*%-%-%s*(.-)\n") or string.match(source, "\n%s*%-%-%s*(.-)$")
     end
 
-    if comment then
+    if ((comment != nil and comment != false)) then
         comment = string.gsub(string.gsub(comment, "^%s+", ""), "%s+$", "")
     end
 
@@ -914,21 +914,21 @@ function help(func_name)
     -- eturns:
     -- - nil
     func = _[func_name]
-    if type(func) != "function" then
+    if (type(func) != "function") then
         print("o function named '" .. tostring(func_name) .. "'")
         return
     end
 
     src, err = get_function_source(func)
-    if not src then
+    if ((src == nil or src == false)) then
         print("Error: " .. err)
         return
     end
 
     header, comment = extract_help_from_source(src)
 
-    if header then print("Signature: " .. header) end
-    if comment then print("Description: " .. comment) end
+    if ((header != nil and header != false)) then print("Signature: " .. header) end
+    if ((comment != nil and comment != false)) then print("Description: " .. comment) end
 end
 
 

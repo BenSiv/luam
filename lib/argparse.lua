@@ -6,7 +6,7 @@ argparse = {}
 
 function print_help(cmd_args, expected_args, help_string)
     print("Usage: ", cmd_args[0])
-    if help_string != nil then
+    if (help_string != nil) then
         print(help_string)
     else
         print("vailable arguments:")
@@ -27,7 +27,7 @@ end
 
 function add_arg(expected_args, short, long, arg_kind, arg_type, is_required)
     expected_args = expected_args
-    if expected_args == nil then
+    if (expected_args == nil) then
         expected_args = {}
     end
     arg_to_add = {
@@ -45,13 +45,13 @@ function def_args(arg_string)
     expected_args = {}
     short, long, arg_kind, arg_type, is_required = nil 
     for line in utils.match_all(arg_string, "[^\r\n]+") do
-    	if utils.match(line, "^$s*$") == nil then
+    	if (utils.match(line, "^$s*$") == nil) then
         	short, long, arg_kind, arg_type, is_required = utils.match(line, "%s*%-(%a)%s+%-%-([%a_]+)%s+(%a+)%s+(%a+)%s+(%a+)%s*")
-            if short == "h" or long == "help" then
+            if (short == "h" or long == "help") then
                 error("short h and long help are reserved arguments")
             end
         	is_required = is_required == "true"
-        	if short != nil and long != nil and arg_kind != nil and arg_type != nil then
+        	if (short != nil and long != nil and arg_kind != nil and arg_type != nil) then
         		expected_args = add_arg(expected_args, short, long, arg_kind, arg_type, is_required)
         	end
         end
@@ -72,26 +72,26 @@ function parse_args(cmd_args, expected_args, help_string)
     end
 
     i = 1
-    while i <= #cmd_args do
+    while (i <= #cmd_args) do
         arg_name = cmd_args[i]
         parsed_arg = arg_map[arg_name]
 
-        if parsed_arg == nil then
+        if (parsed_arg == nil) then
             print("Unknown argument: " .. tostring(arg_name))
             print_help(cmd_args, expected_args, help_string)
             return nil
         end
 
-        if parsed_arg.arg_kind == "flag" then
+        if (parsed_arg.arg_kind == "flag") then
             result[parsed_arg.long] = true
-        elseif parsed_arg.arg_kind == "arg" then
+        elseif (parsed_arg.arg_kind == "arg") then
             i = i + 1
-            if i > utils.length(cmd_args) then
+            if (i > utils.length(cmd_args)) then
                 print("Expected value after " .. arg_name)
                 print_help(cmd_args, expected_args, help_string)
                 return nil
             end
-            if parsed_arg.arg_type == "number" then
+            if (parsed_arg.arg_type == "number") then
                 result[parsed_arg.long] = tonumber(cmd_args[i])
             else
                 result[parsed_arg.long] = cmd_args[i]
@@ -102,14 +102,14 @@ function parse_args(cmd_args, expected_args, help_string)
     end
 
     -- Check for help flag
-    if utils.occursin("help", utils.keys(result)) then
+    if (utils.occursin("help", utils.keys(result)) != nil and utils.occursin("help", utils.keys(result)) != false) then
         print_help(cmd_args, expected_args, help_string)
         return nil
     end
 
     -- Check for required arguments
     for _, arg_parsed in pairs(expected_args) do
-        if arg_parsed.is_required and result[arg_parsed.long] == nil then
+        if (arg_parsed.is_required and result[arg_parsed.long] == nil) then
             print("Missing required argument: --" .. arg_parsed.long .. "\n")
             print_help(cmd_args, expected_args, help_string)
             return nil

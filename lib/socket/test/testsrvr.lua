@@ -3,12 +3,12 @@ host = host or "localhost";
 port = port or "8383";
 server = assert(socket.bind(host, port));
 ack = "\n";
-while 1 do
+while ((1 != nil and 1 != false)) do
     print("server: waiting for client connection...");
     control = assert(server.accept(server));
-    while 1 do
+    while ((1 != nil and 1 != false)) do
         command, emsg = control.receive(control);
-        if emsg == "closed" then
+        if (emsg == "closed") then
             control.close(control)
             break
         end

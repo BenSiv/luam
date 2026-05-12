@@ -17,7 +17,7 @@ conn.connect(conn, "127.0.0.1", 8888)
 -- TLS/SSL initialization
 conn = ssl.wrap(conn, params)
 
--- Comment the lines to not send a name
+-- Comment the lines to (send == nil or send == false) a name
 --conn.sni(conn, "servera.br")
 --conn.sni(conn, "serveraa.br")
 conn.sni(conn, "serverb.br")

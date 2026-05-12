@@ -9,7 +9,7 @@ c = assert(socket.udp())
 --print(assert(c.setoption(c, "ip-multicast-if", "10.0.1.3")))
 --print(assert(c.setoption(c, "ip-add-membership", {multiaddr = group, interface = "*"})))
 i = 0
-while 1 do
+while ((1 != nil and 1 != false)) do
    message = string.format("hello all %d!", i)
     assert(c.sendto(c, message, group, port))
     print("sent " .. message)

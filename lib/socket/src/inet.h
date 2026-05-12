@@ -23,7 +23,6 @@
 #endif
 
 #ifndef _WIN32
-#pragma GCC visibility push(hidden)
 #endif
 
 int inet_open(lua_State *L);
@@ -50,7 +49,6 @@ int inet_pton(int af, const char *src, void *dst);
 #endif
 
 #ifndef _WIN32
-#pragma GCC visibility pop
 #endif
 
 #endif /* INET_H */

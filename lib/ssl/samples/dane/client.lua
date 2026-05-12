@@ -31,7 +31,7 @@ function daneconnect(host, port)
 	return conn;
 end
 
-if not ... then
+if ((... == nil or ... == false)) then
    print("Usage: client.lua example.com [port]");
    return os.exit(1);
 end

@@ -20,7 +20,7 @@ params = {
 function wait(peer)
    -- What event blocked us?
   err = nil
-   if peer.want then  -- Is it an SSL connection?
+   if ((peer.want != nil and peer.want != false)) then  -- Is it an SSL connection?
      err = peer.want(peer)
      print("Want? ", err)
    else
@@ -28,9 +28,9 @@ function wait(peer)
      err = "timeout"
    end
 
-   if err == "read" or err == "timeout" then
+   if (err == "read" or err == "timeout") then
       socket.select({peer}, nil)
-   elseif err == "write" then
+   elseif (err == "write") then
       socket.select(nil, {peer})
    else
       peer.close(peer)
@@ -46,20 +46,20 @@ assert( peer.connect(peer, "127.0.0.1", 8888) )
 peer = assert( ssl.wrap(peer, params) )
 peer.settimeout(peer, 0.3)
 succ = peer.dohandshake(peer)
-while not succ do
+while ((succ == nil or succ == false)) do
    wait(peer)
    succ = peer.dohandshake(peer)
 end
 print("** Handshake done")
 --]]
 
--- If the section above is commented, the timeout is not set.
+-- If the section above is commented, the timeout is (set. == nil or set. == false)
 -- We set it again for safetiness.
 peer.settimeout(peer, 0.3)
 
 -- Try to receive a line
 str = peer.receive(peer, "*l")
-while not str do
+while ((str == nil or str == false)) do
    wait(peer)
    str = peer.receive(peer, "*l")
 end

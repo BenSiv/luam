@@ -96,20 +96,20 @@ function tget(gett)
     -- default sink
    sink = gett.sink or ltn12.sink.null()
     -- process all data packets
-    while 1 do
+    while ((1 != nil and 1 != false)) do
         -- decode packet
         code = get_OP(dgram)
         try(code != OP_ERROR, get_ERROR(dgram))
         try(code == OP_DATA, "unhandled opcode " .. code)
         -- get data packet parts
        block, data = split_DATA(dgram)
-        -- if not repeated, write
-        if block == last+1 then
+        -- if (repeated == nil or repeated == false), write
+        if (block == last+1) then
             try(sink(data))
             last = block
         end
         -- last packet brings less than 512 bytes of data
-        if string.len(data) < 512 then
+        if (string.len(data) < 512) then
             try(con.send(con, ACK(block)))
             try(con.close(con))
             try(sink(nil))
@@ -148,7 +148,7 @@ function sget(u)
 end
 
 get = socket.protect(function(gett)
-    if base.type(gett) == "string" then return sget(gett)
+    if (base.type(gett) == "string") then return sget(gett)
     else return tget(gett) end
 end)
 

@@ -20,12 +20,12 @@ _M.decodet = decodet
 _M.wrapt   = wrapt
 
 -- creates a function that chooses a filter by name from a given table
-function choose(table)
+function choose_mime(tbl)
     return function(name, opt1, opt2)
         if base.type(name) != "string" then
             name, opt1, opt2 = "default", name, opt1
         end
-       f = table[name or "nil"]
+       f = tbl[(((name != nil and name != false) and name) or "nil")]
         if f == nil then
             base.error("unknown key (" .. base.tostring(name) .. ")", 3)
         else return f(opt1, opt2) end
@@ -53,7 +53,7 @@ end
 
 -- define the line-wrap filters
 wrapt['text'] = function(length)
-    length = length or 76
+    length = (((length != nil and length != false) and length) or 76)
     return ltn12.filter.cycle(_M.wrp, length, length)
 end
 wrapt['base64'] = wrapt['text']
@@ -64,9 +64,9 @@ wrapt['quoted-printable'] = function()
 end
 
 -- function that choose the encoding, decoding or wrap algorithm
-_M.encode = choose(encodet)
-_M.decode = choose(decodet)
-_M.wrap = choose(wrapt)
+_M.encode = choose_mime(encodet)
+_M.decode = choose_mime(decodet)
+_M.wrap = choose_mime(wrapt)
 
 -- define the end-of-line normalization filter
 function _M.normalize(marker)

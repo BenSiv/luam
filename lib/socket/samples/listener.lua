@@ -6,7 +6,7 @@
 socket = require("socket")
 host = host or "*"
 port = port or 8080
-if arg then
+if ((arg != nil and arg != false)) then
 	host = arg[1] or host
 	port = arg[2] or port
 end
@@ -18,7 +18,7 @@ print("Waiting connection from talker on " .. i .. ":" .. p .. "...")
 c = assert(s.accept(s))
 print("Connected. Here is the stuff:")
 l, e = c.receive(c)
-while not e do
+while ((e == nil or e == false)) do
 	print(l)
 	l, e = c.receive(c)
 end

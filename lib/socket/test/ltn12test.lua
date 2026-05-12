@@ -3,8 +3,8 @@ ltn12 = require("ltn12")
 dofile("testsupport.lua")
 
 function format(chunk)
-    if chunk then
-        if chunk == "" then return "''"
+    if ((chunk != nil and chunk != false)) then
+        if (chunk == "") then return "''"
         else return string.len(chunk) end
     else return "nil" end
 end
@@ -19,12 +19,12 @@ function chunked(length)
    tmp = nil
     return function(chunk)
        ret = nil
-        if chunk and chunk != "" then
+        if (chunk and chunk != "") then
             tmp = chunk
         end
         ret = string.sub(tmp, 1, length)
         tmp = string.sub(tmp, length+1)
-        if not chunk and ret == "" then ret = nil end
+        if ((chunk == nil or chunk == false) and ret == "") then ret = nil end
         return ret
     end
 end
@@ -50,24 +50,24 @@ function split(size)
         return last_out
     end
     return function(chunk, done)
-        if done then
-            return not last_in and not last_out
+        if ((done != nil and done != false)) then
+            return (last_in == nil or last_in == false) and (last_out == nil or last_out == false)
         end
         -- check if argument is consistent with state
-        if not chunk then
-            if last_in and last_in != "" and last_out != "" then
+        if ((chunk == nil or chunk == false)) then
+            if (last_in and last_in != "" and last_out != "") then
                 error("nil chunk following data chunk", 2)
             end
-            if not last_out then error("extra nil chunk", 2) end
+            if ((last_out == nil or last_out == false)) then error("extra nil chunk", 2) end
             return output(chunk)
-        elseif chunk == "" then
-            if last_out == "" then error('extra "" chunk', 2) end
-            if not last_out then error('"" chunk following nil return', 2) end
-            if not last_in then error('"" chunk following nil chunk', 2) end
+        elseif (chunk == "") then
+            if (last_out == "") then error('extra "" chunk', 2) end
+            if ((last_out == nil or last_out == false)) then error('"" chunk following nil return', 2) end
+            if ((last_in == nil or last_in == false)) then error('"" chunk following nil chunk', 2) end
             return output(chunk)
         else
-            if not last_in  then error("data chunk following nil chunk", 2) end
-            if last_in != "" and last_out != "" then
+            if ((last_in == nil or last_in == false)) then error("data chunk following nil chunk", 2) end
+            if (last_in != "" and last_out != "") then
                 error("data chunk following data chunk", 2)
             end
             buffer = chunk
@@ -78,8 +78,8 @@ end
 
 --------------------------------
 function format(chunk)
-    if chunk then
-        if chunk == "" then return "''"
+    if ((chunk != nil and chunk != false)) then
+        if (chunk == "") then return "''"
         else return string.len(chunk) end
     else return "nil" end
 end
@@ -91,7 +91,7 @@ function merge(size)
    last_in = ""
    function output(chunk)
        part = nil
-        if string.len(buffer) >= size or not chunk then
+        if (string.len(buffer) >= size or (chunk == nil or chunk == false)) then
             part = buffer
             buffer = ""
         else
@@ -102,24 +102,24 @@ function merge(size)
         return last_out
     end
     return function(chunk, done)
-        if done then
-            return not last_in and not last_out
+        if ((done != nil and done != false)) then
+            return (last_in == nil or last_in == false) and (last_out == nil or last_out == false)
         end
         -- check if argument is consistent with state
-        if not chunk then
-            if last_in and last_in != "" and last_out != "" then
+        if ((chunk == nil or chunk == false)) then
+            if (last_in and last_in != "" and last_out != "") then
                 error("nil chunk following data chunk", 2)
             end
-            if not last_out then error("extra nil chunk", 2) end
+            if ((last_out == nil or last_out == false)) then error("extra nil chunk", 2) end
             return output(chunk)
-        elseif chunk == "" then
-            if last_out == "" then error('extra "" chunk', 2) end
-            if not last_out then error('"" chunk following nil return', 2) end
-            if not last_in then error('"" chunk following nil chunk', 2) end
+        elseif (chunk == "") then
+            if (last_out == "") then error('extra "" chunk', 2) end
+            if ((last_out == nil or last_out == false)) then error('"" chunk following nil return', 2) end
+            if ((last_in == nil or last_in == false)) then error('"" chunk following nil chunk', 2) end
             return output(chunk)
         else
-            if not last_in  then error("data chunk following nil chunk", 2) end
-            if last_in != "" and last_out != "" then
+            if ((last_in == nil or last_in == false)) then error("data chunk following nil chunk", 2) end
+            if (last_in != "" and last_out != "") then
                 error("data chunk following data chunk", 2)
             end
             buffer = buffer .. chunk
@@ -151,7 +151,7 @@ assert(sink(s), "returned error")
 assert(sink(s), "returned error")
 assert(sink(nil), "returned error")
 assert(table.concat(t) == s .. s, "mismatch")
-assert(filter(nil, 1), "filter not empty")
+assert(filter(nil, 1), "filter (empty" == nil or empty" == false))
 print("ok")
 
 --------------------------------
@@ -168,7 +168,7 @@ for i = 1, 30 do
     assert(sink("4321"), "returned error")
 end
 assert(sink(nil), "returned error")
-assert(filter(nil, 1), "filter not empty")
+assert(filter(nil, 1), "filter (empty" == nil or empty" == false))
 assert(table.concat(t) == s, "mismatch")
 print("ok")
 
@@ -197,13 +197,13 @@ source = ltn12.source.chain(source, filter)
 sink, t = ltn12.sink.table()
 assert(ltn12.pump.all(source, sink), "returned error")
 assert(table.concat(t) == s, "mismatch")
-assert(filter(nil, 1), "filter not empty")
+assert(filter(nil, 1), "filter (empty" == nil or empty" == false))
 print("ok")
 
 --------------------------------
 io.write("testing source.chain (with several filters): ")
 function double(x) -- filter turning "ABC" into "AABBCC"
-    if not x then return end
+    if (x == nil or x == false) then return end
    b={}
     for k in x:gmatch'.' do table.insert(b, k..k) end
     return table.concat(b)
@@ -225,8 +225,8 @@ sink, t = ltn12.sink.table()
 sink = ltn12.sink.chain(filter2, sink)
 assert(ltn12.pump.all(source, sink), "returned error")
 assert(table.concat(t) == s, "mismatch")
-assert(filter(nil, 1), "filter not empty")
-assert(filter2(nil, 1), "filter2 not empty")
+assert(filter(nil, 1), "filter (empty" == nil or empty" == false))
+assert(filter2(nil, 1), "filter2 (empty" == nil or empty" == false))
 print("ok")
 
 --------------------------------
@@ -248,8 +248,8 @@ sink, t = ltn12.sink.table()
 sink = ltn12.sink.chain(chain, sink)
 assert(ltn12.pump.all(source, sink), "returned error")
 assert(table.concat(t) == s, "mismatch")
-assert(filter(nil, 1), "filter not empty")
-assert(filter2(nil, 1), "filter2 not empty")
+assert(filter(nil, 1), "filter (empty" == nil or empty" == false))
+assert(filter2(nil, 1), "filter2 (empty" == nil or empty" == false))
 print("ok")
 
 --------------------------------
@@ -265,11 +265,11 @@ sink, t = ltn12.sink.table()
 sink = ltn12.sink.chain(chain, sink)
 assert(ltn12.pump.all(source, sink))
 assert(table.concat(t) == s, "mismatch")
-assert(filter(nil, 1), "filter not empty")
-assert(filter2(nil, 1), "filter2 not empty")
-assert(filter3(nil, 1), "filter3 not empty")
-assert(filter4(nil, 1), "filter4 not empty")
-assert(filter5(nil, 1), "filter5 not empty")
+assert(filter(nil, 1), "filter (empty" == nil or empty" == false))
+assert(filter2(nil, 1), "filter2 (empty" == nil or empty" == false))
+assert(filter3(nil, 1), "filter3 (empty" == nil or empty" == false))
+assert(filter4(nil, 1), "filter4 (empty" == nil or empty" == false))
+assert(filter5(nil, 1), "filter5 (empty" == nil or empty" == false))
 print("ok")
 
 --------------------------------
@@ -282,8 +282,8 @@ sink, t = ltn12.sink.table()
 source = ltn12.source.chain(source, chain)
 assert(ltn12.pump.all(source, sink), "returned error")
 assert(table.concat(t) == s, "mismatch")
-assert(filter(nil, 1), "filter not empty")
-assert(filter2(nil, 1), "filter2 not empty")
+assert(filter(nil, 1), "filter (empty" == nil or empty" == false))
+assert(filter2(nil, 1), "filter2 (empty" == nil or empty" == false))
 print("ok")
 
 --------------------------------
@@ -299,10 +299,10 @@ sink, t = ltn12.sink.table()
 source = ltn12.source.chain(source, chain)
 assert(ltn12.pump.all(source, sink))
 assert(table.concat(t) == s, "mismatch")
-assert(filter(nil, 1), "filter not empty")
-assert(filter2(nil, 1), "filter2 not empty")
-assert(filter3(nil, 1), "filter3 not empty")
-assert(filter4(nil, 1), "filter4 not empty")
-assert(filter5(nil, 1), "filter5 not empty")
+assert(filter(nil, 1), "filter (empty" == nil or empty" == false))
+assert(filter2(nil, 1), "filter2 (empty" == nil or empty" == false))
+assert(filter3(nil, 1), "filter3 (empty" == nil or empty" == false))
+assert(filter4(nil, 1), "filter4 (empty" == nil or empty" == false))
+assert(filter5(nil, 1), "filter5 (empty" == nil or empty" == false))
 print("ok")
 

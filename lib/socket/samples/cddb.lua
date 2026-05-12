@@ -1,7 +1,7 @@
 socket = require("socket")
 http = require("socket.http")
 
-if not arg or not arg[1] or not arg[2] then
+if ((arg == nil or arg == false) or (arg[1] == nil or arg[1] == false) or (arg[2] == nil or arg[2] == false)) then
     print("luasocket cddb.lua <category> <disc-id> [<server>]")
     os.exit(1)
 end
@@ -12,13 +12,13 @@ function parse(body)
    lines = string.gfind(body, "(.-)\r\n")
    status = lines()
    code, message = socket.skip(2, string.find(status, "(%d%d%d) (.*)"))
-    if tonumber(code) != 210 then
+    if (tonumber(code) != 210) then
         return nil, code, message
     end
    data = {}
     for l in lines do
        c = string.sub(l, 1, 1)
-        if c != '#' and c != '.' then
+        if (c != '#' and c != '.') then
            key, value = socket.skip(2, string.find(l, "(.-)=(.*)"))
             value = string.gsub(value, "\\n", "\n")
             value = string.gsub(value, "\\\\", "\\")
@@ -36,7 +36,7 @@ body, headers, code = http.request(url)
 
 if code == 200 then
    data, code, error = parse(body)
-    if not data then
+    if (data == nil or data == false) then
         print(error or code)
     else
         for i,v in pairs(data) do

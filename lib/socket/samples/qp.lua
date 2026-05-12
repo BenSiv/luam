@@ -6,14 +6,14 @@
 ltn12 = require("ltn12")
 mime = require("mime")
 convert = nil
-arg = arg or {}
+arg = arg or ({})
 mode = arg and arg[1] or "-et"
-if mode == "-et" then
+if (mode == "-et") then
    normalize = mime.normalize()
    qp = mime.encode("quoted-printable")
    wrap = mime.wrap("quoted-printable")
     convert = ltn12.filter.chain(normalize, qp, wrap)
-elseif mode == "-eb" then
+elseif (mode == "-eb") then
    qp = mime.encode("quoted-printable", "binary")
    wrap = mime.wrap("quoted-printable")
     convert = ltn12.filter.chain(qp, wrap)

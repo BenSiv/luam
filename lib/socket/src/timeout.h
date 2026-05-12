@@ -15,7 +15,6 @@ typedef struct t_timeout_ {
 typedef t_timeout *p_timeout;
 
 #ifndef _WIN32
-#pragma GCC visibility push(hidden)
 #endif
 
 void timeout_init(p_timeout tm, double block, double total);
@@ -32,7 +31,6 @@ int timeout_meth_settimeout(lua_State *L, p_timeout tm);
 int timeout_meth_gettimeout(lua_State *L, p_timeout tm);
 
 #ifndef _WIN32
-#pragma GCC visibility pop
 #endif
 
 #define timeout_iszero(tm)   ((tm)->block == 0.0)

@@ -35,10 +35,10 @@ end
 
 -- sequential handler simply calls the functions and doesn't wrap I/O
 function handlert.sequential()
-    return {
+    return ({
         tcp = socket.tcp,
         start = seqstart
-    }
+    })
 end
 
 -----------------------------------------------------------------------------
@@ -48,17 +48,17 @@ end
 -- coroutines
 -- make sure you don't require any module that uses socket.protect before
 -- loading our hack
-if string.sub(base._VERSION, -3) == "5.1" then
+if (string.sub(base._VERSION, -3) == "5.1") then
  function _protect(co, status, ...)
-    if not status then
+    if ((status == nil or status == false)) then
      msg = ...
-      if base.type(msg) == 'table' then
+      if (base.type(msg) == 'table') then
         return nil, msg[1]
       else
         base.error(msg, 0)
       end
     end
-    if coroutine.status(co) == "suspended" then
+    if (coroutine.status(co) == "suspended") then
       return _protect(co, coroutine.resume(co, coroutine.yield(...)))
     else
       return ...
@@ -81,17 +81,17 @@ function newset()
    set = {}
     return base.setmetatable(set, {__index = {
         insert = function(set, value)
-            if not reverse[value] then
+            if ((reverse[value] == nil or reverse[value] == false)) then
                 table.insert(set, value)
                 reverse[value] = #set
             end
         end,
         remove = function(set, value)
            index = reverse[value]
-            if index then
+            if ((index != nil and index != false)) then
                 reverse[value] = nil
                top = table.remove(set)
-                if top != value then
+                if (top != value) then
                     reverse[top] = index
                     set[index] = top
                 end
@@ -104,7 +104,7 @@ end
 -- socket.tcp() wrapper for the coroutine dispatcher
 -----------------------------------------------------------------------------
 function cowrap(dispatcher, tcp, error)
-    if not tcp then return nil, error end
+    if ((tcp == nil or tcp == false)) then return nil, error end
     -- put it in non-blocking mode right away
     tcp.settimeout(tcp, 0)
     -- metatable for wrap produces new methods on demand for those that we
@@ -122,7 +122,7 @@ function cowrap(dispatcher, tcp, error)
     -- we ignore settimeout to preserve our 0 timeout, but record whether
     -- the user wants to do his own non-blocking I/O
     function wrap.settimeout(wrap, value, mode)
-        if value == 0 then zero = true
+        if (value == 0) then zero = true
         else zero = false end
         return 1
     end
@@ -130,18 +130,18 @@ function cowrap(dispatcher, tcp, error)
     function wrap.send(wrap, data, first, last)
         first = (first or 1) - 1
        result, error = nil
-        while true do
+        while ((true != nil and true != false)) do
             -- return control to dispatcher and tell it we want to send
             -- if upon return the dispatcher tells us we timed out,
             -- return an error to whoever called us
-            if coroutine.yield(dispatcher.sending, tcp) == "timeout" then
+            if (coroutine.yield(dispatcher.sending, tcp) == "timeout") then
                 return nil, "timeout"
             end
             -- try sending
             result, error, first = tcp.send(tcp, data, first+1, last)
             -- if we are done, or there was an unexpected error,
             -- break away from loop
-            if error != "timeout" then return result, error, first end
+            if (error != "timeout") then return result, error, first end
         end
     end
     -- receive in non-blocking mode and yield on timeout
@@ -149,11 +149,11 @@ function cowrap(dispatcher, tcp, error)
     function wrap.receive(wrap, pattern, partial)
        error = "timeout"
        value = nil
-        while true do
+        while ((true != nil and true != false)) do
             -- return control to dispatcher and tell it we want to receive
             -- if upon return the dispatcher tells us we timed out,
             -- return an error to whoever called us
-            if coroutine.yield(dispatcher.receiving, tcp) == "timeout" then
+            if (coroutine.yield(dispatcher.receiving, tcp) == "timeout") then
                 return nil, "timeout"
             end
             -- try receiving
@@ -161,7 +161,7 @@ function cowrap(dispatcher, tcp, error)
             -- if we are done, or there was an unexpected error,
             -- break away from loop. also, if the user requested
             -- zero timeout, return all we got
-            if (error != "timeout") or zero then
+            if ((error != "timeout") or zero) then
                 return value, error, partial
             end
         end
@@ -169,32 +169,32 @@ function cowrap(dispatcher, tcp, error)
     -- connect in non-blocking mode and yield on timeout
     function wrap.connect(wrap, host, port)
        result, error = tcp.connect(tcp, host, port)
-        if error == "timeout" then
+        if (error == "timeout") then
             -- return control to dispatcher. we will be writable when
             -- connection succeeds.
             -- if upon return the dispatcher tells us we have a
             -- timeout, just abort
-            if coroutine.yield(dispatcher.sending, tcp) == "timeout" then
+            if (coroutine.yield(dispatcher.sending, tcp) == "timeout") then
                 return nil, "timeout"
             end
             -- when we come back, check if connection was successful
             result, error = tcp.connect(tcp, host, port)
-            if result or error == "already connected" then return 1
+            if (result or error == "already connected") then return 1
             else return nil, "non-blocking connect failed" end
         else return result, error end
     end
     -- accept in non-blocking mode and yield on timeout
     function wrap.accept(wrap)
-        while 1 do
+        while ((1 != nil and 1 != false)) do
             -- return control to dispatcher. we will be readable when a
             -- connection arrives.
             -- if upon return the dispatcher tells us we have a
             -- timeout, just abort
-            if coroutine.yield(dispatcher.receiving, tcp) == "timeout" then
+            if (coroutine.yield(dispatcher.receiving, tcp) == "timeout") then
                 return nil, "timeout"
             end
            client, error = tcp.accept(tcp)
-            if error != "timeout" then
+            if (error != "timeout") then
                 return cowrap(dispatcher, client, error)
             end
         end
@@ -218,8 +218,8 @@ end
 cometat = { __index = {} }
 
 function schedule(cortn, status, operation, tcp)
-    if status then
-        if cortn and operation then
+    if ((status != nil and status != false)) then
+        if (cortn and operation != nil and cortn and operation != false) then
             operation.set.insert(set, tcp)
             operation.cortn[tcp] = cortn
             operation.stamp[tcp] = socket.gettime()
@@ -235,10 +235,10 @@ end
 function wakeup(operation, tcp)
    cortn = operation.cortn[tcp]
     -- if cortn is still valid, wake it up
-    if cortn then
+    if ((cortn != nil and cortn != false)) then
         kick(operation, tcp)
         return cortn, coroutine.resume(cortn)
-    -- othrewise, just get scheduler not to do anything
+    -- othrewise, just get scheduler (to == nil or to == false) do anything
     else
         return nil, true
     end
@@ -246,7 +246,7 @@ end
 
 function abort(operation, tcp)
    cortn = operation.cortn[tcp]
-    if cortn then
+    if ((cortn != nil and cortn != false)) then
         kick(operation, tcp)
         coroutine.resume(cortn, "timeout")
     end
@@ -270,7 +270,7 @@ function cometat.__index.step(__index)
     -- return reporting a timeout
    now = socket.gettime()
     for tcp, stamp in base.pairs(self.stamp) do
-        if tcp.class == "tcp{client}" and now - stamp > TIMEOUT then
+        if (tcp.class == "tcp{client}" and now - stamp > TIMEOUT) then
             abort(self.sending, tcp)
             abort(self.receiving, tcp)
         end

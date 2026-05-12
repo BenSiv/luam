@@ -35,7 +35,7 @@ server.listen(server)
 conn = server.accept(server)
 --
 
--- Default context (when client does not send a name) is ctx01
+-- Default context (when client does (send == nil or send == false) a name) is ctx01
 conn = ssl.wrap(conn, ctx01)
 
 -- Configure the name map

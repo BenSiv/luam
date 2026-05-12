@@ -5,7 +5,7 @@
 -- Modified by Diego Nehab, but David is in charge
 -----------------------------------------------------------------------------
 --[[
-     if you have any questions: RFC 1179
+     if (you have any questions: RFC 1179
 ]]
 -- make sure LuaSocket is loaded
 io = require("io")
@@ -26,8 +26,8 @@ function connect(localhost, option)
    host = option.host or SERVER
    port = option.port or PORT
    skt = nil
-   try = socket.newtry(function() if skt then skt.close(skt) end end)
-    if option.localbind then
+   try = socket.newtry(function() if (skt != nil and skt != false)) then skt.close(skt) end end)
+    if ((option.localbind != nil and option.localbind != false)) then
         -- bind to aport (if we can)
        localport = 721
        done, err = nil
@@ -35,7 +35,7 @@ function connect(localhost, option)
             skt = socket.try(socket.tcp())
             try(skt.settimeout(skt, 30))
             done, err = skt.bind(skt, localhost, localport)
-            if not done then
+            if ((done == nil or done == false)) then
                 localport = localport + 1
                 skt.close(skt)
                 skt = nil
@@ -44,7 +44,7 @@ function connect(localhost, option)
         socket.try(skt, err)
     else skt = socket.try(socket.tcp()) end
     try(skt.connect(skt, host, port))
-    return { skt = skt, try = try }
+    return ({ skt = skt, try = try })
 end
 
 --[[
@@ -184,9 +184,9 @@ end
 
 function send_data(con,fh,size)
  buf = nil
-  while size > 0 do
+  while (size > 0) do
     buf,message = fh.read(fh, 8192)
-    if buf then
+    if ((buf != nil and buf != false)) then
       st = con.try(con.skt.send(skt, buf))
       size = size - st
     else
@@ -276,11 +276,11 @@ send = socket.protect(function(option)
     fmt, lpfile,
     lpfile,
     ctlfn); -- mandatory part of ctl file
-  if (option.banner) then cfile = cfile .. 'L'..user..'\10' end
-  if (option.indent) then cfile = cfile .. 'I'..base.tonumber(option.indent)..'\10' end
-  if (option.mail) then cfile = cfile .. 'M'..string.sub((option.mail),1,128)..'\10' end
-  if (fmt == 'p' and option.title) then cfile = cfile .. 'T'..string.sub((option.title),1,79)..'\10' end
-  if ((fmt == 'p' or fmt == 'l' or fmt == 'f') and option.width) then
+  if ((option.banner)) then cfile = cfile .. 'L'..user..'\10' end
+  if ((option.indent)) then cfile = cfile .. 'I'..base.tonumber(option.indent)..'\10' end
+  if ((option.mail)) then cfile = cfile .. 'M'..string.sub((option.mail),1,128)..'\10' end
+  if ((fmt == 'p' and option.title)) then cfile = cfile .. 'T'..string.sub((option.title),1,79)..'\10' end
+  if (((fmt == 'p' or fmt == 'l' or fmt == 'f') and option.width)) then
     cfile = cfile .. 'W'..base.tonumber(option,width)..'\10'
   end
 
@@ -309,12 +309,12 @@ end)
 -- lp.query({host=,queue=printer|'*', format='l'|'s', list=})
 --
 query = socket.protect(function(p)
-  p = p or {}
+  p = p or ({})
  localhost = socket.dns.gethostname() or os.getenv("COMPUTERNAME")
     or "localhost"
  con = connect(localhost,p)
  fmt = nil
-  if string.sub(p.format or 's',1,1) == 's' then fmt = 3 else fmt = 4 end
+  if (string.sub(p.format or 's',1,1) == 's') then fmt = 3 else fmt = 4 end
   con.try(con.skt.send(skt, string.format("%c%s %s\n", fmt, p.queue or "*",
     p.list or "")))
  data = con.try(con.skt.receive(skt, "*a"))

@@ -301,6 +301,7 @@ MIME_SO=mime-$(MIME_V).$(SO)
 UNIX_SO=unix.$(SO)
 SERIAL_SO=serial.$(SO)
 SOCKET=$(SOCKET_$(PLAT))
+LIBSOCKET_SO=libluasocket.$(SO)
 
 #------
 # Settings selected for platform
@@ -316,8 +317,7 @@ LUALIB= $(LUALIB_$(PLAT))
 #------
 # Modules belonging to socket-core
 #
-SOCKET_OBJS= \
-	luasocket.$(O) \
+LIBSOCKET_OBJS= \
 	timeout.$(O) \
 	buffer.$(O) \
 	io.$(O) \
@@ -330,6 +330,9 @@ SOCKET_OBJS= \
 	select.$(O) \
 	tcp.$(O) \
 	udp.$(O)
+
+SOCKET_OBJS= \
+	luasocket.$(O)
 
 #------
 # Modules belonging mime-core
@@ -420,8 +423,11 @@ none:
 
 all: $(SOCKET_SO) $(MIME_SO)
 
-$(SOCKET_SO): $(SOCKET_OBJS)
-	$(LD) $(SOCKET_OBJS) $(LDFLAGS)$@
+$(LIBSOCKET_SO): $(LIBSOCKET_OBJS)
+	$(LD) $(LIBSOCKET_OBJS) $(LDFLAGS)$@
+
+$(SOCKET_SO): $(SOCKET_OBJS) $(LIBSOCKET_SO)
+	$(LD) $(SOCKET_OBJS) -L. -lluasocket $(LDFLAGS)$@
 
 $(MIME_SO): $(MIME_OBJS)
 	$(LD) $(MIME_OBJS) $(LDFLAGS)$@

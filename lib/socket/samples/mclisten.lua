@@ -13,6 +13,6 @@ print(assert(c.setsockname(c, "*", port)))
 --print(assert(c.setoption(c, "ip-multicast-if", "10.0.1.4")))
 --print("if:", c.getoption(c, "ip-multicast-if"))
 print(assert(c.setoption(c, "ip-add-membership", {multiaddr = group, interface = "*"})))
-while 1 do
+while ((1 != nil and 1 != false)) do
     print(c.receivefrom(c))
 end

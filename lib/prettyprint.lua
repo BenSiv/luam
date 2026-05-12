@@ -17,7 +17,7 @@ function color(str, clr)
         orange = "\27[38;5;214m"
     }
 
-    if color_dict[clr] then
+    if ((color_dict[clr] != nil and color_dict[clr] != false)) then
         print(color_dict[clr] .. str .. color_dict["white"])
     else
         print(str) -- Default to no color if invalid color name is provided

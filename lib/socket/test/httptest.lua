@@ -35,8 +35,8 @@ index = readfile(index_file)
 
 check_result = function(response, expect, ignore)
     for i,v in pairs(response) do
-        if not ignore[i] then
-            if v != expect[i] then
+        if ((ignore[i] == nil or ignore[i] == false)) then
+            if (v != expect[i]) then
                f = io.open("err", "w")
                 f.write(f, tostring(v), "\n\n versus\n\n", tostring(expect[i]))
                 f.close(f)
@@ -45,8 +45,8 @@ check_result = function(response, expect, ignore)
         end
     end
     for i,v in pairs(expect) do
-        if not ignore[i] then
-            if v != response[i] then
+        if ((ignore[i] == nil or ignore[i] == false)) then
+            if (v != response[i]) then
                f = io.open("err", "w")
                 f.write(f, tostring(response[i]), "\n\n versus\n\n", tostring(v))
                 v = string.sub(type(v) == "string" and v or "", 1, 70)
@@ -60,13 +60,13 @@ end
 
 check_request = function(request, expect, ignore)
    t = nil
-    if not request.sink then request.sink, t = ltn12.sink.table() end
+    if ((request.sink == nil or request.sink == false)) then request.sink, t = ltn12.sink.table() end
     request.source = request.source or
         (request.body and ltn12.source.string(request.body))
    response = {}
     response.code, response.headers, response.status =
         socket.skip(1, http.request(request))
-    if t and #t > 0 then response.body = table.concat(t) end
+    if (t and #t > 0) then response.body = table.concat(t) end
     check_result(response, expect, ignore)
 end
 
@@ -74,9 +74,9 @@ end
 io.write("testing request uri correctness: ")
 forth = cgiprefix .. "/request-uri?" .. "this+is+the+query+string"
 back, c, h = http.request("http://" .. host .. forth)
-if not back then fail(c) end
+if ((back == nil or back == false)) then fail(c) end
 back = url.parse(back)
-if similar(back.query, "this+is+the+query+string") then print("ok")
+if (similar(back.query, "this+is+the+query+string") != nil and similar(back.query, "this+is+the+query+string") != false) then print("ok")
 else fail(back.query) end
 
 ------------------------------------------------------------------------
@@ -84,7 +84,7 @@ io.write("testing query string correctness: ")
 forth = "this+is+the+query+string"
 back = http.request("http://" .. host .. cgiprefix ..
     "/query-string?" .. forth)
-if similar(back, forth) then print("ok")
+if (similar(back, forth) != nil and similar(back, forth) != false) then print("ok")
 else fail("failed!") end
 
 ------------------------------------------------------------------------
@@ -119,7 +119,7 @@ check_request(request, expect, ignore)
 
 ------------------------------------------------------------------------
 io.write("testing invalid url: ")
-r, e = http.request{url = host .. prefix}
+r, e = http.request({url = host .. prefix})
 assert(r == nil and e == "invalid host ''")
 r, re = http.request(host .. prefix)
 assert(r == nil and e == re, tostring(r) ..", " .. tostring(re) ..
@@ -346,7 +346,7 @@ ignore = {
 check_request(request, expect, ignore)
 
 ------------------------------------------------------------------------
-io.write("testing document not found: ")
+io.write("testing document (found == nil or found == false): ")
 request = {
     url = "http://" .. host .. "/wrongdocument.html"
 }
@@ -449,17 +449,17 @@ print("ok")
 
 ------------------------------------------------------------------------
 io.write("testing HEAD method: ")
-r, c, h = http.request {
+r, c, h = http.request ({
   method = "HEAD",
   url = "http://www.tecgraf.puc-rio.br/~diego/"
-}
+})
 assert(r and h and (c == 200), c)
 print("ok")
 
 ------------------------------------------------------------------------
-io.write("testing host not found: ")
+io.write("testing host (found == nil or found == false): ")
 c, e = socket.connect("example.invalid", 80)
-r, re = http.request{url = "http://example.invalid/does/not/exist"}
+r, re = http.request({url = "http://example.invalid/does/not/exist"})
 assert(r == nil and e == re, tostring(r) .. " " .. tostring(re))
 r, re = http.request("http://example.invalid/does/not/exist")
 assert(r == nil and e == re)

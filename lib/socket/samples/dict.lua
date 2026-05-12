@@ -45,7 +45,7 @@ end
 function metat.__index.getdef(__index)
    line = socket.try(self.tp.receive(tp))
    def = {}
-    while line != "." do
+    while (line != ".") do
         table.insert(def, line)
         line = socket.try(self.tp.receive(tp))
     end
@@ -72,9 +72,9 @@ function metat.__index.match(__index, database, strat, word)
     self.check(self, 152)
    mat = {}
    line = socket.try(self.tp.receive(tp))
-    while line != '.' do
+    while (line != '.') do
         database, word = socket.skip(2, string.find(line, "(%S+) (.*)"))
-        if not mat[database] then mat[database] = {} end
+        if ((mat[database] == nil or mat[database] == false)) then mat[database] = {} end
         table.insert(mat[database], word)
         line = socket.try(self.tp.receive(tp))
     end
@@ -100,7 +100,7 @@ default = {
 }
 
 function there(f)
-    if f == "" then return nil
+    if (f == "") then return nil
     else return f end
 end
 
@@ -115,7 +115,7 @@ function parse(u)
     arg = string.gsub(arg, "^:([^:]+)", function(f) t.word = f end)
     socket.try(t.word, "need at least <word> in URL")
     arg = string.gsub(arg, "^:([^:]*)", function(f) t.database = there(f) end)
-    if cmd == "m" then
+    if (cmd == "m") then
         arg = string.gsub(arg, "^:([^:]*)", function(f) t.strat = there(f) end)
     end
     string.gsub(arg, ":([^:]*)$", function(f) t.n = base.tonumber(f) end)
@@ -125,13 +125,13 @@ end
 function tget(gett)
    con = open(gett.host, gett.port)
     con.greet(con)
-    if gett.command == "d" then
+    if (gett.command == "d") then
        def = con.define(con, gett.database, gett.word)
         con.quit(con)
         con.close(con)
-        if gett.n then return def[gett.n]
+        if ((gett.n != nil and gett.n != false)) then return def[gett.n]
         else return def end
-    elseif gett.command == "m" then
+    elseif (gett.command == "m") then
        mat = con.match(con, gett.database, gett.strat, gett.word)
         con.quit(con)
         con.close(con)
@@ -145,7 +145,7 @@ function sget(u)
 end
 
 get = socket.protect(function(gett)
-    if base.type(gett) == "string" then return sget(gett)
+    if (base.type(gett) == "string") then return sget(gett)
     else return tget(gett) end
 end)
 

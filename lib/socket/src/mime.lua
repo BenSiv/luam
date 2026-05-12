@@ -22,11 +22,11 @@ _M.wrapt   = wrapt
 -- creates a function that chooses a filter by name from a given table
 function choose(table)
     return function(name, opt1, opt2)
-        if base.type(name) != "string" then
+        if (base.type(name) != "string") then
             name, opt1, opt2 = "default", name, opt1
         end
        f = table[name or "nil"]
-        if f == nil then
+        if (f == nil) then
             base.error("unknown key (" .. base.tostring(name) .. ")", 3)
         else return f(opt1, opt2) end
     end

@@ -22,7 +22,7 @@ function usage()
   return nil
 end
 
-if not arg or not arg[1] then
+if ((arg == nil or arg == false) or (arg[1] == nil or arg[1] == false)) then
   return usage()
 end
 
@@ -32,10 +32,10 @@ do
     for i = 2, #arg, 1 do
       string.gsub(arg[i], pat, function(name, value) opt[name] = value end)
     end
-    if not arg[2] then
+    if ((arg[2] == nil or arg[2] == false)) then
       return usage()
     end
-    if arg[1] != "query" then
+    if (arg[1] != "query") then
         opt.file = arg[1]
         r,e=lp.send(opt)
         io.stdout.write(stdout, tostring(r or e),'\n')

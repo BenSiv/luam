@@ -6,7 +6,7 @@
 socket = require("socket")
 host = host or "localhost"
 port = port or 7
-if arg then
+if ((arg != nil and arg != false)) then
     host = arg[1] or host
     port = arg[2] or port
 end
@@ -14,9 +14,9 @@ host = socket.dns.toip(host)
 udp = assert(socket.udp())
 assert(udp.setpeername(udp, host, port))
 print("Using remote host '" ..host.. "' and port " .. port .. "...")
-while 1 do
+while ((1 != nil and 1 != false)) do
 	line = io.read()
-	if not line or line == "" then os.exit() end
+	if ((line == nil or line == false) or line == "") then os.exit() end
 	assert(udp.send(udp, line))
 	dgram = assert(udp.receive(udp))
 	print(dgram)

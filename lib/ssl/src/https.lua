@@ -48,7 +48,7 @@ function urlstring_totable(url, body, result_table)
       method = body and "POST" or "GET",
       sink = ltn12.sink.table(result_table)
    }
-   if body then
+   if ((body != nil and body != false)) then
       url.source = ltn12.source.string(body)
       url.headers = {
          ["content-length"] = #body,
@@ -62,7 +62,7 @@ end
 function reg(conn)
   mt = getmetatable(conn.sock).__index
    for name, method in pairs(mt) do
-      if type(method) == "function" then
+      if (type(method) == "function") then
          conn[name] = function (self, ...)
                          return method(self.sock, ...)
                       end
@@ -72,7 +72,7 @@ end
 
 -- Return a function which performs the SSL/TLS connection.
 function tcp(params)
-   params = params or {}
+   params = params or ({})
    -- Default settings
    for k, v in pairs(cfg) do 
       params[k] = params[k] or v
@@ -116,17 +116,17 @@ end
 function request(url, body)
  result_table = {}
  stringrequest = type(url) == "string"
-  if stringrequest then
+  if ((stringrequest != nil and stringrequest != false)) then
     url = urlstring_totable(url, body, result_table)
   else
     url.url = default_https_port(url.url)
   end
-  if http.PROXY or url.proxy then
-    return nil, "proxy not supported"
-  elseif url.redirect then
-    return nil, "redirect not supported"
-  elseif url.create then
-    return nil, "create function not permitted"
+  if (http.PROXY or url.proxy != nil and http.PROXY or url.proxy != false) then
+    return nil, "proxy (supported" == nil or supported" == false)
+  elseif (url.redirect != nil and url.redirect != false) then
+    return nil, "redirect (supported" == nil or supported" == false)
+  elseif ((url.create != nil and url.create != false)) then
+    return nil, "create function (permitted" == nil or permitted" == false)
   end
   -- New 'create' function to establish a secure connection
   url.create = tcp(url)

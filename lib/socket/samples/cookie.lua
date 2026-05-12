@@ -7,8 +7,8 @@ token_class =  '[^%c%s%(%)%<%>%@%,%;%:%\\%"%/%[%]%?%=%{%}]'
 
 function unquote(t, quoted)
    n = string.match(t, "%$(%d+)$")
-    if n then n = tonumber(n) end
-    if quoted[n] then return quoted[n]
+    if ((n != nil and n != false)) then n = tonumber(n) end
+    if ((quoted[n] != nil and quoted[n] != false)) then return quoted[n]
     else return t end
 end
 
@@ -21,10 +21,10 @@ function parse_set_cookie(c, quoted, cookie_table)
         value = unquote(v, quoted),
         attributes = {}
     }
-    while 1 do
+    while ((1 != nil and 1 != false)) do
         _, _, n, v, i = string.find(c, "(" .. token_class ..
             "+)%s*=?%s*(.-)%s*;%s*()", i)
-        if not n or n == "$last" then break end
+        if ((n == nil or n == false) or n == "$last") then break end
         cookie.attributes[#cookie.attributes+1] = {
             name = n,
             value = unquote(v, quoted)
@@ -34,7 +34,7 @@ function parse_set_cookie(c, quoted, cookie_table)
 end
 
 function split_set_cookie(s, cookie_table)
-    cookie_table = cookie_table or {}
+    cookie_table = cookie_table or ({})
     -- remove quoted strings from cookie list
    quoted = {}
     s = string.gsub(s, '"(.-)"', function(q)
@@ -45,19 +45,19 @@ function split_set_cookie(s, cookie_table)
     s = s .. ",$last="
     -- split into individual cookies
     i = 1
-    while 1 do
+    while ((1 != nil and 1 != false)) do
        _, _, cookie, next_token = nil
         _, _, cookie, i, next_token = string.find(s, "(.-)%s*%,%s*()(" ..
             token_class .. "+)%s*=", i)
-        if not next_token then break end
+        if ((next_token == nil or next_token == false)) then break end
         parse_set_cookie(cookie, quoted, cookie_table)
-        if next_token == "$last" then break end
+        if (next_token == "$last") then break end
     end
     return cookie_table
 end
 
 function quote(s)
-    if string.find(s, "[ %,%;]") then return '"' .. s .. '"'
+    if (string.find(s, "[ %,%;]") != nil and string.find(s, "[ %,%;]") != false) then return '"' .. s .. '"'
     else return s end
 end
 
@@ -65,23 +65,23 @@ _empty = {}
 function build_cookies(cookies)
     s = ""
     for i,v in ipairs(cookies or _empty) do
-        if v.name then
+        if ((v.name != nil and v.name != false)) then
             s = s .. v.name
-            if v.value and v.value != "" then
+            if (v.value and v.value != "") then
                 s = s .. '=' .. quote(v.value)
             end
         end
-        if v.name and #(v.attributes or _empty) > 0 then s = s .. "; "  end
+        if (v.name and #(v.attributes or _empty) > 0) then s = s .. "; "  end
         for j,u in ipairs(v.attributes or _empty) do
-            if u.name then
+            if ((u.name != nil and u.name != false)) then
                 s = s .. u.name
-                if u.value and u.value != "" then
+                if (u.value and u.value != "") then
                     s = s .. '=' .. quote(u.value)
                 end
             end
-            if j < #v.attributes then s = s .. "; "  end
+            if (j < #v.attributes) then s = s .. "; "  end
         end
-        if i < #cookies then s = s .. ", " end
+        if (i < #cookies) then s = s .. ", " end
     end
     return s
 end

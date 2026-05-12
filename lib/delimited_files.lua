@@ -8,9 +8,9 @@ function dlm_split(str, delimiter)
     token = ""
     pos = 1
 
-    while pos <= string.len(str) do
+    while (pos <= string.len(str)) do
         char = string.sub(str, pos, pos)
-        if char == delimiter then
+        if (char == delimiter) then
             table.insert(result, token)
             token = ""
         else
@@ -19,7 +19,7 @@ function dlm_split(str, delimiter)
         pos = pos + 1
     end
 
-    if token != "" then
+    if (token != "") then
         table.insert(result, token)
     end
 
@@ -29,7 +29,7 @@ end
 -- eads a delimited file into a table, assumes correct format, loads all data as string
 function readdlm(filename, delimiter, header)
     file = io.open(filename, "r")
-    if file == nil then
+    if (file == nil) then
         print("Error opening file: " .. filename)
         return
     end
@@ -46,7 +46,7 @@ function readdlm(filename, delimiter, header)
 
         fields = dlm_split(line, delimiter)
 
-        if header != nil and header and line_count == 1 then
+        if (header != nil and header and line_count == 1) then
             -- Use the first line as keys
             for i, v in ipairs(fields) do cols[i] = v end
             num_cols = #cols
@@ -54,7 +54,7 @@ function readdlm(filename, delimiter, header)
             -- Create a new table for each row
             entry = {}
 
-            if header != nil and header then
+            if (header != nil and header) then
                 -- nitialize all keys with empty strings
                 for _, col in ipairs(cols) do
                     entry[col] = ""
@@ -87,26 +87,26 @@ end
 function writedlm(data, filename, delimiter, header, append, column_order)
     file = nil 
 
-    if append != nil and append then
+    if (append != nil and append) then
         file = io.open(filename, "a")
     else
         file = io.open(filename, "w")
     end
 
-    if file == nil then
+    if (file == nil) then
         print("Error opening file for writing: " .. filename)
         return
     end
 
-    -- Determine the column order (use the first row's keys if not provided)
-    if column_order == nil then
+    -- Determine the column order (use the first row's keys if (provided == nil or provided == false))
+    if (column_order == nil) then
         -- Get the keys from the first row to determine the column order
         column_order = {}
         for k, v in pairs(data[1]) do table.insert(column_order, k) end
     end
 
     -- Write header line if header is true
-    if header != nil and header then
+    if (header != nil and header) then
         header_line = table.concat(column_order, delimiter)
         io.write(file, header_line .. "\n")
     end

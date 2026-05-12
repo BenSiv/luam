@@ -379,8 +379,7 @@ static const luaL_Reg base_funcs[] = {
     {"error", luaB_error},
     /* {"gcinfo", luaB_gcinfo}, */   /* REMOVED: deprecated */
     /* {"getfenv", luaB_getfenv}, */ /* REMOVED: deprecated in Lua 5.2+ */
-    /* {"getmetatable", luaB_getmetatable}, */ /* REMOVED: metatables disabled
-                                                  in LuaM */
+    {"getmetatable", luaB_getmetatable},
     {"loadfile", luaB_loadfile},
     {"load", luaB_load},
     {"loadstring", luaB_loadstring},
@@ -392,8 +391,7 @@ static const luaL_Reg base_funcs[] = {
     {"rawset", luaB_rawset},
     {"select", luaB_select},
     /* {"setfenv", luaB_setfenv}, */ /* REMOVED: deprecated in Lua 5.2+ */
-    /* {"setmetatable", luaB_setmetatable}, */ /* REMOVED: metatables disabled
-                                                  in LuaM */
+    {"setmetatable", luaB_setmetatable},
     {"tonumber", luaB_tonumber},
     {"tostring", luaB_tostring},
     {"type", luaB_type},

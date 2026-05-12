@@ -8,7 +8,7 @@ url = "https://api.sampleapis.com/coffee/hot"
 response, status_code, headers = http.request(url)
 
 -- Print the results
-if status_code == 200 then
+if (status_code == 200) then
     drinks = json.decode(response)
     for _, drink in pairs(drinks) do
         print(drink.title)

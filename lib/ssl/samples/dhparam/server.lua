@@ -18,9 +18,9 @@ function dhparam_cb(export, keylength)
   print("Key length", keylength)
   print("---")
  filename = nil
-  if keylength == 512 then
+  if (keylength == 512) then
     filename = "dh-512.pem"
-  elseif keylength == 1024 then
+  elseif (keylength == 1024) then
     filename = "dh-1024.pem"
   else
     -- No key

@@ -84,7 +84,7 @@ function all_articles(invoice)
     coroutine.yield(row.article1, row.price1)
 
     -- Maybe the Invoice has a second article?
-    if row.article2 then
+    if ((row.article2 != nil and row.article2 != false)) then
 
       -- Yes, there is a second article, so return it.
       coroutine.yield(row.article2, row.price2)

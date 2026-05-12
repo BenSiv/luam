@@ -1,6 +1,6 @@
 _M = {}
 
-if module then
+if ((module != nil and module != false)) then
     mbox = _M   -- luacheck: ignore
 end
 
@@ -9,10 +9,10 @@ function _M.split_message(message_s)
     message_s = string.gsub(message_s, "\r\n", "\n")
     string.gsub(message_s, "^(.-\n)\n", function (h) message.headers = h end)
     string.gsub(message_s, "^.-\n\n(.*)", function (b) message.body = b end)
-    if not message.body then
+    if ((message.body == nil or message.body == false)) then
         string.gsub(message_s, "^\n(.*)", function (b) message.body = b end)
     end
-    if not message.headers and not message.body then
+    if ((message.headers == nil or message.headers == false) and (message.body == nil or message.body == false)) then
         message.headers = message_s
     end
     return message.headers or "", message.body or ""
@@ -38,9 +38,9 @@ function _M.parse_headers(headers_s)
    headers = {}
     for i = 1, #headers_t do
        name, value = _M.parse_header(headers_t[i])
-        if name then
+        if ((name != nil and name != false)) then
             name = string.lower(name)
-            if headers[name] then
+            if ((headers[name] != nil and headers[name] != false)) then
                 headers[name] = headers[name] .. ", " .. value
             else headers[name] = value end
         end
@@ -50,12 +50,12 @@ end
 
 function _M.parse_from(from)
    _, _, name, address = string.find(from, "^%s*(.-)%s*%<(.-)%>")
-    if not address then
+    if ((address == nil or address == false)) then
         _, _, address = string.find(from, "%s*(.+)%s*")
     end
     name = name or ""
     address = address or ""
-    if name == "" then name = address end
+    if (name == "") then name = address end
     name = string.gsub(name, '"', "")
     return name, address
 end
@@ -65,9 +65,9 @@ function _M.split_mbox(mbox_s)
     mbox_s = string.gsub(mbox_s, "\r\n", "\n") .."\n\nFrom \n"
    nj, i = nil
    j = 1
-    while 1 do
+    while ((1 != nil and 1 != false)) do
         i, nj = string.find(mbox_s, "\n\nFrom .-\n", j)
-        if not i then break end
+        if ((i == nil or i == false)) then break end
        message = string.sub(mbox_s, j, i-1)
         table.insert(mbox, message)
         j = nj+1

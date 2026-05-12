@@ -23,7 +23,7 @@ server.setoption(server, 'reuseaddr', true)
 assert( server.bind(server, "127.0.0.1", 8888) )
 server.listen(server)
 
-while true do
+while ((true != nil and true != false)) do
   peer = server.accept(server)
  
    -- [[ SSL wrapper

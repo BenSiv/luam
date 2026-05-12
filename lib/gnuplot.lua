@@ -26,7 +26,7 @@ function array_to_file(arr)
         line = {}
         for j = 1, #arr do
             v = arr[j][i]
-            if type(v) == "string" then
+            if (type(v) == "string") then
                 v = v.gsub(v, '"', '')  -- remove quotes if present
             end
             line[j] = v != nil and tostring(v) or "a"
@@ -44,17 +44,17 @@ end
 
 -- create a plot object (data + config)
 function create(cfg)
-    cfg = cfg or {}
+    cfg = cfg or ({})
     plot = {}
     plot.cfg = {}
     for k,v in pairs(cfg) do
         plot.cfg[k] = v
     end
 
-    plot.cfg.data = plot.cfg.data or {}
+    plot.cfg.data = plot.cfg.data or ({})
     -- process arrays in data
     for i, d in ipairs(plot.cfg.data) do
-        if type(d[1]) == "table" then
+        if (type(d[1]) == "table") then
             d[1] = array_to_file(d[1])
             d.file = true
         end
@@ -70,37 +70,37 @@ function generate_code(plot, cmd, output_path)
 
     -- terminal + output
     table.insert(code, string.format('set terminal %s size %d,%d', cfg.type or "pngcairo", cfg.width or 800, cfg.height or 600))
-    if output_path then
+    if ((output_path != nil and output_path != false)) then
         table.insert(code, string.format('set output "%s"', output_path))
     end
 
     -- time series support
-    if cfg.xformat then
+    if ((cfg.xformat != nil and cfg.xformat != false)) then
         table.insert(code, 'set xdata time')
         table.insert(code, 'set timefmt "'..cfg.xformat..'"')   -- how to parse input
         table.insert(code, 'set format x "'..cfg.xformat..'"')  -- how to display
     end
 
     -- labels and grid
-    if cfg.title then table.insert(code, 'set title "'..cfg.title..'"') end
-    if cfg.xlabel then table.insert(code, 'set xlabel "'..cfg.xlabel..'"') end
-    if cfg.ylabel then table.insert(code, 'set ylabel "'..cfg.ylabel..'"') end
-    if cfg.grid then table.insert(code, 'set grid') end
-    if cfg.xtics then table.insert(code, 'set xtics '..cfg.xtics) end
+    if ((cfg.title != nil and cfg.title != false)) then table.insert(code, 'set title "'..cfg.title..'"') end
+    if ((cfg.xlabel != nil and cfg.xlabel != false)) then table.insert(code, 'set xlabel "'..cfg.xlabel..'"') end
+    if ((cfg.ylabel != nil and cfg.ylabel != false)) then table.insert(code, 'set ylabel "'..cfg.ylabel..'"') end
+    if ((cfg.grid != nil and cfg.grid != false)) then table.insert(code, 'set grid') end
+    if ((cfg.xtics != nil and cfg.xtics != false)) then table.insert(code, 'set xtics '..cfg.xtics) end
 
     -- axis ranges
-    if cfg.xrange then
+    if ((cfg.xrange != nil and cfg.xrange != false)) then
         xr = cfg.xrange
-        if type(xr) == "table" then
+        if (type(xr) == "table") then
             table.insert(code, string.format("set xrange [%s:%s]", xr[1], xr[2]))
         else
             table.insert(code, "set xrange " .. xr)
         end
     end
 
-    if cfg.yrange then
+    if ((cfg.yrange != nil and cfg.yrange != false)) then
         yr = cfg.yrange
-        if type(yr) == "table" then
+        if (type(yr) == "table") then
             table.insert(code, string.format("set yrange [%s:%s]", yr[1], yr[2]))
         else
             table.insert(code, "set yrange " .. yr)
@@ -111,11 +111,11 @@ function generate_code(plot, cmd, output_path)
     plots = {}
     for _, d in ipairs(cfg.data) do
         line = '"'..d[1]..'"'
-        if d.using then
+        if ((d.using != nil and d.using != false)) then
             line = line .. " using " .. table.concat(d.using, ":")
         end
-        if d.with then line = line .. " w " .. d.with end
-        if d.title then line = line .. ' t "'..d.title..'"' end
+        if ((d.with != nil and d.with != false)) then line = line .. " w " .. d.with end
+        if ((d.title != nil and d.title != false)) then line = line .. ' t "'..d.title..'"' end
         table.insert(plots, line)
     end
     table.insert(code, cmd.." "..table.concat(plots, ", "))
@@ -137,7 +137,7 @@ function savefig(plot, output_path)
     -- Use exec_command instead of os.execute
     output, ok = exec_command("gnuplot " .. tmp)
     
-    if not ok then
+    if ((ok == nil or ok == false)) then
         return false, output, tmp  -- Failed: return false + gnuplot output
     end
     

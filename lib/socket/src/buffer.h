@@ -34,7 +34,6 @@ typedef struct t_buffer_ {
 typedef t_buffer *p_buffer;
 
 #ifndef _WIN32
-#pragma GCC visibility push(hidden)
 #endif
 
 int buffer_open(lua_State *L);
@@ -46,7 +45,6 @@ int buffer_meth_receive(lua_State *L, p_buffer buf);
 int buffer_isempty(p_buffer buf);
 
 #ifndef _WIN32
-#pragma GCC visibility pop
 #endif
 
 #endif /* BUF_H */

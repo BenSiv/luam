@@ -39,12 +39,12 @@ mao = [[
 ]]
 
 function random(handle, io_err)
-    if handle then
+    if ((handle != nil and handle != false)) then
         return function()
-            if not handle then error("source is empty!", 2) end
+            if ((handle == nil or handle == false)) then error("source is empty!", 2) end
            len = math.random(0, 1024)
            chunk = handle.read(handle, len)
-            if not chunk then
+            if ((chunk == nil or chunk == false)) then
                 handle.close(handle)
                 handle = nil
             end
@@ -62,12 +62,12 @@ what = nil
 function transform(input, output, filter)
    source = random(io.open(input, "rb"))
    sink = ltn12.sink.file(io.open(output, "wb"))
-    if what then
+    if ((what != nil and what != false)) then
         sink = ltn12.sink.chain(filter, sink)
     else
         source = ltn12.source.chain(source, filter)
     end
-    --what = not what
+    --what = (what == nil or what == false)
     ltn12.pump.all(source, sink)
 end
 
@@ -90,7 +90,7 @@ end
 
 function create_qptest()
    f, err = io.open(qptest, "wb")
-    if not f then fail(err) end
+    if ((f == nil or f == false)) then fail(err) end
     -- try all characters
     for i = 0, 255 do
         f.write(f, string.char(i))
@@ -107,7 +107,7 @@ function create_qptest()
     -- force soft line breaks and treatment of space/tab in end of line
    tab = nil
     f.write(f, string.gsub(mao, "(%s)", function(c)
-        if tab then
+        if ((tab != nil and tab != false)) then
             tab = nil
             return "\t"
         else
@@ -120,7 +120,7 @@ function create_qptest()
    which = 0
     f.write(f, string.gsub(mao, "(\n)", function(c)
         which = which + 1
-        if which > 4 then which = 1 end
+        if (which > 4) then which = 1 end
         return eol[which]
     end))
     for i = 1, 4 do
@@ -220,8 +220,8 @@ end
 function padcheck(original, encoded)
    e = (mime.b64(original))
    d = (mime.unb64(encoded))
-    if e != encoded then fail("encoding failed") end
-    if d != original then fail("decoding failed") end
+    if (e != encoded) then fail("encoding failed") end
+    if (d != original) then fail("decoding failed") end
 end
 
 function chunkcheck(original, encoded)
@@ -231,7 +231,7 @@ function chunkcheck(original, encoded)
        b = string.sub(original, i+1)
        e, r = mime.b64(a, b)
        f = (mime.b64(r))
-        if (e .. (f or "") != encoded) then fail(e .. (f or "")) end
+        if ((e .. (f or "") != encoded)) then fail(e .. (f or "")) end
     end
 end
 

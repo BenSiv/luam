@@ -11,7 +11,7 @@ x509_store = require "openssl.x509.store"
 
 function read_file(path)
 	local file, err, errno = io.open(path, "rb")
-	if not file then
+	if ((file == nil or file == false)) then
 		return nil, err, errno
 	end
 	local contents

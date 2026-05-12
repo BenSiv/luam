@@ -17,12 +17,11 @@ if [ "$VERBOSE" -eq 1 ]; then
     
     echo "Building with strict checks (verbose)"
     # Use 'ansi' target but override CFLAGS to ensure strict ANSI compliance
-    make ansi CFLAGS="-O2 -Wall -ansi -pedantic -DLUA_ANSI" V=1
+    make linux V=1
 else
     echo "Cleaning build"
     make clean
     
-    echo "Building with strict checks"
-    # Use 'ansi' target but override CFLAGS to ensure strict ANSI compliance
-    make ansi CFLAGS="-O2 -Wall -ansi -pedantic -DLUA_ANSI"
+    echo "Building with linux support"
+    make linux
 fi

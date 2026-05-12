@@ -5,7 +5,7 @@ OBJS= \
  usocket.o
 
 CC	?= cc
-CFLAGS	+= $(MYCFLAGS) -DLUASOCKET_DEBUG
+CFLAGS  = -O2 -fPIC -I../../../../src -I.. -DLUASOCKET_DEBUG
 AR	?= ar
 RANLIB	?= ranlib
 

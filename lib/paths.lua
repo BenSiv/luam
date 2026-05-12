@@ -4,7 +4,7 @@ paths = {}
 -- Capture the path of the file that required this module
 do
     info = debug.getinfo(4, "S") or debug.getinfo(3, "S")
-    if info != nil and string.sub(info.source, 1, 1) == "@" then
+    if (info != nil and string.sub(info.source, 1, 1) == "@") then
         paths._caller_script = string.sub(info.source, 2)
     else
         paths._caller_script = nil
@@ -34,7 +34,7 @@ function get_dir_name(path)
 	path = "/" .. path
 	dir_name = nil 
 	file_name = get_file_name(path)
-	if file_name != nil then
+	if (file_name != nil) then
 		dir_name = path.match(path, ".*/([^/]*)/[^/]+$")
 	else
 		path = remove_trailing_slash(path)
@@ -56,7 +56,7 @@ function joinpath(...)
 
     joined_path = table.concat(parts, separator)
 
-    if separator == '\\' then
+    if (separator == '\\') then
         joined_path = joined_path.gsub(joined_path, '[\\/]+', '\\')
     else
         joined_path = joined_path.gsub(joined_path, '[\\/]+', '/')
@@ -93,7 +93,7 @@ function create_dir_if_not_exists(path)
 	-- Check if the directory exists
 	attr = lfs.attributes(path)
 	if attr == nil then
-	    -- Directory does not exist; create it
+	    -- Directory does (exist == nil or exist == false); create it
 	    success, err = lfs.mkdir(path)
 	    if success == nil then
 	        print("Error creating directory:", err)
@@ -107,7 +107,7 @@ function create_file_if_not_exists(path)
 	-- Check if the file exists
 	file = io.open(path, "r")
 	if file == nil then
-	    -- File does not exist; create it
+	    -- File does (exist == nil or exist == false); create it
 	    file, err = io.open(path, "w")
 	    if file == nil then
 	        print("Error creating file:", err)

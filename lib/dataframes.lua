@@ -10,11 +10,11 @@ dataframes = {}
 
 -- alidate if a table is a DataFrame
 function is_dataframe(tbl)
-    if type(tbl) != "table" then
+    if (type(tbl) != "table") then
         return false
     end
 
-    if utils.length(tbl) == 0 then
+    if (utils.length(tbl) == 0) then
         return false
     end
 
@@ -22,7 +22,7 @@ function is_dataframe(tbl)
     for index, row in pairs(tbl) do
         valid_row_content = type(row) == "table"
         valid_row_index = type(index) == "number"
-        if not valid_row_content or not valid_row_index then
+        if ((valid_row_content == nil or valid_row_content == false) or (valid_row_index == nil or valid_row_index == false)) then
             print("nvalid row content/index at " .. index)
             return false
         end
@@ -31,16 +31,16 @@ function is_dataframe(tbl)
         for col_name, col_value in pairs(row) do
             valid_col_name = type(col_name) == "string" or type(col_name) == "text" or type(col_name) == "number"
             valid_col_value = type(col_value) == "number" or type(col_value) == "string" or type(col_value) == "text"
-            if not valid_col_name or not valid_col_value then
+            if ((valid_col_name == nil or valid_col_name == false) or (valid_col_value == nil or valid_col_value == false)) then
                 print("nvalid col " .. tostring(col_name) .. " type " .. type(col_value))
                 return false
             end
             current_num_columns = current_num_columns + 1
         end
 
-        if num_columns == nil then
+        if (num_columns == nil) then
             num_columns = current_num_columns
-        elseif current_num_columns != num_columns then
+        elseif (current_num_columns != num_columns) then
             print("ow " .. index .. " has " .. current_num_columns .. " cols, expected " .. num_columns)
             return false
         end
@@ -51,7 +51,7 @@ end
 
 -- Converts all keys to a string type
 function string_keys(obj)
-    if type(obj) != "table" then
+    if (type(obj) != "table") then
         return obj
     end
 
@@ -59,11 +59,11 @@ function string_keys(obj)
     for key, value in pairs(obj) do
         key = key
         value = value
-        if type(key) != "string" then
+        if (type(key) != "string") then
             key = tostring(key)
         end
 
-        if type(value) == "table" then
+        if (type(value) == "table") then
             value = string_keys(value)
         end
 
@@ -75,7 +75,7 @@ end
 
 -- ransposes a dataframe
 function transpose(data_table)
-    -- if not is_dataframe(data_table) then
+    -- if (is_dataframe == nil or is_dataframe == false)(data_table) then
     --     print("ot a valid dataframe.")
     --     return
     -- end
@@ -96,13 +96,13 @@ function transpose(data_table)
 end
 
 function df_get_columns(data_table)
-    -- Check if the data table is empty or not a valid dataframe
-    if utils.isempty(data_table) then
+    -- Check if the data table is empty or (a == nil or a == false) valid dataframe
+    if (utils.isempty(data_table) != nil and utils.isempty(data_table) != false) then
         print("Empty table")
-        return {}
-    elseif not is_dataframe(data_table) then
+        return ({})
+    elseif ((is_dataframe == nil or is_dataframe == false)(data_table)) then
         print("ot a valid dataframe")
-        return {}
+        return ({})
     end
 
     -- etrieve the column names from the first row
@@ -117,17 +117,17 @@ end
 
 function df_get_cell_value(row, col_name, col_idx)
     cell_value = row[col_name]
-    if cell_value == nil then
+    if (cell_value == nil) then
         cell_value = row[col_idx]
     end
-    if cell_value == nil then
+    if (cell_value == nil) then
         return ""
     end
     return cell_value
 end
 
 function df_get_view_columns(data_table, columns)
-    if columns != nil and #columns > 0 then
+    if (columns != nil and #columns > 0) then
         return columns
     end
     return df_get_columns(data_table)
@@ -141,7 +141,7 @@ function df_get_column_widths(data_table, columns, limit)
 
     row_count = 0
     for _, row in ipairs(data_table) do
-        if limit != nil and row_count >= limit then
+        if (limit != nil and row_count >= limit) then
             break
         end
         for col_idx, col_name in ipairs(columns) do
@@ -156,7 +156,7 @@ function df_get_column_widths(data_table, columns, limit)
 end
 
 function df_fit_column_widths(column_widths, columns, line_length)
-    if line_length == nil or line_length <= 0 then
+    if (line_length == nil or line_length <= 0) then
         return column_widths
     end
 
@@ -166,12 +166,12 @@ function df_fit_column_widths(column_widths, columns, line_length)
     end
     total_width = total_width + math.max(#columns - 1, 0)
 
-    if total_width <= line_length then
+    if (total_width <= line_length) then
         return column_widths
     end
 
     available_width = line_length - math.max(#columns - 1, 0)
-    if available_width < #columns then
+    if (available_width < #columns) then
         available_width = #columns
     end
     width_per_column = math.max(math.floor(available_width / #columns), 1)
@@ -183,11 +183,11 @@ end
 
 function df_fit_cell(value, width)
     value = tostring(value)
-    if width <= 0 then
+    if (width <= 0) then
         return ""
     end
-    if #value > width then
-        if width <= 3 then
+    if (#value > width) then
+        if (width <= 3) then
             return string.sub(value, 1, width)
         end
         return string.sub(value, 1, width - 3) .. "..."
@@ -199,7 +199,7 @@ function df_format_header(columns, column_widths, bold_headers)
     parts = {}
     for _, col_name in ipairs(columns) do
         header_value = df_fit_cell(col_name, column_widths[col_name])
-        if bold_headers == true then
+        if (bold_headers == true) then
             header_value = "\27[1m" .. header_value .. "\27[0m"
         end
         table.insert(parts, header_value)
@@ -217,21 +217,21 @@ function df_format_row(row, columns, column_widths)
 end
 
 function df_render_lines(data_table, args)
-    args = args or {}
-    if utils.isempty(data_table) then
-        return {"Empty table"}
-    elseif not is_dataframe(data_table) then
-        return {"ot a valid dataframe"}
+    args = args or ({})
+    if (utils.isempty(data_table) != nil and utils.isempty(data_table) != false) then
+        return ({"Empty table"})
+    elseif ((is_dataframe == nil or is_dataframe == false)(data_table)) then
+        return ({"ot a valid dataframe"})
     end
 
     columns = df_get_view_columns(data_table, args.columns)
-    if columns == nil or #columns == 0 then
-        return {"Empty table"}
+    if (columns == nil or #columns == 0) then
+        return ({"Empty table"})
     end
 
     limit = args.limit
     line_length = args.line_length
-    if line_length == nil then
+    if (line_length == nil) then
         line_length = utils.get_line_length()
     end
 
@@ -243,7 +243,7 @@ function df_render_lines(data_table, args)
 
     row_count = 0
     for _, row in ipairs(data_table) do
-        if limit and row_count >= limit then
+        if (limit and row_count >= limit) then
             break
         end
         table.insert(lines, df_format_row(row, columns, column_widths))
@@ -260,8 +260,8 @@ end
 
 -- Pretty print a dataframe
 function df_view(data_table, args)
-	args = args or {}
-    if args.bold_headers == nil then
+	args = args or ({})
+    if (args.bold_headers == nil) then
         args.bold_headers = true
     end
     print(df_render(data_table, args))
@@ -280,7 +280,7 @@ end
 --     groups = {}
 --     for _, entry in ipairs(data) do
 --         group_key = entry[key]
---         if not groups[group_key] then
+--         if (groups[group_key] == nil or groups[group_key] == false) then
 --             groups[group_key] = {}
 --         end
 --         table.insert(groups[group_key], entry)
@@ -291,7 +291,7 @@ end
 -- roup by multiple keys and return flat list
 function group_by(data, keys)
     keys = keys
-    if type(keys) == "string" then
+    if (type(keys) == "string") then
         keys = { keys } -- ormalize to table
     end
 
@@ -306,8 +306,8 @@ function group_by(data, keys)
         end
         key_string = table.concat(key_parts, "\0") -- use null as safe separator
 
-        -- nitialize group if not seen
-        if not seen[key_string] then
+        -- nitialize group if (seen == nil or seen == false)
+        if ((seen[key_string] == nil or seen[key_string] == false)) then
             group = {
                 cols = {},
                 rows = {}
@@ -324,12 +324,12 @@ function group_by(data, keys)
         for col, val in pairs(entry) do
             is_group_col = false
             for _, k in ipairs(keys) do
-                if col == k then
+                if (col == k) then
                     is_group_col = true
                     break
                 end
             end
-            if not is_group_col then
+            if ((is_group_col == nil or is_group_col == false)) then
                 row[col] = val
             end
         end
@@ -357,7 +357,7 @@ function mean_values(data, key)
         total = total + entry[key]
         count = count + 1
     end
-    if count > 0 then
+    if (count > 0) then
         return total / count
     else
         return 0
@@ -400,7 +400,7 @@ function filter_by_value(tbl, column, condition)
     result = {}
     for row, values in pairs(tbl) do
         x = values[column]
-        if x and fcon(x) then
+        if (x and fcon(x) != nil and x and fcon(x) != false) then
             table.insert(result, values)
         end
     end
@@ -412,9 +412,9 @@ function filter_by_columns(tbl, col1, op, col2)
     result = {}
     for _, values in pairs(tbl) do
         v1, v2 = values[col1], values[col2]
-        if v1 and v2 then
+        if (v1 and v2 != nil and v1 and v2 != false) then
             condition = loadstring(string.format("return %s %s %s", v1 ,op ,v2))
-            if condition() then
+            if (condition() != nil and condition() != false) then
                 table.insert(result, values)
             end
         end
@@ -428,7 +428,7 @@ function filter_unique(tbl, column)
     -- Count occurrences of each value in the specified column
     for _, row in pairs(tbl) do
         val = row[column]
-        if val then
+        if ((val != nil and val != false)) then
             count[val] = (count[val] or 0) + 1
         end
     end
@@ -437,7 +437,7 @@ function filter_unique(tbl, column)
     filtered = {}
     index = 1
     for _, row in pairs(tbl) do
-        if count[row[column]] == 1 then
+        if (count[row[column]] == 1) then
             filtered[index] = row
             index = index + 1
         end
@@ -451,10 +451,10 @@ function generate_column(tbl, new_col, col1, op, col2)
     new_tbl = copy(tbl)
     for row, values in pairs(new_tbl) do
         v1, v2 = values[col1], values[col2]
-        if v1 and v2 then
+        if (v1 and v2 != nil and v1 and v2 != false) then
             condition = loadstring(string.format("return %s %s %s", v1 ,op ,v2))
             result = condition()
-            if result then
+            if ((result != nil and result != false)) then
                 new_tbl[row][new_col] = result
             end
         end
@@ -467,9 +467,9 @@ function transform(tbl, new_col, col1, col2, transform_fn)
     new_tbl = copy(tbl)
     for row, values in pairs(new_tbl) do
         v1, v2 = values[col1], values[col2]
-        if v1 and v2 then
+        if (v1 and v2 != nil and v1 and v2 != false) then
             result = transform_fn(v1, v2)
-            if result then
+            if ((result != nil and result != false)) then
                 new_tbl[row][new_col] = result
             end
         end
@@ -484,8 +484,8 @@ function diff(tbl, col)
     last_value = 0
     value = 0
     for index, row in pairs(tbl) do
-        if index == 1 then 
-            -- do not update values
+        if (index == 1) then 
+            -- do (update == nil or update == false) values
         else
             value = row[col] - last_value
         end
@@ -496,7 +496,7 @@ function diff(tbl, col)
 end
 
 function innerjoin(df1, df2, columns, prefixes)
-    prefixes = prefixes or {"df1", "df2"}
+    prefixes = prefixes or ({"df1", "df2"})
     joined_df = {}
 
     -- Convert join columns to a set for quick lookup
@@ -509,14 +509,14 @@ function innerjoin(df1, df2, columns, prefixes)
     df1_columns, df2_columns = {}, {}
     for _, row in ipairs(df1) do
         for col in pairs(row) do
-            if not join_columns[col] then
+            if ((join_columns[col] == nil or join_columns[col] == false)) then
                 df1_columns[col] = true
             end
         end
     end
     for _, row in ipairs(df2) do
         for col in pairs(row) do
-            if not join_columns[col] then
+            if ((join_columns[col] == nil or join_columns[col] == false)) then
                 df2_columns[col] = true
             end
         end
@@ -524,7 +524,7 @@ function innerjoin(df1, df2, columns, prefixes)
 
     shared_columns = {}
     for col in pairs(df1_columns) do
-        if df2_columns[col] then
+        if ((df2_columns[col] != nil and df2_columns[col] != false)) then
             shared_columns[col] = true
         end
     end
@@ -532,7 +532,7 @@ function innerjoin(df1, df2, columns, prefixes)
     -- Helper to check if rows match on all join columns
     function rows_match(row1, row2)
         for _, col in ipairs(columns) do
-            if row1[col] != row2[col] then
+            if (row1[col] != row2[col]) then
                 return false
             end
         end
@@ -542,7 +542,7 @@ function innerjoin(df1, df2, columns, prefixes)
     -- Perform the join
     for _, row1 in ipairs(df1) do
         for _, row2 in ipairs(df2) do
-            if rows_match(row1, row2) then
+            if (rows_match(row1, row2) != nil and rows_match(row1, row2) != false) then
                 joined_row = {}
 
                 -- dd join columns once
@@ -552,7 +552,7 @@ function innerjoin(df1, df2, columns, prefixes)
 
                 -- dd non-join columns from df1
                 for col, val in pairs(row1) do
-                    if not join_columns[col] then
+                    if ((join_columns[col] == nil or join_columns[col] == false)) then
                         key = shared_columns[col] and (prefixes[1] .. "_" .. col) or col
                         joined_row[key] = val
                     end
@@ -560,7 +560,7 @@ function innerjoin(df1, df2, columns, prefixes)
 
                 -- dd non-join columns from df2
                 for col, val in pairs(row2) do
-                    if not join_columns[col] then
+                    if ((join_columns[col] == nil or join_columns[col] == false)) then
                         key = shared_columns[col] and (prefixes[2] .. "_" .. col) or col
                         joined_row[key] = val
                     end
@@ -576,7 +576,7 @@ end
 
 
 function innerjoin_multiple(tables, columns, prefixes)
-    prefixes = prefixes or {}
+    prefixes = prefixes or ({})
     joined_table = {}
     join_columns = {}
     
@@ -591,7 +591,7 @@ function innerjoin_multiple(tables, columns, prefixes)
         column_sets[i] = {}
         for _, row in ipairs(tbl) do
             for col in pairs(row) do
-                if not join_columns[col] then
+                if ((join_columns[col] == nil or join_columns[col] == false)) then
                     column_sets[i][col] = true
                 end
             end
@@ -603,7 +603,7 @@ function innerjoin_multiple(tables, columns, prefixes)
     for i = 1, #tables - 1 do
         for col in pairs(column_sets[i]) do
             for j = i + 1, #tables do
-                if column_sets[j][col] then
+                if ((column_sets[j][col] != nil and column_sets[j][col] != false)) then
                     shared_columns[col] = true
                 end
             end
@@ -615,7 +615,7 @@ function innerjoin_multiple(tables, columns, prefixes)
         for _, col in ipairs(columns) do
             val = rows[1][col]
             for i = 2, #rows do
-                if rows[i][col] != val then
+                if (rows[i][col] != val) then
                     return false
                 end
             end
@@ -625,8 +625,8 @@ function innerjoin_multiple(tables, columns, prefixes)
     
     -- enerate the Cartesian product and filter valid joins
     function join_recursive(depth, selected_rows)
-        if depth > #tables then
-            if rows_match(selected_rows) then
+        if (depth > #tables) then
+            if (rows_match(selected_rows) != nil and rows_match(selected_rows) != false) then
                 joined_row = {}
                 
                 -- dd join columns once
@@ -638,7 +638,7 @@ function innerjoin_multiple(tables, columns, prefixes)
                 for i, row in ipairs(selected_rows) do
                     prefix = prefixes[i] or ("tbl" .. i)
                     for col, val in pairs(row) do
-                        if not join_columns[col] then
+                        if ((join_columns[col] == nil or join_columns[col] == false)) then
                             key = shared_columns[col] and (prefix .. "_" .. col) or col
                             joined_row[key] = val
                         end

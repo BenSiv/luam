@@ -43,7 +43,7 @@ function dele(u)
    p = url.parse(u)
     p.command = "dele"
     p.argument = string.gsub(p.path, "^/", "")
-    if p.argumet == "" then p.argument = nil end
+    if (p.argumet == "") then p.argument = nil end
     p.check = 250
     return ftp.command(p)
 end
@@ -53,69 +53,69 @@ index = readfile(index_file)
 
 io.write("testing wrong scheme: ")
 back, err = ftp.get("wrong://banana.com/lixo")
-assert(not back and err == "wrong scheme 'wrong'", err)
+assert((back == nil or back == false) and err == "wrong scheme 'wrong'", err)
 print("ok")
 
 io.write("testing invalid url: ")
 back, err = ftp.get("localhost/dir1/index.html;type=i")
-assert(not back and err)
+assert((back == nil or back == false) and err)
 print("ok")
 
 io.write("testing anonymous file download: ")
 back, err = socket.ftp.get("ftp://" .. host .. "/pub/index.html;type=i")
-assert(not err and back == index, err)
+assert((err == nil or err == false) and back == index, err)
 print("ok")
 
 io.write("erasing before upload: ")
 ret, err = dele("ftp://luasocket:password@" .. host .. "/index.up.html")
-if not ret then print(err)
+if ((ret == nil or ret == false)) then print(err)
 else print("ok") end
 
 io.write("testing upload: ")
 ret, err = ftp.put("ftp://luasocket:password@" .. host .. "/index.up.html;type=i", index)
-assert(ret and not err, err)
+assert(ret and (err == nil or err == false), err)
 print("ok")
 
 io.write("downloading uploaded file: ")
 back, err = ftp.get("ftp://luasocket:password@" .. host .. "/index.up.html;type=i")
-assert(ret and not err and index == back, err)
+assert(ret and (err == nil or err == false) and index == back, err)
 print("ok")
 
 io.write("erasing after upload/download: ")
 ret, err = dele("ftp://luasocket:password@" .. host .. "/index.up.html")
-assert(ret and not err, err)
+assert(ret and (err == nil or err == false), err)
 print("ok")
 
 io.write("testing weird-character translation: ")
 back, err = ftp.get("ftp://luasocket:password@" .. host .. "/%23%3f;type=i")
-assert(not err and back == index, err)
+assert((err == nil or err == false) and back == index, err)
 print("ok")
 
 io.write("testing parameter overriding: ")
 back = {}
-ret, err = ftp.get{
+ret, err = ftp.get({
     url = "//stupid:mistake@" .. host .. "/index.html",
     user = "luasocket",
     password = "password",
     type = "i",
     sink = ltn12.sink.table(back)
-}
-assert(ret and not err and table.concat(back) == index, err)
+})
+assert(ret and (err == nil or err == false) and table.concat(back) == index, err)
 print("ok")
 
 io.write("testing upload denial: ")
 ret, err = ftp.put("ftp://" .. host .. "/index.up.html;type=a", index)
-assert(not ret and err, "should have failed")
+assert((ret == nil or ret == false) and err, "should have failed")
 print(err)
 
 io.write("testing authentication failure: ")
 ret, err = ftp.get("ftp://luasocket:wrong@".. host .. "/index.html;type=a")
-assert(not ret and err, "should have failed")
+assert((ret == nil or ret == false) and err, "should have failed")
 print(err)
 
 io.write("testing wrong file: ")
 back, err = ftp.get("ftp://".. host .. "/index.wrong.html;type=a")
-assert(not back and err, "should have failed")
+assert((back == nil or back == false) and err, "should have failed")
 print(err)
 
 print("passed all tests")

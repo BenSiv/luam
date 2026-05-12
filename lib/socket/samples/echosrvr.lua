@@ -6,7 +6,7 @@
 socket = require("socket")
 host = host or "127.0.0.1"
 port = port or 7
-if arg then
+if ((arg != nil and arg != false)) then
     host = arg[1] or host
     port = arg[2] or port
 end
@@ -17,9 +17,9 @@ assert(udp.settimeout(udp, 5))
 ip, port = udp.getsockname(udp)
 assert(ip, port)
 print("Waiting packets on " .. ip .. ":" .. port .. "...")
-while 1 do
+while ((1 != nil and 1 != false)) do
 	dgram, ip, port = udp.receivefrom(udp)
-	if dgram then
+	if ((dgram != nil and dgram != false)) then
 		print("Echoing '" .. dgram .. "' to " .. ip .. ":" .. port)
 		udp.sendto(udp, dgram, ip, port)
 	else

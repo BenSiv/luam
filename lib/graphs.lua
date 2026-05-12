@@ -3,9 +3,9 @@ graphs = {}
 
 -- Switch keys and values
 function reverse_kv(tbl)
-    if type(tbl) != "table" then
+    if (type(tbl) != "table") then
         print("Expected table, received " .. type(tbl))
-        return {}
+        return ({})
     end
     reversed = {}
     for k, v in pairs(tbl) do
@@ -18,7 +18,7 @@ end
 function get_or_create_index(name, node_map)
     index_map = reverse_kv(node_map)
     node_index = index_map[name]
-    if not node_index then
+    if ((node_index == nil or node_index == false)) then
         node_index = #node_map + 1
         node_map[node_index] = name
     end
@@ -28,7 +28,7 @@ end
 -- et index of a node name
 function get_node_index(node_map, node_name)
     for index, name in pairs(node_map) do
-        if name == node_name then return index end
+        if (name == node_name) then return index end
     end
     return nil
 end
@@ -40,7 +40,7 @@ function build_graph(data)
     for _, entry in ipairs(data) do
         src_idx = get_or_create_index(entry.source, node_map)
         name_idx = get_or_create_index(entry.name, node_map)
-        graph[src_idx] = graph[src_idx] or {}
+        graph[src_idx] = graph[src_idx] or ({})
         table.insert(graph[src_idx], name_idx)
     end
     return graph, node_map
@@ -51,7 +51,7 @@ function build_reverse_graph(graph)
     reversed = {}
     for parent, children in pairs(graph) do
         for _, child in ipairs(children) do
-            reversed[child] = reversed[child] or {}
+            reversed[child] = reversed[child] or ({})
             table.insert(reversed[child], parent)
         end
     end
@@ -61,16 +61,16 @@ end
 -- eneric DFS traversal
 function traverse_graph(graph, start_node, reverse)
     g = graph
-    if reverse then g = build_reverse_graph(graph) end
+    if ((reverse != nil and reverse != false)) then g = build_reverse_graph(graph) end
     visited = {}
     result = {}
 
     function dfs(curr)
-        if visited[curr] then return end
+        if ((visited[curr] != nil and visited[curr] != false)) then return end
         visited[curr] = true
-        if g[curr] then
+        if ((g[curr] != nil and g[curr] != false)) then
             for _, neighbor in ipairs(g[curr]) do
-                if not visited[neighbor] then
+                if ((visited[neighbor] == nil or visited[neighbor] == false)) then
                     table.insert(result, neighbor)
                     dfs(neighbor)
                 end
@@ -85,7 +85,7 @@ end
 -- et all children
 function get_all_children(graph, node_map, node_name)
     idx = get_node_index(node_map, node_name)
-    if not idx then return {} end
+    if ((idx == nil or idx == false)) then return ({}) end
     indices = traverse_graph(graph, idx, false)
     children = {}
     for _, i in ipairs(indices) do table.insert(children, node_map[i]) end
@@ -95,7 +95,7 @@ end
 -- et all parents
 function get_all_parents(graph, node_map, node_name)
     idx = get_node_index(node_map, node_name)
-    if not idx then return {} end
+    if ((idx == nil or idx == false)) then return ({}) end
     indices = traverse_graph(graph, idx, true)
     parents = {}
     for _, i in ipairs(indices) do table.insert(parents, node_map[i]) end
@@ -110,7 +110,7 @@ function get_leaves(graph, node_map)
     end
     leaves = {}
     for idx, name in pairs(node_map) do
-        if not has_outgoing[idx] then table.insert(leaves, name) end
+        if ((has_outgoing[idx] == nil or has_outgoing[idx] == false)) then table.insert(leaves, name) end
     end
     return leaves
 end
@@ -120,7 +120,7 @@ function get_roots(graph, node_map)
     reversed = build_reverse_graph(graph)
     roots = {}
     for idx, name in pairs(node_map) do
-        if not reversed[idx] or #reversed[idx] == 0 then table.insert(roots, name) end
+        if ((reversed[idx] == nil or reversed[idx] == false) or #reversed[idx] == 0) then table.insert(roots, name) end
     end
     return roots
 end
@@ -130,15 +130,15 @@ function get_all_components(graph, node_map)
     visited = {}
     components = {}
     function dfs(node, comp)
-        if visited[node] then return end
+        if ((visited[node] != nil and visited[node] != false)) then return end
         visited[node] = true
         table.insert(comp, node_map[node])
-        if graph[node] then
+        if ((graph[node] != nil and graph[node] != false)) then
             for _, n in ipairs(graph[node]) do dfs(n, comp) end
         end
     end
     for idx, _ in pairs(node_map) do
-        if not visited[idx] then
+        if ((visited[idx] == nil or visited[idx] == false)) then
             comp = {}
             dfs(idx, comp)
             table.insert(components, comp)
@@ -150,28 +150,28 @@ end
 -- et lineage depth: root = 0, subcultures increment, invalid = -1
 function get_lineage_depth(graph, node_map, sample_name)
     node_idx = get_node_index(node_map, sample_name)
-    if not node_idx then return -1 end  -- invalid node
+    if ((node_idx == nil or node_idx == false)) then return -1 end  -- invalid node
 
     reversed = build_reverse_graph(graph)
 
     function depth(curr, visited)
-        visited = visited or {}
-        if visited[curr] then return -1 end  -- cycle detected, treat as invalid
+        visited = visited or ({})
+        if ((visited[curr] != nil and visited[curr] != false)) then return -1 end  -- cycle detected, treat as invalid
         visited[curr] = true
 
-        parents = reversed[curr] or {}
-        if #parents == 0 then
+        parents = reversed[curr] or ({})
+        if (#parents == 0) then
             return 0  -- root node
         end
 
         max_depth = 0
         for _, p in ipairs(parents) do
             d = depth(p, visited)
-            if d == -1 then
+            if (d == -1) then
                 -- invalid parent, propagate invalid
                 return -1
             end
-            if d > max_depth then max_depth = d end
+            if (d > max_depth) then max_depth = d end
         end
 
         return max_depth + 1

@@ -4,11 +4,11 @@ mime = require("mime")
 ltn12 = require("ltn12")
 
 function filter(s)
-    if s then io.write(s) end
+    if ((s != nil and s != false)) then io.write(s) end
     return s
 end
 
-source = smtp.message {
+source = smtp.message ({
     headers = { ['content-type'] = 'multipart/alternative' },
     body = {
         [1] = {
@@ -20,9 +20,9 @@ source = smtp.message {
             body = "Hi, there..."
         }
     }
-}
+})
 
-r, e = smtp.send{
+r, e = smtp.send({
     rcpt = {"<diego@tecgraf.puc-rio.br>",
             "<diego@princeton.edu>" },
     from = "<diego@princeton.edu>",
@@ -30,13 +30,13 @@ r, e = smtp.send{
     --server = "mail.cs.princeton.edu"
     server = "localhost",
     port = 2525
-}
+})
 
 print(r, e)
 
 -- creates a source to send a message with two parts. The first part is
 -- plain text, the second part is a PNG image, encoded as base64.
-source = smtp.message{
+source = smtp.message({
   headers = {
      -- Remember that headers are *ignored* by smtp.send.
      from = "Sicrano <sicrano@tecgraf.puc-rio.br>",
@@ -77,10 +77,10 @@ source = smtp.message{
     },
     epilogue = "This might also show up, but after the attachments"
   }
-}
+})
 
 
-r, e = smtp.send{
+r, e = smtp.send({
     rcpt = {"<diego@tecgraf.puc-rio.br>",
             "<diego@princeton.edu>" },
     from = "<diego@princeton.edu>",
@@ -89,7 +89,7 @@ r, e = smtp.send{
     --port = 25
     server = "localhost",
     port = 2525
-}
+})
 
 print(r, e)
 

@@ -10,14 +10,14 @@ http = require("socket.http")
 dispatch.TIMEOUT = 10
 
 -- make sure the user knows how to invoke us
-arg = arg or {}
-if #arg < 1 then
+arg = arg or ({})
+if (#arg < 1) then
     print("Usage:\n  luasocket check-links.lua [-n] {<url>}")
     exit()
 end
 
 -- '-n' means we are running in non-blocking mode
-if arg[1] == "-n" then
+if (arg[1] == "-n") then
     -- if non-blocking I/O was requested, use real dispatcher interface
     table.remove(arg, 1)
     handler = dispatch.newhandler("coroutine")
@@ -31,15 +31,15 @@ nthreads = 0
 -- get the status of a URL using the dispatcher
 function getstatus(link)
    parsed = url.parse(link, {scheme = "file"})
-    if parsed.scheme == "http" then
+    if (parsed.scheme == "http") then
         nthreads = nthreads + 1
         handler.start(handler, function()
-           r, c, h, s = http.request{
+           r, c, h, s = http.request({
                 method = "HEAD",
                 url = link,
                 create = handler.tcp
-            }
-            if r and c == 200 then io.write('\t', link, '\n')
+            })
+            if (r and c == 200) then io.write('\t', link, '\n')
             else io.write('\t', link, ': ', tostring(c), '\n') end
             nthreads = nthreads - 1
         end)
@@ -49,7 +49,7 @@ end
 function readfile(path)
     path = url.unescape(path)
    file, error = io.open(path, "r")
-    if file then
+    if ((file != nil and file != false)) then
        body = file.read(file, "*a")
         file.close(file)
         return body
@@ -60,16 +60,16 @@ function load(u)
    parsed = url.parse(u, { scheme = "file" })
    body, headers, code, error = nil
    base = u
-    if parsed.scheme == "http" then
+    if (parsed.scheme == "http") then
         body, code, headers = http.request(u)
-        if code == 200 then
+        if (code == 200) then
             -- if there was a redirect, update base to reflect it
             base = headers.location or base
         end
-        if not body then
+        if ((body == nil or body == false)) then
             error = code
         end
-    elseif parsed.scheme == "file" then
+    elseif (parsed.scheme == "file") then
         body, error = readfile(parsed.path)
     else error = string.format("unhandled scheme '%s'", parsed.scheme) end
     return base, body, error
@@ -94,7 +94,7 @@ end
 
 function checklinks(address)
    base, body, error = load(address)
-    if not body then print(error) return end
+    if ((body == nil or body == false)) then print(error) return end
     print("Checking ", base)
    links = getlinks(body, base)
     for _, link in ipairs(links) do
@@ -106,6 +106,6 @@ for _, address in ipairs(arg) do
     checklinks(url.absolute("file:", address))
 end
 
-while nthreads > 0 do
+while (nthreads > 0) do
     handler.step(handler)
 end

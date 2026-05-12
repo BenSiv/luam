@@ -20,10 +20,10 @@ function split(str, delimiter)
     delimiter_length = #delimiter
     str_length = #str
 
-    while pos <= str_length do
+    while (pos <= str_length) do
         -- Check if the substring from pos to pos + delimiter_length - 1 matches the delimiter
-        if string.sub(str, pos, pos + delimiter_length - 1) == delimiter then
-            if token != "" then
+        if (string.sub(str, pos, pos + delimiter_length - 1) == delimiter) then
+            if (token != "") then
                 table.insert(result, token)
                 token = ""
             end
@@ -34,7 +34,7 @@ function split(str, delimiter)
         end
     end
 
-    if token != "" then
+    if (token != "") then
         table.insert(result, token)
     end
 
@@ -47,7 +47,7 @@ end
 
 -- robust strip for Lua 5.1: removes SC spaces plus common UF-8 invisible chars
 function strip(s)
-    if s == nil then return s end
+    if (s == nil) then return s end
     -- remove leading BOM if present
     s = string.gsub(s, "^\239\187\191", "")
     -- remove leading ascii whitespace, BSP (U+000), and ZWSP (U+200B)

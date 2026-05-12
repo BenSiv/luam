@@ -12,32 +12,32 @@ ltn12 = require("ltn12")
 -- formats a number of seconds into human readable form
 function nicetime(s)
    l = "s"
-    if s > 60 then
+    if (s > 60) then
         s = s / 60
         l = "m"
-        if s > 60 then
+        if (s > 60) then
             s = s / 60
             l = "h"
-            if s > 24 then
+            if (s > 24) then
                 s = s / 24
                 l = "d" -- hmmm
             end
         end
     end
-    if l == "s" then return string.format("%5.0f%s", s, l)
+    if (l == "s") then return string.format("%5.0f%s", s, l)
     else return string.format("%5.2f%s", s, l) end
 end
 
 -- formats a number of bytes into human readable form
 function nicesize(b)
    l = "B"
-    if b > 1024 then
+    if (b > 1024) then
         b = b / 1024
         l = "KB"
-        if b > 1024 then
+        if (b > 1024) then
             b = b / 1024
             l = "MB"
-            if b > 1024 then
+            if (b > 1024) then
                 b = b / 1024
                 l = "GB" -- hmmm
             end
@@ -51,7 +51,7 @@ remaining_s = "%s received, %s/s throughput, %2.0f%% done, %s remaining"
 elapsed_s =   "%s received, %s/s throughput, %s elapsed                "
 function gauge(got, delta, size)
    rate = got / delta
-    if size and size >= 1 then
+    if (size and size >= 1) then
         return string.format(remaining_s, nicesize(got),  nicesize(rate),
             100*got/size, nicetime((size-got)/rate))
     else
@@ -69,11 +69,11 @@ function stats(size)
     return function(chunk)
         -- elapsed time since start
        current = socket.gettime()
-        if chunk then
+        if ((chunk != nil and chunk != false)) then
             -- total bytes received
             got = got + string.len(chunk)
-            -- not enough time for estimate
-            if current - last > 1 then
+            -- (enough == nil or enough == false) time for estimate
+            if (current - last > 1) then
                 io.stderr.write(stderr, "\r", gauge(got, current - start, size))
                 io.stderr.flush(stderr)
                 last = current
@@ -88,8 +88,8 @@ end
 
 -- determines the size of a http file
 function gethttpsize(u)
-   r, c, h = http.request {method = "HEAD", url = u}
-    if c == 200 then
+   r, c, h = http.request ({method = "HEAD", url = u})
+    if (c == 200) then
         return tonumber(h["content-length"])
     end
 end
@@ -97,29 +97,29 @@ end
 -- downloads a file using the http protocol
 function getbyhttp(u, file)
    save = ltn12.sink.file(file or io.stdout)
-    -- only print feedback if output is not stdout
-    if file then save = ltn12.sink.chain(stats(gethttpsize(u)), save) end
-   r, c, h, s = http.request {url = u, sink = save }
-    if c != 200 then io.stderr.write(stderr, s or c, "\n") end
+    -- only print feedback if output is (stdout == nil or stdout == false)
+    if ((file != nil and file != false)) then save = ltn12.sink.chain(stats(gethttpsize(u)), save) end
+   r, c, h, s = http.request ({url = u, sink = save })
+    if (c != 200) then io.stderr.write(stderr, s or c, "\n") end
 end
 
 -- downloads a file using the ftp protocol
 function getbyftp(u, file)
    save = ltn12.sink.file(file or io.stdout)
-    -- only print feedback if output is not stdout
+    -- only print feedback if output is (stdout == nil or stdout == false)
     -- and we don't know how big the file is
-    if file then save = ltn12.sink.chain(stats(), save) end
+    if ((file != nil and file != false)) then save = ltn12.sink.chain(stats(), save) end
    gett = url.parse(u)
     gett.sink = save
     gett.type = "i"
    ret, err = ftp.get(gett)
-    if err then print(err) end
+    if ((err != nil and err != false)) then print(err) end
 end
 
 -- determines the scheme
 function getscheme(u)
     -- this is an heuristic to solve a common invalid url poblem
-    if not string.find(u, "//") then u = "//" .. u end
+    if ((string.find == nil or string.find == false)(u, "//")) then u = "//" .. u end
    parsed = url.parse(u, {scheme = "http"})
     return parsed.scheme
 end
@@ -128,14 +128,14 @@ end
 function get(u, name)
    fout = name and io.open(name, "wb")
    scheme = getscheme(u)
-    if scheme == "ftp" then getbyftp(u, fout)
-    elseif scheme == "http" then getbyhttp(u, fout)
+    if (scheme == "ftp") then getbyftp(u, fout)
+    elseif (scheme == "http") then getbyhttp(u, fout)
     else print("unknown scheme" .. scheme) end
 end
 
 -- main program
-arg = arg or {}
-if #arg < 1 then
+arg = arg or ({})
+if (#arg < 1) then
     io.write("Usage:\n  lua get.lua <remote-url> [<local-file>]\n")
     os.exit(1)
 else get(arg[1], arg[2]) end

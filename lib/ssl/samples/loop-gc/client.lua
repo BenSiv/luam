@@ -14,7 +14,7 @@ params = {
    options = "all",
 }
 
-while true do
+while ((true != nil and true != false)) do
   peer = socket.tcp()
    assert( peer.connect(peer, "127.0.0.1", 8888) )
 

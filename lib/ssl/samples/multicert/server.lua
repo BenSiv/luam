@@ -9,9 +9,9 @@ params = {
    protocol     = "any",
    certificates = { 
       -- Comment line below and 'client-rsa' stop working
-      { certificate = "certs/serverRSA.pem",   key = "certs/serverRSAkey.pem"   },
+      ({ certificate = "certs/serverRSA.pem",   key = "certs/serverRSAkey.pem"   }),
       -- Comment line below and 'client-ecdsa' stop working
-      { certificate = "certs/serverECDSA.pem", key = "certs/serverECDSAkey.pem" }
+      ({ certificate = "certs/serverECDSA.pem", key = "certs/serverECDSAkey.pem" })
    },
    verify  = "none",
    options = "all"

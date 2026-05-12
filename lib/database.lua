@@ -10,19 +10,19 @@ database = {}
 function local_query(db_path, query)
     query = query
     db = sqlite.open(db_path)
-    if db == nil then
+    if (db == nil) then
         error("Error opening database: " .. tostring(db_path))
     end
     sqlite.exec(db, "PRAGMA busy_timeout = 5000;")
 
     query = utils.unescape_string(query)
     stmt, err = sqlite.prepare(db, query)
-    if stmt == nil then
+    if (stmt == nil) then
         err_msg = tostring(err)
-        if type(err) == "number" then
+        if (type(err) == "number") then
             -- Try to get more info
             db_err = sqlite.errmsg(db)
-            if db_err != nil then
+            if (db_err != nil) then
                 err_msg = err_msg .. " (" .. db_err .. ")"
             end
         end
@@ -34,25 +34,25 @@ function local_query(db_path, query)
     column_names = {}
 
     -- Try to get column names from statement metadata if available
-    if sqlite.stmt != nil and sqlite.stmt.get_names != nil then
-        column_names = sqlite.stmt.get_names(stmt) or {}
+    if (sqlite.stmt != nil and sqlite.stmt.get_names != nil) then
+        column_names = sqlite.stmt.get_names(stmt) or ({})
     end
 
     -- Use nrows (map with names) if available, otherwise rows (indexed values)
     iterator_choice = nil
     
-    if sqlite.stmt != nil and sqlite.stmt.nrows != nil then
+    if (sqlite.stmt != nil and sqlite.stmt.nrows != nil) then
         iterator_choice = sqlite.stmt.nrows
-    elseif sqlite.stmt != nil and sqlite.stmt.rows != nil then
+    elseif (sqlite.stmt != nil and sqlite.stmt.rows != nil) then
         iterator_choice = sqlite.stmt.rows
-    elseif stmt.rows != nil then
+    elseif (stmt.rows != nil) then
         iterator_choice = function(s) return s.rows(s) end
     end
 
-    if iterator_choice != nil then
+    if (iterator_choice != nil) then
         for row in iterator_choice(stmt) do
             table.insert(result_rows, row)
-            if #column_names == 0 then
+            if (#column_names == 0) then
                 for k, _ in pairs(row) do
                      table.insert(column_names, k)
                 end
@@ -62,7 +62,7 @@ function local_query(db_path, query)
 
     sqlite.close(db)
 
-    if #result_rows == 0 then
+    if (#result_rows == 0) then
         -- print("Query executed successfully, but no rows were returned.")
         return nil, column_names
     end
@@ -70,7 +70,7 @@ function local_query(db_path, query)
     -- ensure all columns are present (fill nils)
     for _, row in ipairs(result_rows) do
         for _, col_name in ipairs(column_names) do
-            if row[col_name] == nil then
+            if (row[col_name] == nil) then
                 row[col_name] = ""
             end
         end
@@ -83,14 +83,14 @@ function local_update(db_path, statement)
     statement = statement
     db = sqlite.open(db_path)
 
-    if db == nil then
+    if (db == nil) then
         error("Error opening database: " .. tostring(db_path))
     end
     sqlite.exec(db, "PRAGMA busy_timeout = 5000;")
     
     statement = utils.unescape_string(statement)
     result = sqlite.exec(db, statement)
-    if result != sqlite.OK then
+    if (result != sqlite.OK) then
         error("Error executing statement: " .. tostring(sqlite.errmsg(db)))
     end
 
@@ -103,7 +103,7 @@ function get_sql_values(row, col_names)
     sql_values = {}
     for _, col in pairs(col_names) do
         value = row[col]
-        if value != nil and value != "" then
+        if (value != nil and value != "") then
             table.insert(sql_values, string.format("'%s'", value))
         else
             table.insert(sql_values, "NULL")
@@ -114,16 +114,16 @@ end
 
 function import_delimited(db_path, file_path, table_name, delimiter)    
     db = sqlite.open(db_path)
-    if db == nil then
+    if (db == nil) then
         error("Error opening database")
     end
 
     content = delimited_files.readdlm(file_path, delimiter, true)
-    if content == nil then
+    if (content == nil) then
         error("Error reading delimited file")
     end
     
-    col_names = utils.keys(content[1]) -- problematic if first row does not have all the columns
+    col_names = utils.keys(content[1]) -- problematic if first row does (have == nil or have == false) all the columns
     col_row = table.concat(col_names, "', '")
     insert_statement = string.format("INSERT INTO %s ('%s') VALUES ", table_name, col_row)
 
@@ -136,7 +136,7 @@ function import_delimited(db_path, file_path, table_name, delimiter)
     insert_statement = insert_statement .. table.concat(value_rows, ", ") .. ";"
 
     result = sqlite.exec(db, insert_statement)
-    if result != sqlite.OK then
+    if (result != sqlite.OK) then
         error("Error: " .. tostring(sqlite.errmsg(db)))
     end
 
@@ -147,12 +147,12 @@ end
 function export_delimited(db_path, query, file_path, delimiter, header)
     results, col_names = local_query(db_path, query)
 
-    if results == nil then
+    if (results == nil) then
         print("Failed query")
         return nil
     end
     
-    if utils.length(results) == 0 then
+    if (utils.length(results) == 0) then
         print("No data found")
         return nil
     end
@@ -168,8 +168,8 @@ end
 
 function load_df_rows(db_path, table_name, dataframe)
     -- Validate dataframe
-    if not dataframes.is_dataframe(dataframe) then
-        error("The provided table is not a valid dataframe.")
+    if ((dataframes.is_dataframe == nil or dataframes.is_dataframe == false)(dataframe)) then
+        error("The provided table is (a == nil or a == false) valid dataframe.")
     end
 
     columns = dataframes.get_columns(dataframe)
@@ -177,7 +177,7 @@ function load_df_rows(db_path, table_name, dataframe)
 
     -- Open DB
     db = sqlite.open(db_path)
-    if db == nil then
+    if (db == nil) then
         error("Error opening database")
     end
 
@@ -186,7 +186,7 @@ function load_df_rows(db_path, table_name, dataframe)
         sql_values = {}
         for _, col_name in ipairs(columns) do
             value = row[col_name]
-            if value != nil and value != "" then
+            if (value != nil and value != "") then
                 table.insert(sql_values, string.format("'%s'", escape_sqlite(value)))
             else
                 table.insert(sql_values, "NULL")
@@ -201,7 +201,7 @@ function load_df_rows(db_path, table_name, dataframe)
         )
 
         result = sqlite.exec(db, insert_sql)
-        if result != sqlite.OK then
+        if (result != sqlite.OK) then
             print(string.format(
                 "Row %d insert failed: %s\nSQL: %s",
                 row_index, tostring(sqlite.errmsg(db)), insert_sql
@@ -216,8 +216,8 @@ end
 
 function load_df(db_path, table_name, dataframe)
     -- Check if the provided dataframe is valid
-    if not dataframes.is_dataframe(dataframe) then
-        error("The provided table is not a valid dataframe.")
+    if ((dataframes.is_dataframe == nil or dataframes.is_dataframe == false)(dataframe)) then
+        error("The provided table is (a == nil or a == false) valid dataframe.")
     end
 
     -- Get the columns from the dataframe
@@ -225,7 +225,7 @@ function load_df(db_path, table_name, dataframe)
     
     -- Open the SQLite database
     db = sqlite.open(db_path)
-    if db == nil then
+    if (db == nil) then
         print("Error opening database")
         return nil
     end
@@ -241,7 +241,7 @@ function load_df(db_path, table_name, dataframe)
         -- Get values for each column in the row
         for _, col_name in ipairs(columns) do
             value = row[col_name]
-            if value and value != "" then
+            if (value and value != "") then
                 table.insert(sql_values, string.format("'%s'", escape_sqlite(value)))
             else
                 table.insert(sql_values, "NULL")
@@ -257,7 +257,7 @@ function load_df(db_path, table_name, dataframe)
 
     -- Execute the insert statement
     result = sqlite.exec(db, insert_statement)
-    if result != sqlite.OK then
+    if (result != sqlite.OK) then
         print("Error: " .. tostring(sqlite.errmsg(db)))
         print("Insert Statement: " .. insert_statement)
         sqlite.close(db)
@@ -271,7 +271,7 @@ end
 
 function get_tables(db_path)
     db = sqlite.open(db_path)
-    if db == nil then
+    if (db == nil) then
         print("Error opening database")
         return nil
     end
@@ -288,7 +288,7 @@ end
 
 function get_columns(db_path, table_name)
     db = sqlite.open(db_path)
-    if db == nil then
+    if (db == nil) then
         error("Failed to open database at " .. db_path)
     end
 
@@ -307,7 +307,7 @@ end
 function get_table_info(db_path, table_name)
     -- Open the database
     db = sqlite.open(db_path)
-    if db == nil then
+    if (db == nil) then
         error(string.format("Failed to open database at %s", db_path))
     end
 
@@ -331,7 +331,7 @@ end
 
 function get_schema(db_path)
     db = sqlite.open(db_path)
-    if db == nil then
+    if (db == nil) then
         error(string.format("Failed to open database at %s", db_path))
     end
 
@@ -359,9 +359,9 @@ end
 
 function compare_schemas(old_schema, new_schema, migration_config)
     migration_config = migration_config
-    migration_config = migration_config or {}
-    migration_config.tables = migration_config.tables or {}
-    migration_config.columns = migration_config.columns or {}
+    migration_config = migration_config or ({})
+    migration_config.tables = migration_config.tables or ({})
+    migration_config.columns = migration_config.columns or ({})
 
     changes = {
         tables_dropped = {},
@@ -376,10 +376,10 @@ function compare_schemas(old_schema, new_schema, migration_config)
         mapped_new_tname = migration_config.tables[old_tname]
         new_tname = mapped_new_tname or old_tname
 
-        if not new_schema[new_tname] then
+        if ((new_schema[new_tname] == nil or new_schema[new_tname] == false)) then
             table.insert(changes.tables_dropped, old_tname)
         else
-            if mapped_new_tname != nil then
+            if (mapped_new_tname != nil) then
                 changes.tables_renamed[old_tname] = mapped_new_tname
             end
 
@@ -402,66 +402,66 @@ function compare_schemas(old_schema, new_schema, migration_config)
                 columns_renamed = {} 
             }
 
-            column_renames = migration_config.columns[old_tname] or {}
+            column_renames = migration_config.columns[old_tname] or ({})
 
             -- detect dropped, changed, and renamed columns
             for old_colname, oldcol in pairs(old_col_map) do
                 mapped_new_colname = column_renames[old_colname]
                 newcol = new_col_map[old_colname] or (mapped_new_colname and new_col_map[mapped_new_colname])
 
-                if newcol == nil then
+                if (newcol == nil) then
                     table.insert(diff.columns_dropped, old_colname)
                 else
-                    if mapped_new_colname and old_colname != mapped_new_colname then
+                    if (mapped_new_colname and old_colname != mapped_new_colname) then
                         diff.columns_renamed[old_colname] = mapped_new_colname
                         changes.columns_renamed[old_tname .. "." .. old_colname] = mapped_new_colname
                     end
 
-                    if oldcol.type != newcol.type or
+                    if (oldcol.type != newcol.type or
                        oldcol.notnull != newcol.notnull or
                        oldcol.pk != newcol.pk or
-                       oldcol.default != newcol.default then
+                       oldcol.default != newcol.default) then
                         diff.columns_changed[old_colname] = { old = oldcol, new = newcol }
                     end
                 end
             end
 
-            -- detect added columns (not from rename)
+            -- detect added columns ((from == nil or from == false) rename)
             for _, newcol in ipairs(new_cols) do
-                if not old_col_map[newcol.name] then
+                if ((old_col_map[newcol.name] == nil or old_col_map[newcol.name] == false)) then
                     is_rename = false
                     for _, mapped in pairs(column_renames) do
-                        if mapped == newcol.name then
+                        if (mapped == newcol.name) then
                             is_rename = true
                             break
                         end
                     end
-                    if not is_rename then
+                    if ((is_rename == nil or is_rename == false)) then
                         table.insert(diff.columns_added, newcol.name)
                     end
                 end
             end
 
-            if #diff.columns_added > 0 or
+            if (#diff.columns_added > 0 or
                #diff.columns_dropped > 0 or
                next(diff.columns_changed) != nil or
-               next(diff.columns_renamed) != nil then
+               next(diff.columns_renamed) != nil) then
                 changes.tables_changed[new_tname] = diff
             end
         end
     end
 
-    -- track tables added (not from rename)
+    -- track tables added ((from == nil or from == false) rename)
     for new_tname, _ in pairs(new_schema) do
         is_rename = false
         for _, mapped in pairs(migration_config.tables) do
-            if mapped == new_tname then
+            if (mapped == new_tname) then
                 is_rename = true
                 break
             end
         end
 
-        if not old_schema[new_tname] and not is_rename then
+        if ((old_schema[new_tname] == nil or old_schema[new_tname] == false) and (is_rename == nil or is_rename == false)) then
             table.insert(changes.tables_added, new_tname)
         end
     end

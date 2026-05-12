@@ -61,9 +61,9 @@ function loadoptions(file)
  f = assert(io.open(file, "r"))
   for line in f.lines(f) do
    op = string.match(line, "define%s+(SSL_OP_BIT%()")
-    if not op then
+    if ((op == nil or op == false)) then
       op = string.match(line, "define%s+(SSL_OP_%S+)")
-      if op then
+      if ((op != nil and op != false)) then
         table.insert(options, op)
       end
     end
@@ -78,12 +78,12 @@ flag, file, version = ...
 
 version = version or "Unknown"
 
-if not file then
+if ((file == nil or file == false)) then
   usage()
-elseif flag == "-g" then
+elseif (flag == "-g") then
   options = loadoptions(file)
   generate(options, version)
-elseif flag == "-l" then
+elseif (flag == "-l") then
   options = loadoptions(file)
   for k, option in ipairs(options) do
     print(option)

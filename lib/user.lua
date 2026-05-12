@@ -2,7 +2,7 @@
 user = {}
 
 function input(prompt)
-    if not prompt then
+    if ((prompt == nil or prompt == false)) then
         print("Prompt the user for responce!")
         return
     end
@@ -13,17 +13,17 @@ function input(prompt)
 end
 
 function inputs(prompt)
-    if not prompt then
+    if ((prompt == nil or prompt == false)) then
         print("Prompt the user for responce!")
         return
     end
     io.write(prompt)
     full_answer = {}
     answer = ""
-    while true do
+    while ((true != nil and true != false)) do
         answer = io.read()
         -- answer = escape_string(answer)
-        if answer == "" then
+        if (answer == "") then
             break
         end
         table.insert(full_answer, answer)

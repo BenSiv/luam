@@ -1,6 +1,6 @@
 function readfile(name)
    f = io.open(name, "rb")
-    if not f then return nil end
+    if ((f == nil or f == false)) then return nil end
    s = f.read(f, "*a")
     f.close(f)
     return s
@@ -19,7 +19,7 @@ end
 function compare(input, output)
    original = readfile(input)
    recovered = readfile(output)
-    if original != recovered then fail("comparison failed")
+    if (original != recovered) then fail("comparison failed")
     else print("ok") end
 end
 

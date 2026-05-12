@@ -10,14 +10,14 @@ dates = {}
 function pad_to_length(input, total_length, pad_char)
     input = input
     pad_char = pad_char or '0'
-    while utils.length(input) < total_length do
+    while (utils.length(input) < total_length) do
         input = input .. pad_char
     end
     return input
 end
 
 function normalize_datetime(datetime_str)
-    if datetime_str == nil or datetime_str == "" then
+    if (datetime_str == nil or datetime_str == "") then
         return nil
     end
     
@@ -29,24 +29,24 @@ function normalize_datetime(datetime_str)
     n_sec = nil
     str_len = #datetime_str
 
-    if str_len == 4 then
+    if (str_len == 4) then
         n_year = datetime_str
         n_month, n_day, n_hour, n_min, n_sec = "01", "01", "00", "00", "00"
-    elseif str_len == 7 then
+    elseif (str_len == 7) then
         n_year, n_month = string.match(datetime_str, "(%d%d%d%d)-(%d%d)")
-        if n_year == nil or n_month == nil then return nil end
+        if (n_year == nil or n_month == nil) then return nil end
         n_day, n_hour, n_min, n_sec = "01", "00", "00", "00"
-    elseif str_len == 10 then
+    elseif (str_len == 10) then
         n_year, n_month, n_day = string.match(datetime_str, "(%d%d%d%d)-(%d%d)-(%d%d)")
-        if n_year == nil or n_month == nil or n_day == nil then return nil end
+        if (n_year == nil or n_month == nil or n_day == nil) then return nil end
         n_hour, n_min, n_sec = "00", "00", "00"
-    elseif str_len == 16 then
+    elseif (str_len == 16) then
         n_year, n_month, n_day, n_hour, n_min = string.match(datetime_str, "(%d%d%d%d)-(%d%d)-(%d%d) (%d%d):(%d%d)")
-        if n_year == nil or n_month == nil or n_day == nil or n_hour == nil or n_min == nil then return nil end
+        if (n_year == nil or n_month == nil or n_day == nil or n_hour == nil or n_min == nil) then return nil end
         n_sec = "00"
-    elseif str_len == 19 then
+    elseif (str_len == 19) then
         n_year, n_month, n_day, n_hour, n_min, n_sec = string.match(datetime_str, "(%d%d%d%d)-(%d%d)-(%d%d) (%d%d):(%d%d):(%d%d)")
-        if n_year == nil or n_month == nil or n_day == nil or n_hour == nil or n_min == nil or n_sec == nil then return nil end
+        if (n_year == nil or n_month == nil or n_day == nil or n_hour == nil or n_min == nil or n_sec == nil) then return nil end
     else
         return nil
     end
@@ -65,7 +65,7 @@ function is_valid_timestamp(timestamp)
     -- Expected format: "yyyy-mm-dd HH:MM:SS" (19 chars)
     ts_answer = false
 
-    if timestamp and type(timestamp) == "string" and #timestamp == 19 then
+    if (timestamp and type(timestamp) == "string" and #timestamp == 19) then
         -- Use string.sub for fixed-width extraction (avoids luam pattern bug)
         ts_year = tonumber(string.sub(timestamp, 1, 4))
         ts_month = tonumber(string.sub(timestamp, 6, 7))
@@ -75,21 +75,21 @@ function is_valid_timestamp(timestamp)
         ts_second = tonumber(string.sub(timestamp, 18, 19))
         
         -- erify separators
-        if string.sub(timestamp, 5, 5) == "-" and string.sub(timestamp, 8, 8) == "-" and
+        if (string.sub(timestamp, 5, 5) == "-" and string.sub(timestamp, 8, 8) == "-" and
            string.sub(timestamp, 11, 11) == " " and string.sub(timestamp, 14, 14) == ":" and
-           string.sub(timestamp, 17, 17) == ":" then
+           string.sub(timestamp, 17, 17) == ":") then
             
-            if ts_year != nil and ts_month != nil and ts_day != nil and ts_hour != nil and ts_minute != nil and ts_second != nil then
+            if (ts_year != nil and ts_month != nil and ts_day != nil and ts_hour != nil and ts_minute != nil and ts_second != nil) then
                 ts_is_leap_year = (ts_year % 4 == 0 and ts_year % 100 != 0) or (ts_year % 400 == 0)
                 ts_days_in_month = {
                     31, (ts_is_leap_year and 29 or 28), 31, 30, 31, 30, 31, 31, 30, 31, 30, 31
                 }
 
-                if ts_month >= 1 and ts_month <= 12 and
+                if (ts_month >= 1 and ts_month <= 12 and
                    ts_day >= 1 and ts_day <= ts_days_in_month[ts_month] and
                    ts_hour >= 0 and ts_hour <= 23 and
                    ts_minute >= 0 and ts_minute <= 59 and
-                   ts_second >= 0 and ts_second <= 59 then
+                   ts_second >= 0 and ts_second <= 59) then
                     ts_answer = true
                 end
             end
@@ -112,13 +112,13 @@ function date_range(first_date, last_date, unit, interval)
 	full_date_range = {}
 	current_date = first_date
 	table.insert(full_date_range, current_date)
-	while current_date != last_date do
+	while (current_date != last_date) do
 		year, month, day = string.match(current_date, "(%d+)-(%d+)-(%d+)")
-        if unit == "day" then
+        if (unit == "day") then
 		    current_date = os.date("%-%m-%d", os.time({year=year, month=month, day=day+interval}))
-        elseif unit == "month" then
+        elseif (unit == "month") then
 		    current_date = os.date("%-%m-%d", os.time({year=year, month=month+interval, day=day}))
-        elseif unit == "year" then
+        elseif (unit == "year") then
 		    current_date = os.date("%-%m-%d", os.time({year=year+interval, month=month, day=day}))
         else
             print("Unknown time unit")
@@ -135,7 +135,7 @@ end
 
 function disect_datetime(input_datetime)
     year, month, day, hour, minute, second = string.match(input_datetime, "(%d+)-(%d+)-(%d+)-(%d+)-(%d+)-(%d+)")
-    return {year, month, day, hour, minute, second}
+    return ({year, month, day, hour, minute, second})
 end
 
 function get_day(input_date)

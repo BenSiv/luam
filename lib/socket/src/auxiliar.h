@@ -32,7 +32,6 @@
 #include "luasocket.h"
 
 #ifndef _WIN32
-#pragma GCC visibility push(hidden)
 #endif
 
 int auxiliar_open(lua_State *L);
@@ -48,7 +47,6 @@ void *auxiliar_getclassudata(lua_State *L, const char *groupname, int objidx);
 int auxiliar_typeerror(lua_State *L, int narg, const char *tname);
 
 #ifndef _WIN32
-#pragma GCC visibility pop
 #endif
 
 #endif /* AUXILIAR_H */

@@ -15,9 +15,9 @@ params = {
 }
 
 function wait(peer, err)
-   if err == "wantread" then
+   if (err == "wantread") then
       socket.select({peer}, nil)
-   elseif err == "timeout" or err == "wantwrite" then
+   elseif (err == "timeout" or err == "wantwrite") then
       socket.select(nil, {peer})
    else
       peer.close(peer)
@@ -37,10 +37,10 @@ assert( peer.dohandshake(peer) )
 peer.settimeout(peer, 0.3)
 
 str = "a rose is a rose is a rose is a...\n"
-while true do
+while ((true != nil and true != false)) do
    print("Sending...")
   succ, err = peer.send(peer, str)
-   while succ do
+   while ((succ != nil and succ != false)) do
       succ, err = peer.send(peer, str)
    end
    print("Waiting...", err)

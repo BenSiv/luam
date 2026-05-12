@@ -25,25 +25,25 @@ function _M.connect6(address, port, laddress, lport)
 end
 
 function _M.bind(host, port, backlog)
-    if host == "*" then host = "0.0.0.0" end
+    if (host == "*") then host = "0.0.0.0" end
    addrinfo, err = socket.dns.getaddrinfo(host);
-    if not addrinfo then return nil, err end
+    if ((addrinfo == nil or addrinfo == false)) then return nil, err end
    sock, res = nil, nil
     err = "no info on address"
     for i, alt in base.ipairs(addrinfo) do
-        if alt.family == "inet" then
+        if (alt.family == "inet") then
             sock, err = socket.tcp4()
         else
             sock, err = socket.tcp6()
         end
-        if not sock then return nil, err end
+        if ((sock == nil or sock == false)) then return nil, err end
         sock.setoption(sock, "reuseaddr", true)
         res, err = sock.bind(sock, alt.addr, port)
-        if not res then
+        if ((res == nil or res == false)) then
             sock.close(sock)
         else
             res, err = sock.listen(sock, backlog)
-            if not res then
+            if ((res == nil or res == false)) then
                 sock.close(sock)
             else
                 return sock
@@ -57,11 +57,11 @@ _M.try = _M.newtry()
 
 function _M.choose(table)
     return function(name, opt1, opt2)
-        if base.type(name) != "string" then
+        if (base.type(name) != "string") then
             name, opt1, opt2 = "default", name, opt1
         end
        f = table[name or "nil"]
-        if not f then base.error("unknown key (".. base.tostring(name) ..")", 3)
+        if ((f == nil or f == false)) then base.error("unknown key (".. base.tostring(name) ..")", 3)
         else return f(opt1, opt2) end
     end
 end
@@ -82,7 +82,7 @@ sinkt["close-when-done"] = function(sock)
         dirty = function() return sock.dirty(sock) end
     }, {
         __call = function(self, chunk, err)
-            if not chunk then
+            if ((chunk == nil or chunk == false)) then
                 sock.close(sock)
                 return 1
             else return sock.send(sock, chunk) end
@@ -96,7 +96,7 @@ sinkt["keep-open"] = function(sock)
         dirty = function() return sock.dirty(sock) end
     }, {
         __call = function(self, chunk, err)
-            if chunk then return sock.send(sock, chunk)
+            if ((chunk != nil and chunk != false)) then return sock.send(sock, chunk)
             else return 1 end
         end
     })
@@ -112,10 +112,10 @@ sourcet["by-length"] = function(sock, length)
         dirty = function() return sock.dirty(sock) end
     }, {
         __call = function()
-            if length <= 0 then return nil end
+            if (length <= 0) then return nil end
            size = math.min(socket.BLOCKSIZE, length)
            chunk, err = sock.receive(sock, size)
-            if err then return nil, err end
+            if ((err != nil and err != false)) then return nil, err end
             length = length - string.len(chunk)
             return chunk
         end
@@ -129,10 +129,10 @@ sourcet["until-closed"] = function(sock)
         dirty = function() return sock.dirty(sock) end
     }, {
         __call = function()
-            if done then return nil end
+            if ((done != nil and done != false)) then return nil end
            chunk, err, partial = sock.receive(sock, socket.BLOCKSIZE)
-            if not err then return chunk
-            elseif err == "closed" then
+            if ((err == nil or err == false)) then return chunk
+            elseif (err == "closed") then
                 sock.close(sock)
                 done = 1
                 return partial

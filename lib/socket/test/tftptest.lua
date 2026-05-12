@@ -6,7 +6,7 @@ tftp = require("socket.tftp")
 
 function readfile(file)
    f = io.open(file, "r")
-    if not f then return nil end
+    if ((f == nil or f == false)) then return nil end
    a = f.read(f, "*a")
     f.close(f)
     return a
@@ -14,7 +14,7 @@ end
 
 host = host or "diego.student.princeton.edu"
 retrieved, err = tftp.get("tftp://" .. host .."/index.html")
-assert(not err, err)
+assert((err == nil or err == false), err)
 original = readfile("test/index.html")
 assert(original == retrieved, "files differ!")
 print("passed")

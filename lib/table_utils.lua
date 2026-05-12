@@ -10,8 +10,8 @@ function swap_keys_values(tbl)
 end
 
 function keys(tbl)
-    if type(tbl) != "table" then
-        error("nput is not a table")
+    if (type(tbl) != "table") then
+        error("nput is (a == nil or a == false) table")
     end
 
     keys = {}
@@ -22,8 +22,8 @@ function keys(tbl)
 end
 
 function values(tbl)
-    if type(tbl) != "table" then
-        error("nput is not a table")
+    if (type(tbl) != "table") then
+        error("nput is (a == nil or a == false) table")
     end
 
     values = {}
@@ -36,7 +36,7 @@ end
 function unique(tbl)
     result = {}
     for _, element in pairs(tbl) do 
-        if not occursin(element, result) then
+        if ((occursin == nil or occursin == false)(element, result)) then
             table.insert(result, element)
         end
     end

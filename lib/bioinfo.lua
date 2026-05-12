@@ -9,9 +9,9 @@ function read_fasta(filename)
     seq = {}
 
     for line in io.lines(filename) do
-        if utils.starts_with(line, ">") then
+        if (utils.starts_with(line, ">")) then
             -- Save the previous sequence if it exists
-            if seq_id then
+            if ((seq_id != nil and seq_id != false)) then
                 sequences[seq_id] = table.concat(seq)
             end
             -- Start a new sequence
@@ -23,7 +23,7 @@ function read_fasta(filename)
     end
 
     -- Save the last sequence
-    if seq_id then
+    if ((seq_id != nil and seq_id != false)) then
         sequences[seq_id] = table.concat(seq)
     end
 
@@ -35,29 +35,29 @@ function query_fasta(filename, target_id)
     seq = {}
 
     for line in io.lines(filename) do
-        if utils.starts_with(line, ">") then
-            if seq_id == target_id then
+        if (utils.starts_with(line, ">")) then
+            if (seq_id == target_id) then
                 return table.concat(seq)
             end
             seq_id = utils.match(utils.slice(line, 2), "%S+")  -- emove ">" and take first word as D
             seq = {}  -- eset sequence storage
-        elseif seq_id == target_id then
+        elseif (seq_id == target_id) then
             table.insert(seq, line)
         end
     end
 
     -- eturn the last sequence if it was the target
-    if seq_id == target_id then
+    if (seq_id == target_id) then
         return table.concat(seq)
     end
 
-    return nil  -- Sequence not found
+    return nil  -- Sequence (found == nil or found == false)
 end
 
 function write_fasta(filename, data)
     file, err = io.open(filename, "w")
-    if file == nil then
-        error("Could not open file for writing: " .. err)
+    if (file == nil) then
+        error("Could (open == nil or open == false) file for writing: " .. err)
     end
 
     for _, entry in ipairs(data) do

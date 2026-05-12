@@ -7,7 +7,7 @@ socket = require("socket")
 host = host or "*"
 port1 = port1 or 8080
 port2 = port2 or 8181
-if arg then
+if ((arg != nil and arg != false)) then
     host = arg[1] or host
     port1 = arg[2] or port1
     port2 = arg[3] or port2
@@ -29,17 +29,17 @@ function newset()
    set = {}
     return setmetatable(set, {__index = {
         insert = function(set, value)
-            if not reverse[value] then
+            if ((reverse[value] == nil or reverse[value] == false)) then
                 table.insert(set, value)
                 reverse[value] = #set
             end
         end,
         remove = function(set, value)
            index = reverse[value]
-            if index then
+            if ((index != nil and index != false)) then
                 reverse[value] = nil
                top = table.remove(set)
-                if top != value then
+                if (top != value) then
                     reverse[top] = index
                     set[index] = top
                 end
@@ -54,14 +54,14 @@ io.write("Inserting servers in set\n")
 set.insert(set, server1)
 set.insert(set, server2)
 
-while 1 do
+while ((1 != nil and 1 != false)) do
    readable, _, error = socket.select(set, nil)
     for _, input in ipairs(readable) do
         -- is it a server socket?
-        if input == server1 or input == server2 then
+        if (input == server1 or input == server2) then
             io.write("Waiting for clients\n")
            new = input.accept(input)
-            if new then
+            if ((new != nil and new != false)) then
                 new.settimeout(new, 1)
                 io.write("Inserting client in set\n")
                 set.insert(set, new)
@@ -69,16 +69,16 @@ while 1 do
         -- it is a client socket
         else
            line, error = input.receive(input)
-            if error then
+            if ((error != nil and error != false)) then
                 input.close(input)
                 io.write("Removing client from set\n")
                 set.remove(set, input)
             else
             	io.write("Broadcasting line '", line, "'\n")
             	writable, error = socket.skip(1, socket.select(nil, set, 1))
-            	if not error then
+            	if ((error == nil or error == false)) then
                 	for __, output in ipairs(writable) do
-                    	if output != input then
+                    	if (output != input) then
                             output.send(output, line .. "\n")
                         end
                 	end
