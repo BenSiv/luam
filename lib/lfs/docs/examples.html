@@ -64,14 +64,14 @@
 attributes for each file inside it.</p>
 
 <pre class="example">
-local lfs = require"lfs"
+lfs = require"lfs"
 
 function attrdir (path)
     for file in lfs.dir(path) do
         if file ~= "." and file ~= ".." then
-            local f = path..'/'..file
+            f = path..'/'..file
             print ("\t "..f)
-            local attr = lfs.attributes (f)
+            attr = lfs.attributes (f)
             assert (type(attr) == "table")
             if attr.mode == "directory" then
                 attrdir (f)

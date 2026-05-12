@@ -40,7 +40,7 @@ run
 	lua get.lua <remote-file> [<local-file>]
 
 to download  a remote file (either  ftp:// or http://) to
-the specified local file.  The program  also prints  the
+the specified file.  The program  also prints  the
 download  throughput, elapsed time, bytes already downloaded
 etc during download.
 
@@ -76,12 +76,12 @@ coroutine-based dispatcher. You can run, for example
 
     lua forward.lua 8080:proxy.com:3128
 
-to redirect all local conections to port 8080 to the host
+to redirect all conections to port 8080 to the host
 'proxy.com' at port 3128.
 
     unix.c and unix.h
 
-This is an implementation of Unix local domain sockets and
+This is an implementation of Unix domain sockets and
 demonstrates how to extend LuaSocket with a new type of
 transport. It has been tested on Linux and on Mac OS X.
 

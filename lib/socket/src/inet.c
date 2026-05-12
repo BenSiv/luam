@@ -268,7 +268,7 @@ int inet_meth_getpeername(lua_State *L, p_socket ps, int family)
 }
 
 /*-------------------------------------------------------------------------*\
-* Retrieves socket local name
+* Retrieves socket name
 \*-------------------------------------------------------------------------*/
 int inet_meth_getsockname(lua_State *L, p_socket ps, int family)
 {
@@ -470,7 +470,7 @@ const char *inet_trybind(p_socket ps, int *family, const char *address,
             if (err) continue;
             current_family = iterator->ai_family;
         }
-        /* try binding to local address */
+        /* try binding to address */
         err = socket_strerror(socket_bind(ps, (SA *) iterator->ai_addr,
             (socklen_t) iterator->ai_addrlen));
         /* keep trying unless bind succeeded */

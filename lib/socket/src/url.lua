@@ -203,8 +203,8 @@ end
 --   a stringing with the corresponding URL
 -----------------------------------------------------------------------------
 function _M.build(parsed)
-    --local ppath = _M.parse_path(parsed.path or "")
-    --local url = _M.build_path(ppath)
+    --ppath = _M.parse_path(parsed.path or "")
+    --url = _M.build_path(ppath)
    url = parsed.path or ""
     if ((parsed.params != nil and parsed.params != false)) then url = url .. ";" .. parsed.params end
     if ((parsed.query != nil and parsed.query != false)) then url = url .. "?" .. parsed.query end

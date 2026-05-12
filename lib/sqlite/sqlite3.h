@@ -12363,20 +12363,20 @@ SQLITE_API int sqlite3changeset_apply_v2(
 ** resolution decisions into account, so that the same conflicts
 ** do not have to be resolved elsewhere in the network.
 **
-** For example, if both the local and remote changesets contain an
+** For example, if both the and remote changesets contain an
 ** INSERT of the same key on "CREATE TABLE t1(a PRIMARY KEY, b)":
 **
 **   local:  INSERT INTO t1 VALUES(1, 'v1');
 **   remote: INSERT INTO t1 VALUES(1, 'v2');
 **
 ** and the conflict resolution is REPLACE, then the INSERT change is
-** removed from the local changeset (it was overridden). Or, if the
-** conflict resolution was "OMIT", then the local changeset is modified
+** removed from the changeset (it was overridden). Or, if the
+** conflict resolution was "OMIT", then the changeset is modified
 ** to instead contain:
 **
 **           UPDATE t1 SET b = 'v2' WHERE a=1;
 **
-** Changes within the local changeset are rebased as follows:
+** Changes within the changeset are rebased as follows:
 **
 ** <dl>
 ** <dt>Local INSERT<dd>
@@ -12408,9 +12408,9 @@ SQLITE_API int sqlite3changeset_apply_v2(
 **   be updated, the change is omitted.
 ** </dl>
 **
-** A local change may be rebased against multiple remote changes
+** A change may be rebased against multiple remote changes
 ** simultaneously. If a single key is modified by multiple remote
-** changesets, they are combined as follows before the local changeset
+** changesets, they are combined as follows before the changeset
 ** is rebased:
 **
 ** <ul>
@@ -12418,18 +12418,18 @@ SQLITE_API int sqlite3changeset_apply_v2(
 **         key, it is rebased according to a REPLACE.
 **
 **    <li> If there have been no REPLACE resolutions on a key, then
-**         the local changeset is rebased according to the most recent
+**         the changeset is rebased according to the most recent
 **         of the OMIT resolutions.
 ** </ul>
 **
 ** Note that conflict resolutions from multiple remote changesets are
 ** combined on a per-field basis, not per-row. This means that in the
 ** case of multiple remote UPDATE operations, some fields of a single
-** local change may be rebased for REPLACE while others are rebased for
+** change may be rebased for REPLACE while others are rebased for
 ** OMIT.
 **
-** In order to rebase a local changeset, the remote changeset must first
-** be applied to the local database using sqlite3changeset_apply_v2() and
+** In order to rebase a changeset, the remote changeset must first
+** be applied to the database using sqlite3changeset_apply_v2() and
 ** the buffer of rebase information captured. Then:
 **
 ** <ol>
@@ -12437,11 +12437,11 @@ SQLITE_API int sqlite3changeset_apply_v2(
 **        sqlite3rebaser_create().
 **   <li> The new object is configured with the rebase buffer obtained from
 **        sqlite3changeset_apply_v2() by calling sqlite3rebaser_configure().
-**        If the local changeset is to be rebased against multiple remote
+**        If the changeset is to be rebased against multiple remote
 **        changesets, then sqlite3rebaser_configure() should be called
 **        multiple times, in the same order that the multiple
 **        sqlite3changeset_apply_v2() calls were made.
-**   <li> Each local changeset is rebased by calling sqlite3rebaser_rebase().
+**   <li> Each changeset is rebased by calling sqlite3rebaser_rebase().
 **   <li> The sqlite3_rebaser object is deleted by calling
 **        sqlite3rebaser_delete().
 ** </ol>

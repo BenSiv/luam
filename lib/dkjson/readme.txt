@@ -146,7 +146,7 @@ can help to debug malformed input data.
 LPeg support
 ------------
 
-When the local configuration variable `always_try_using_lpeg` is set,
+When the configuration variable `always_try_using_lpeg` is set,
 this module tries to load LPeg to replace the `decode` function. The
 speed increase is significant. You can get the LPeg module at
   <http://www.inf.puc-rio.br/~roberto/lpeg/>.

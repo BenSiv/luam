@@ -7430,7 +7430,7 @@ LPWSTR utf8_to_utf16(const char *z) {
 /*
 ** This function attempts to normalize the time values found in the stat()
 ** buffer to UTC.  This is necessary on Win32, where the runtime library
-** appears to return these values as local times.
+** appears to return these values as times.
 */
 static void statTimesToUtc(const char *zPath, struct stat *pStatBuf) {
   HANDLE hFindFile;
@@ -9556,7 +9556,7 @@ struct ZipfileEOCD {
 ***   disk number start               2 bytes
 ***   internal file attributes        2 bytes
 ***   external file attributes        4 bytes
-***   relative offset of local header 4 bytes
+***   relative offset of header 4 bytes
 */
 typedef struct ZipfileCDS ZipfileCDS;
 struct ZipfileCDS {
@@ -9582,7 +9582,7 @@ struct ZipfileCDS {
 /*
 *** 4.3.7  Local file header:
 ***
-***   local file header signature     4 bytes  (0x04034b50)
+***   file header signature     4 bytes  (0x04034b50)
 ***   version needed to extract       2 bytes
 ***   general purpose bit flag        2 bytes
 ***   compression method              2 bytes
@@ -14900,7 +14900,7 @@ static int dbdataNext(sqlite3_vtab_cursor *pCursor) {
             iOff += dbdataGetVarint(&pCsr->aPage[iOff], &pCsr->iIntkey);
           }
 
-          /* Figure out how much data to read from the local page */
+          /* Figure out how much data to read from the page */
           U = pCsr->nPage;
           if (bHasRowid) {
             X = U - 35;

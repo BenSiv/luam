@@ -177,7 +177,7 @@ macro ( _make_module_table _outvar )
   endforeach ()
   endif ()
   set ( ${_outvar}
-"local modules = {
+"modules = {
 ${_table}}" )
 endmacro ()
 
@@ -205,17 +205,17 @@ macro ( add_lua_test _testfile )
     set ( TESTWRAPPER ${CMAKE_CURRENT_BINARY_DIR}/${TESTFILENAME} )
     _make_module_table ( _table )
     set ( TESTWRAPPERSOURCE
-"local CMAKE_CFG_INTDIR = ... or '.'
+"CMAKE_CFG_INTDIR = ... or '.'
 ${_table}
-local function preload_modules(modules)
+function preload_modules(modules)
   for name, path in pairs(modules) do
     if path:match'%.lua' then
       package.preload[name] = assert(loadfile(path))
     else
-      local name = name:gsub('.*%-', '') -- remove any hyphen prefix
-      local symbol = 'luaopen_' .. name:gsub('%.', '_')
+      name = name:gsub('.*%-', '') -- remove any hyphen prefix
+      symbol = 'luaopen_' .. name:gsub('%.', '_')
           --improve: generalize to support all-in-one loader?
-      local path = path:gsub('%$%{CMAKE_CFG_INTDIR%}', CMAKE_CFG_INTDIR)
+      path = path:gsub('%$%{CMAKE_CFG_INTDIR%}', CMAKE_CFG_INTDIR)
       package.preload[name] = assert(package.loadlib(path, symbol))
     end
   end

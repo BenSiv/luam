@@ -337,7 +337,7 @@ end
 ]===]
 
 function st.test_identifiers_names(st)
-  --local stmt = assert_userdata( self.db.prepare(db, {"name", "id"}, "INSERT INTO test VALUES (:id, $name)")  )
+  --stmt = assert_userdata( self.db.prepare(db, {"name", "id"}, "INSERT INTO test VALUES (:id, $name)")  )
  stmt = assert_userdata( self.db.prepare(db, "INSERT INTO test VALUES (:id, $name)")  )
   assert_number( stmt.bind_names(stmt, {name="Good morning", id=4}) )
   assert_number( stmt.step(stmt) )

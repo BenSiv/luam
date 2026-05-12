@@ -48,7 +48,7 @@ To obtain the <tt>socket</tt> namespace, run:
 
 <pre class="example">
 -- loads the socket module
-local socket = require("socket")
+socket = require("socket")
 </pre>
 
 <!-- headers.canonic ++++++++++++++++++++++++++++++++++++++++++++++++++++++ -->
@@ -71,7 +71,7 @@ modifications are required by running:
 
 <pre class="example">
 -- loads the headers module
-local headers = require("headers")
+headers = require("headers")
 </pre>
 
 
@@ -83,7 +83,7 @@ socket.<b>bind(</b>address, port [, backlog]<b>)</b>
 
 <p class="description">
 This function is a shortcut that creates and returns a TCP server object
-bound to a local <tt>address</tt> and <tt>port</tt>, ready to
+bound to a <tt>address</tt> and <tt>port</tt>, ready to
 accept client connections. Optionally,
 user can also specify the <tt>backlog</tt> argument to the
 <a href="tcp.html#listen"><tt>listen</tt></a> method (defaults to 32).
@@ -103,7 +103,7 @@ socket.<b>connect[46](</b>address, port [, locaddr] [, locport] [, family]<b>)</
 <p class="description">
 This function is a shortcut that creates and returns a TCP client object
 connected to a remote <tt>address</tt> at a given <tt>port</tt>. Optionally,
-the user can also specify the local address and port to bind
+the user can also specify the address and port to bind
 (<tt>locaddr</tt> and <tt>locport</tt>), or restrict the socket family
 to "<tt>inet</tt>" or "<tt>inet6</tt>".
 Without specifying <tt>family</tt> to <tt>connect</tt>, whether a tcp or tcp6
@@ -186,12 +186,12 @@ implementation of protocols in LuaSocket:
 <pre class="example">
 foo = socket.protect(function()
     -- connect somewhere
-    local c = socket.try(socket.connect("somewhere", 42))
+    c = socket.try(socket.connect("somewhere", 42))
     -- create a try function that closes 'c' on error
-    local try = socket.newtry(function() c:close() end)
+    try = socket.newtry(function() c:close() end)
     -- do everything reassured c will be closed
     try(c:send("hello there?\r\n"))
-    local answer = try(c:receive())
+    answer = try(c:receive())
     ...
     try(c:send("good bye\r\n"))
     c:close()
@@ -360,7 +360,7 @@ Note: This function is useful to avoid creation of dummy variables:
 
 <pre class="example">
 -- get the status code and separator from SMTP server reply
-local code, sep = socket.skip(2, string.find(line, "^(%d%d%d)(.?)"))
+code, sep = socket.skip(2, string.find(line, "^(%d%d%d)(.?)"))
 </pre>
 
 <!-- sleep ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ -->

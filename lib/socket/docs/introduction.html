@@ -171,7 +171,7 @@ Example:
 <blockquote>
 <p>
 A simple echo server, using LuaSocket. The program binds to an ephemeral
-port (one that is chosen by the  operating system) on the local host and
+port (one that is chosen by the  operating system) on the host and
 awaits client connections on that port. When a connection is established,
 the program reads a line from the  remote end and sends it back, closing
 the  connection immediately. You  can  test it  using the  telnet
@@ -180,22 +180,22 @@ program.
 
 <pre class=example>
 -- load namespace
-local socket = require("socket")
--- create a TCP socket and bind it to the local host, at any port
-local server = assert(socket.bind("*", 0))
+socket = require("socket")
+-- create a TCP socket and bind it to the host, at any port
+server = assert(socket.bind("*", 0))
 -- find out which port the OS chose for us
-local ip, port = server:getsockname()
+ip, port = server:getsockname()
 -- print a message informing what's up
 print("Please telnet to localhost on port " .. port)
 print("After connecting, you have 10s to enter a line to be echoed")
 -- loop forever waiting for clients
 while 1 do
   -- wait for a connection from any client
-  local client = server:accept()
+  client = server:accept()
   -- make sure we don't block waiting for this client's line
   client:settimeout(10)
   -- receive the line
-  local line, err = client:receive()
+  line, err = client:receive()
   -- if there was no error, send it back to the client
   if not err then client:send(line .. "\n") end
   -- done with client, close the object
@@ -258,11 +258,11 @@ from that peer. There is about 30% performance gain due to this practice.
 </p>
 
 <p>
-To associate  an UDP socket with  a local address, an  application calls the
+To associate  an UDP socket with  a address, an  application calls the
 <a href=udp.html#setsockname><tt>setsockname</tt></a>
 method <em>before</em> sending any datagrams.   Otherwise, the socket is
 automatically  bound  to an  ephemeral  address  before the  first  data
-transmission and once bound the local address cannot be changed.
+transmission and once bound the address cannot be changed.
 The   other  methods   available  for  UDP   sockets  are
 <a href=udp.html#getpeername><tt>getpeername</tt></a>,
 <a href=udp.html#getsockname><tt>getsockname</tt></a>,
@@ -283,13 +283,13 @@ error message.
 
 <pre class=example>
 -- change here to the host an port you want to contact
-local host, port = "localhost", 13
+host, port = "localhost", 13
 -- load namespace
-local socket = require("socket")
+socket = require("socket")
 -- convert host name to ip address
-local ip = assert(socket.dns.toip(host))
+ip = assert(socket.dns.toip(host))
 -- create a new UDP object
-local udp = assert(socket.udp())
+udp = assert(socket.udp())
 -- contact daytime host
 assert(udp:sendto("anything", ip, port))
 -- retrieve the answer and print results

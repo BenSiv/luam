@@ -73,14 +73,14 @@ master:<b>bind(</b>address, port<b>)</b>
 
 <p class="description">
 Binds a master object to <tt>address</tt> and <tt>port</tt> on the
-local host.
+host.
 </p>
 
 <p class="parameters">
 <tt>Address</tt> can be an IP address or a host name.
 <tt>Port</tt> must be an integer number in the range [0..64K).
 If <tt>address</tt>
-is '<tt>*</tt>', the system binds to all local interfaces
+is '<tt>*</tt>', the system binds to all interfaces
 using the <tt>INADDR_ANY</tt> constant or
 <tt>IN6ADDR_ANY_INIT</tt>, according to the family.
 If <tt>port</tt> is 0, the system automatically
@@ -107,7 +107,7 @@ server:<b>close()</b>
 
 <p class="description">
 Closes  a TCP object. The internal socket used by the object is closed
-and the local  address   to  which the object was
+and the  address   to  which the object was
 bound is made  available to other  applications. No further  operations
 (except  for  further calls  to the <tt>close</tt> method)  are allowed on
 a closed socket.
@@ -278,12 +278,12 @@ server:<b>getsockname()</b>
 </p>
 
 <p class="description">
-Returns the local address information associated to the object.
+Returns the address information associated to the object.
 </p>
 
 <p class="return">
-The method returns a string with local IP address, a number with
-the local port,
+The method returns a string with IP address, a number with
+the port,
 and a string with the family ("<tt>inet</tt>" or "<tt>inet6</tt>").
 In case of error, the method returns <b><tt>nil</tt></b>.
 </p>
@@ -474,7 +474,7 @@ zero;</li>
 
 <li> '<tt>reuseaddr</tt>': Setting this option indicates that the rules
 used in validating addresses supplied in a call to
-<a href="#bind"><tt>bind</tt></a> should allow reuse of local addresses;</li>
+<a href="#bind"><tt>bind</tt></a> should allow reuse of addresses;</li>
 
 <li> '<tt>tcp-nodelay</tt>': Setting this option to <tt>true</tt>
 disables the Nagle's algorithm for the connection;</li>

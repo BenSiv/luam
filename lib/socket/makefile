@@ -14,7 +14,7 @@ PLATS= macosx linux win32 win64 mingw freebsd solaris ucrt64
 
 all: $(PLAT)
 
-$(PLATS) none install install-unix local clean:
+$(PLATS) none install install-unix clean:
 	$(MAKE) -C src $@
 
 print:

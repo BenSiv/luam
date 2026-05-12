@@ -187,11 +187,11 @@ communicate with SQLite3. Here is a simple example:
 	  INSERT INTO numbers VALUES(2,22);
 	  INSERT INTO numbers VALUES(3,33);
 	]=]
-	local num_sum=0
-	local function oneRow(context,num)  -- add one column in all rows
+	num_sum=0
+	function oneRow(context,num)  -- add one column in all rows
 	  num_sum=num_sum+num
 	end
-	local function afterLast(context)   -- return sum after last row has been processed
+	function afterLast(context)   -- return sum after last row has been processed
 	  context:result_number(num_sum)
 	  num_sum=0
 	end
@@ -216,7 +216,7 @@ and returns 0 if both strings are identical, -1 if the first argument is
 lower in the collation order than the second and 1 if the first argument
 is higher in the collation order than the second. A simple example:
 
-	local function collate(s1,s2)
+	function collate(s1,s2)
 	  s1=s1:lower()
 	  s2=s2:lower()
 	  if s1==s2 then return 0

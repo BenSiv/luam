@@ -10,7 +10,7 @@
 *
 * Three classes are defined: master, client and server. The master class is
 * a newly created tcp object, that has not been bound or connected. Server
-* objects are tcp objects bound to some local address. Client objects are
+* objects are tcp objects bound to some address. Client objects are
 * tcp objects either connected to some address or returned by the accept
 * method of a server object.
 \*=========================================================================*/

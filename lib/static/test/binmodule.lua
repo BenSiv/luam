@@ -1,4 +1,4 @@
-local binmodule = require"binmodule"
+binmodule = require"binmodule"
 if ((binmodule != nil and binmodule != false)) then
   os.exit(0)
 else

@@ -65,7 +65,7 @@ To obtain the <tt>ftp</tt> namespace, run:
 
 <pre class="example">
 -- loads the FTP module and any libraries it requires
-local ftp = require("socket.ftp")
+ftp = require("socket.ftp")
 </pre>
 
 <p>
@@ -152,7 +152,7 @@ error.
 
 <pre class="example">
 -- load the ftp support
-local ftp = require("socket.ftp")
+ftp = require("socket.ftp")
 
 -- Log as user "anonymous" on server "ftp.tecgraf.puc-rio.br",
 -- and get file "lua.tar.gz" from directory "pub/lua" as binary.
@@ -161,17 +161,17 @@ f, e = ftp.get("ftp://ftp.tecgraf.puc-rio.br/pub/lua/lua.tar.gz;type=i")
 
 <pre class="example">
 -- load needed modules
-local ftp = require("socket.ftp")
-local ltn12 = require("ltn12")
-local url = require("socket.url")
+ftp = require("socket.ftp")
+ltn12 = require("ltn12")
+url = require("socket.url")
 
 -- a function that returns a directory listing
 function nlst(u)
-    local t = {}
-    local p = url.parse(u)
+    t = {}
+    p = url.parse(u)
     p.command = "nlst"
     p.sink = ltn12.sink.table(t)
-    local r, e = ftp.get(p)
+    r, e = ftp.get(p)
     return r and table.concat(t), e
 end
 </pre>
@@ -235,7 +235,7 @@ message describing the reason for failure.
 
 <pre class="example">
 -- load the ftp support
-local ftp = require("socket.ftp")
+ftp = require("socket.ftp")
 
 -- Log as user "fulano" on server "ftp.example.com",
 -- using password "silva", and store a file "README" with contents
@@ -246,12 +246,12 @@ f, e = ftp.put("ftp://fulano:silva@ftp.example.com/README",
 
 <pre class="example">
 -- load the ftp support
-local ftp = require("socket.ftp")
-local ltn12 = require("ltn12")
+ftp = require("socket.ftp")
+ltn12 = require("ltn12")
 
 -- Log as user "fulano" on server "ftp.example.com",
 -- using password "silva", and append to the remote file "LOG", sending the
--- contents of the local file "LOCAL-LOG"
+-- contents of the file "LOCAL-LOG"
 f, e = ftp.put{
   host = "ftp.example.com",
   user = "fulano",

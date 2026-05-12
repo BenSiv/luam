@@ -68,7 +68,7 @@ To obtain the <tt>smtp</tt> namespace, run:
 
 <pre class="example">
 -- loads the SMTP module and everything it requires
-local smtp = require("socket.smtp")
+smtp = require("socket.smtp")
 </pre>
 
 <p>
@@ -172,9 +172,9 @@ as listed in the introduction.  </p>
 
 <pre class="example">
 -- load the smtp support and its friends
-local smtp = require("socket.smtp")
-local mime = require("mime")
-local ltn12 = require("ltn12")
+smtp = require("socket.smtp")
+mime = require("mime")
+ltn12 = require("ltn12")
 
 -- creates a source to send a message with two parts. The first part is
 -- plain text, the second part is a PNG image, encoded as base64.
@@ -274,7 +274,7 @@ methods if supported by the server (both are unsafe);</li>
 <li> <tt>server</tt>: Server to connect to. Defaults to "localhost";</li>
 <li> <tt>port</tt>: Port to connect to. Defaults to 25;</li>
 <li> <tt>domain</tt>: Domain name used to greet the server; Defaults to the
-local machine host name;</li>
+machine host name;</li>
 <li> <tt>step</tt>:
 <a href="https://github.com/lunarmodules/luasocket/blob/master/ltn012.md">LTN12</a>
 pump step function used to pass data from the
@@ -362,7 +362,7 @@ and
 
 <pre class="example">
 -- load the smtp support
-local smtp = require("socket.smtp")
+smtp = require("socket.smtp")
 
 -- Connects to server "localhost" and sends a message to users
 -- "fulano@example.com",  "beltrano@example.com",

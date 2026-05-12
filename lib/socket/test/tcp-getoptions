@@ -1,11 +1,11 @@
 #!/usr/bin/env lua
 
-local socket = require"socket"
+socket = require"socket"
 
 port = 8765
 
 function pcalltest(msg, o, opt)
-  local a = { pcall(o.getoption, o, opt) }
+  a = { pcall(o.getoption, o, opt) }
   if a[1] then
     print(msg, opt, unpack(a))
   else
@@ -32,7 +32,7 @@ function options(o)
     end
 end
 
-local m = socket.tcp()
+m = socket.tcp()
 
 options(m)
 
@@ -43,15 +43,15 @@ options(m)
 
 m:close()
 
-local m = socket.bind("*", port)
+m = socket.bind("*", port)
 
 options(m)
 
-local c = socket.connect("localhost", port)
+c = socket.connect("localhost", port)
 
 options(c)
 
-local s = m:accept()
+s = m:accept()
 
 options(s)
 

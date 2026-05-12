@@ -82,7 +82,7 @@ int opt_get_bindtodevice(lua_State *L, p_socket ps)
 }
 
 /*------------------------------------------------------*/
-/* enables reuse of local address */
+/* enables reuse of address */
 int opt_set_reuseaddr(lua_State *L, p_socket ps)
 {
     return opt_setboolean(L, ps, SOL_SOCKET, SO_REUSEADDR);
@@ -94,7 +94,7 @@ int opt_get_reuseaddr(lua_State *L, p_socket ps)
 }
 
 /*------------------------------------------------------*/
-/* enables reuse of local port */
+/* enables reuse of port */
 int opt_set_reuseport(lua_State *L, p_socket ps)
 {
     return opt_setboolean(L, ps, SOL_SOCKET, SO_REUSEPORT);

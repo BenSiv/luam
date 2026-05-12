@@ -12676,20 +12676,20 @@ SQLITE_API int sqlite3changeset_apply_v2(
 ** resolution decisions into account, so that the same conflicts
 ** do not have to be resolved elsewhere in the network.
 **
-** For example, if both the local and remote changesets contain an
+** For example, if both the and remote changesets contain an
 ** INSERT of the same key on "CREATE TABLE t1(a PRIMARY KEY, b)":
 **
 **   local:  INSERT INTO t1 VALUES(1, 'v1');
 **   remote: INSERT INTO t1 VALUES(1, 'v2');
 **
 ** and the conflict resolution is REPLACE, then the INSERT change is
-** removed from the local changeset (it was overridden). Or, if the
-** conflict resolution was "OMIT", then the local changeset is modified
+** removed from the changeset (it was overridden). Or, if the
+** conflict resolution was "OMIT", then the changeset is modified
 ** to instead contain:
 **
 **           UPDATE t1 SET b = 'v2' WHERE a=1;
 **
-** Changes within the local changeset are rebased as follows:
+** Changes within the changeset are rebased as follows:
 **
 ** <dl>
 ** <dt>Local INSERT<dd>
@@ -12721,9 +12721,9 @@ SQLITE_API int sqlite3changeset_apply_v2(
 **   be updated, the change is omitted.
 ** </dl>
 **
-** A local change may be rebased against multiple remote changes
+** A change may be rebased against multiple remote changes
 ** simultaneously. If a single key is modified by multiple remote
-** changesets, they are combined as follows before the local changeset
+** changesets, they are combined as follows before the changeset
 ** is rebased:
 **
 ** <ul>
@@ -12731,18 +12731,18 @@ SQLITE_API int sqlite3changeset_apply_v2(
 **         key, it is rebased according to a REPLACE.
 **
 **    <li> If there have been no REPLACE resolutions on a key, then
-**         the local changeset is rebased according to the most recent
+**         the changeset is rebased according to the most recent
 **         of the OMIT resolutions.
 ** </ul>
 **
 ** Note that conflict resolutions from multiple remote changesets are
 ** combined on a per-field basis, not per-row. This means that in the
 ** case of multiple remote UPDATE operations, some fields of a single
-** local change may be rebased for REPLACE while others are rebased for
+** change may be rebased for REPLACE while others are rebased for
 ** OMIT.
 **
-** In order to rebase a local changeset, the remote changeset must first
-** be applied to the local database using sqlite3changeset_apply_v2() and
+** In order to rebase a changeset, the remote changeset must first
+** be applied to the database using sqlite3changeset_apply_v2() and
 ** the buffer of rebase information captured. Then:
 **
 ** <ol>
@@ -12750,11 +12750,11 @@ SQLITE_API int sqlite3changeset_apply_v2(
 **        sqlite3rebaser_create().
 **   <li> The new object is configured with the rebase buffer obtained from
 **        sqlite3changeset_apply_v2() by calling sqlite3rebaser_configure().
-**        If the local changeset is to be rebased against multiple remote
+**        If the changeset is to be rebased against multiple remote
 **        changesets, then sqlite3rebaser_configure() should be called
 **        multiple times, in the same order that the multiple
 **        sqlite3changeset_apply_v2() calls were made.
-**   <li> Each local changeset is rebased by calling sqlite3rebaser_rebase().
+**   <li> Each changeset is rebased by calling sqlite3rebaser_rebase().
 **   <li> The sqlite3_rebaser object is deleted by calling
 **        sqlite3rebaser_delete().
 ** </ol>
@@ -24616,7 +24616,7 @@ static void clearYMD_HMS_TZ(DateTime *p){
 **
 ** EVIDENCE-OF: R-62172-00036 In this implementation, the standard C
 ** library function localtime_r() is used to assist in the calculation of
-** local time.
+** time.
 */
 static int osLocaltime(time_t *t, struct tm *pTm){
   int rc;
@@ -24700,7 +24700,7 @@ static int toLocaltime(
     t = (time_t)(p->iJD/1000 -  21086676*(i64)10000);
   }
   if( osLocaltime(&t, &sLocal) ){
-    sqlite3_result_error(pCtx, "local time unavailable", -1);
+    sqlite3_result_error(pCtx, "time unavailable", -1);
     return SQLITE_ERROR;
   }
   p->Y = sLocal.tm_year + 1900 - iYearDiff;
@@ -24831,7 +24831,7 @@ static int parseModifier(
       /*    localtime
       **
       ** Assuming the current time value is UTC (a.k.a. GMT), shift it to
-      ** show local time.
+      ** show time.
       */
       if( sqlite3_stricmp(z, "localtime")==0 && sqlite3NotPureFunc(pCtx) ){
         rc = toLocaltime(p, pCtx);
@@ -29948,7 +29948,7 @@ SQLITE_API int sqlite3_release_memory(int n){
 #endif
 
 /*
-** State information local to the memory allocation subsystem.
+** State information to the memory allocation subsystem.
 */
 static SQLITE_WSD struct Mem0Global {
   sqlite3_mutex *mutex;         /* Mutex to serialize access */
@@ -34987,7 +34987,7 @@ SQLITE_PRIVATE u8 sqlite3StrIHash(const char *z){
 */
 static void dekkerMul2(volatile double *x, double y, double yy){
   /*
-  ** The "volatile" keywords on parameter x[] and on local variables
+  ** The "volatile" keywords on parameter x[] and on variables
   ** below are needed force intermediate results to be truncated to
   ** binary64 rather than be carried around in an extended-precision
   ** format.  The truncation is necessary for the Dekker algorithm to
@@ -43111,7 +43111,7 @@ static int unixShmLock(
           rc = unixShmSystemLock(pDbFd, F_RDLCK, ofst+UNIX_SHM_BASE, n);
         }
 
-        /* Get the local shared locks */
+        /* Get the shared locks */
         if( rc==SQLITE_OK ){
           p->sharedMask |= mask;
           aLock[ofst]++;
@@ -44452,7 +44452,7 @@ static int unixOpen(
     int useProxy = 0;
 
     /* SQLITE_FORCE_PROXY_LOCKING==1 means force always use proxy, 0 means
-    ** never use proxy, NULL means use proxy for non-local files only.  */
+    ** never use proxy, NULL means use proxy for non-files only.  */
     if( envforce!=NULL ){
       useProxy = atoi(envforce)>0;
     }else{
@@ -44943,7 +44943,7 @@ static int unixGetLastError(sqlite3_vfs *NotUsed, int NotUsed2, char *NotUsed3){
 **      RESERVED_BYTE       0x40000001
 **      SHARED_RANGE        0x40000002 -> 0x40000200
 **
-** This works well on the local file system, but shows a nearly 100x
+** This works well on the file system, but shows a nearly 100x
 ** slowdown in read performance on AFP because the AFP client disables
 ** the read cache when byte-range locks are present.  Enabling the read
 ** cache exposes a cache coherency problem that is present on all OS X
@@ -44957,7 +44957,7 @@ static int unixGetLastError(sqlite3_vfs *NotUsed, int NotUsed2, char *NotUsed3){
 ** To address the performance and cache coherency issues, proxy file locking
 ** changes the way database access is controlled by limiting access to a
 ** single host at a time and moving file locks off of the database file
-** and onto a proxy file on the local file system.
+** and onto a proxy file on the file system.
 **
 **
 ** Using proxy locks
@@ -45019,7 +45019,7 @@ static int unixGetLastError(sqlite3_vfs *NotUsed, int NotUsed2, char *NotUsed3){
 ** The proxy file - a single-byte file used for all advisory file locks
 ** normally taken on the database file.   This allows for safe sharing
 ** of the database file for multiple readers and writers on the same
-** host (the conch ensures that they all use the same local lock file).
+** host (the conch ensures that they all use the same lock file).
 **
 ** Requesting the lock proxy does not immediately take the conch, it is
 ** only taken when the first request to lock database file is made.
@@ -45036,7 +45036,7 @@ static int unixGetLastError(sqlite3_vfs *NotUsed, int NotUsed2, char *NotUsed3){
 **
 **  SQLITE_PREFER_PROXY_LOCKING
 **
-**       Database files accessed on non-local file systems are
+**       Database files accessed on non-file systems are
 **       automatically configured for proxy locking, lock files are
 **       named automatically using the same logic as
 **       PRAGMA lock_proxy_file=":auto:"
@@ -45072,7 +45072,7 @@ static int unixGetLastError(sqlite3_vfs *NotUsed, int NotUsed2, char *NotUsed3){
 
 /*
 ** The proxyLockingContext has the path and file structures for the remote
-** and local proxy files in it
+** and proxy files in it
 */
 typedef struct proxyLockingContext proxyLockingContext;
 struct proxyLockingContext {
@@ -45505,8 +45505,8 @@ static int proxyTakeConch(unixFile *pFile){
                                   PROXY_HOSTIDLEN);
         /* if the conch has data compare the contents */
         if( !pCtx->lockProxyPath ){
-          /* for auto-named local lock file, just check the host ID and we'll
-           ** use the local lock file path that's already in there
+          /* for auto-named lock file, just check the host ID and we'll
+           ** use the lock file path that's already in there
            */
           if( hostIdMatch ){
             size_t pathLen = (readLen - PROXY_PATHINDEX);
@@ -45735,7 +45735,7 @@ static int proxyCreateConchPathname(char *dbPath, char **pConchPath){
 
 
 /* Takes a fully configured proxy locking-style unix file and switches
-** the local lock file path
+** the lock file path
 */
 static int switchLockProxyPath(unixFile *pFile, const char *path) {
   proxyLockingContext *pCtx = (proxyLockingContext*)pFile->lockingContext;
@@ -45798,7 +45798,7 @@ static int proxyGetDbPathForUnixFile(unixFile *pFile, char *dbPath){
 
 /*
 ** Takes an already filled in unix file and alters it so all file locking
-** will be performed on the local proxy lock file.  The following fields
+** will be performed on the proxy lock file.  The following fields
 ** are preserved in the locking context so that they can be restored and
 ** the unix structure properly cleaned up at close time:
 **  ->lockingContext
@@ -46418,7 +46418,7 @@ SQLITE_API int sqlite3_os_end(void){
 #endif
 
 /*
-** This macro is used when a local variable is set to a value that is
+** This macro is used when a variable is set to a value that is
 ** [sometimes] not used by the code (e.g. via conditional compilation).
 */
 #ifndef UNUSED_VARIABLE_VALUE
@@ -48510,7 +48510,7 @@ static int winceCreateLock(const char *zFilename, winFile *pFile){
     return SQLITE_IOERR_NOMEM_BKPT;
   }
 
-  /* Initialize the local lockdata */
+  /* Initialize the lockdata */
   memset(&pFile->local, 0, sizeof(pFile->local));
 
   /* Replace the backslashes from the filename and lowercase it
@@ -50362,7 +50362,7 @@ static int winShmLock(
       rc = SQLITE_OK;
     }
 
-    /* Undo the local locks */
+    /* Undo the locks */
     if( rc==SQLITE_OK ){
       p->exclMask &= ~mask;
       p->sharedMask &= ~mask;
@@ -50391,7 +50391,7 @@ static int winShmLock(
       }
     }
 
-    /* Get the local shared locks */
+    /* Get the shared locks */
     if( rc==SQLITE_OK ){
       p->sharedMask |= mask;
     }
@@ -50407,7 +50407,7 @@ static int winShmLock(
     }
 
     /* Get the exclusive locks at the system level.  Then if successful
-    ** also mark the local connection as being locked.
+    ** also mark the connection as being locked.
     */
     if( rc==SQLITE_OK ){
       rc = winShmSystemLock(pShmNode, WINSHM_WRLCK, ofst+WIN_SHM_BASE, n);
@@ -54806,7 +54806,7 @@ SQLITE_PRIVATE void sqlite3PcacheIterateDirty(PCache *pCache, void (*xIter)(PgHd
 **    (1)  The general-purpose memory allocator - sqlite3Malloc()
 **    (2)  Global page-cache memory provided using sqlite3_config() with
 **         SQLITE_CONFIG_PAGECACHE.
-**    (3)  PCache-local bulk allocation.
+**    (3)  PCache-bulk allocation.
 **
 ** The third case is a chunk of heap memory (defaulting to 100 pages worth)
 ** that is allocated when the page cache is created.  The size of the local
@@ -54863,7 +54863,7 @@ typedef struct PGroup PGroup;
 struct PgHdr1 {
   sqlite3_pcache_page page; /* Base class. Must be first. pBuf & pExtra */
   unsigned int iKey;        /* Key value (page number) */
-  u16 isBulkLocal;          /* This page from bulk local storage */
+  u16 isBulkLocal;          /* This page from bulk storage */
   u16 isAnchor;             /* This is the PGroup.lru element */
   PgHdr1 *pNext;            /* Next in hash table chain */
   PCache1 *pCache;          /* Cache that currently owns this page */
@@ -54944,8 +54944,8 @@ struct PCache1 {
   unsigned int nPage;                 /* Total number of pages in apHash */
   unsigned int nHash;                 /* Number of slots in apHash[] */
   PgHdr1 **apHash;                    /* Hash table for fast lookup by key */
-  PgHdr1 *pFree;                      /* List of unused pcache-local pages */
-  void *pBulk;                        /* Bulk memory used by pcache-local */
+  PgHdr1 *pFree;                      /* List of unused pcache-pages */
+  void *pBulk;                        /* Bulk memory used by pcache-*/
 };
 
 /*
@@ -58370,7 +58370,7 @@ static int readJournalHdr(
     /* Update the assumed sector-size to match the value used by
     ** the process that created this journal. If this journal was
     ** created by a process other than this one, then this routine
-    ** is being called from within pager_playback(). The local value
+    ** is being called from within pager_playback(). The value
     ** of Pager.sectorSize is restored at the end of that routine.
     */
     pPager->sectorSize = iSectorSize;
@@ -63875,7 +63875,7 @@ SQLITE_PRIVATE int sqlite3PagerMovepage(Pager *pPager, DbPage *pPg, Pgno pgno, i
   IOTRACE(("MOVE %p %d %d\n", pPager, pPg->pgno, pgno))
 
   /* If the journal needs to be sync()ed before page pPg->pgno can
-  ** be written to, store pPg->pgno in local variable needSyncPgno.
+  ** be written to, store pPg->pgno in variable needSyncPgno.
   **
   ** If the isCommit flag is set, there is no need to remember that
   ** the journal needs to be sync()ed before database page pPg->pgno
@@ -67448,7 +67448,7 @@ static int walBeginShmUnreliable(Wal *pWal, int *pChanged){
 ** checkpointed.  If useWal==0 then this routine calls walIndexReadHdr()
 ** to make a copy of the wal-index header into pWal->hdr.  If the
 ** wal-index header has changed, *pChanged is set to 1 (as an indication
-** to the caller that the local page cache is obsolete and needs to be
+** to the caller that the page cache is obsolete and needs to be
 ** flushed.)  When useWal==1, the wal-index header is assumed to already
 ** be loaded and the pChanged parameter is unused.
 **
@@ -69388,7 +69388,7 @@ struct MemPage {
   u16 minLocal;        /* Copy of BtShared.minLocal or BtShared.minLeaf */
   u16 cellOffset;      /* Index in aData of first cell pointer */
   int nFree;           /* Number of free bytes on the page. -1 for unknown */
-  u16 nCell;           /* Number of cells on this page, local and ovfl */
+  u16 nCell;           /* Number of cells on this page, and ovfl */
   u16 maskPage;        /* Mask for page offset */
   u16 aiOvfl[4];       /* Insert the i-th overflow cell before the aiOvfl-th
                        ** non-overflow cell */
@@ -69539,10 +69539,10 @@ struct BtShared {
   u8 max1bytePayload;   /* Maximum first byte of cell for a 1-byte payload */
   u8 nReserveWanted;    /* Desired number of extra bytes per page */
   u16 btsFlags;         /* Boolean parameters.  See BTS_* macros below */
-  u16 maxLocal;         /* Maximum local payload in non-LEAFDATA tables */
-  u16 minLocal;         /* Minimum local payload in non-LEAFDATA tables */
-  u16 maxLeaf;          /* Maximum local payload in a LEAFDATA table */
-  u16 minLeaf;          /* Minimum local payload in a LEAFDATA table */
+  u16 maxLocal;         /* Maximum payload in non-LEAFDATA tables */
+  u16 minLocal;         /* Minimum payload in non-LEAFDATA tables */
+  u16 maxLeaf;          /* Maximum payload in a LEAFDATA table */
+  u16 minLeaf;          /* Minimum payload in a LEAFDATA table */
   u32 pageSize;         /* Total number of bytes on a page */
   u32 usableSize;       /* Number of usable bytes on each page */
   int nTransaction;     /* Number of open transactions (read + write) */
@@ -71264,10 +71264,10 @@ static SQLITE_NOINLINE void btreeParseCellAdjustSizeForOverflow(
   u8 *pCell,              /* Pointer to the cell text. */
   CellInfo *pInfo         /* Fill in this structure */
 ){
-  /* If the payload will not fit completely on the local page, we have
+  /* If the payload will not fit completely on the page, we have
   ** to decide how much to store locally and how much to spill onto
   ** overflow pages.  The strategy is to minimize the amount of unused
-  ** space on overflow pages while keeping the amount of local storage
+  ** space on overflow pages while keeping the amount of storage
   ** in between minLocal and maxLocal.
   **
   ** Warning:  changing the way overflow payload is distributed in any
@@ -71275,7 +71275,7 @@ static SQLITE_NOINLINE void btreeParseCellAdjustSizeForOverflow(
   */
   int minLocal;  /* Minimum amount of payload held locally */
   int maxLocal;  /* Maximum amount of payload held locally */
-  int surplus;   /* Overflow payload available for local storage */
+  int surplus;   /* Overflow payload available for storage */
 
   minLocal = pPage->minLocal;
   maxLocal = pPage->maxLocal;
@@ -71301,7 +71301,7 @@ static int btreePayloadToLocal(MemPage *pPage, i64 nPayload){
     return nPayload;
   }else{
     int minLocal;  /* Minimum amount of payload held locally */
-    int surplus;   /* Overflow payload available for local storage */
+    int surplus;   /* Overflow payload available for storage */
     minLocal = pPage->minLocal;
     surplus = minLocal + (nPayload - minLocal)%(pPage->pBt->usableSize-4);
     return ( surplus <= maxLocal ) ? surplus : minLocal;
@@ -71416,7 +71416,7 @@ static void btreeParseCellPtr(
   testcase( nPayload==(u32)pPage->maxLocal+1 );
   if( nPayload<=pPage->maxLocal ){
     /* This is the (easy) common case where the entire payload fits
-    ** on the local page.  No overflow is required.
+    ** on the page.  No overflow is required.
     */
     pInfo->nSize = nPayload + (u16)(pIter - pCell);
     if( pInfo->nSize<4 ) pInfo->nSize = 4;
@@ -71453,7 +71453,7 @@ static void btreeParseCellPtrIndex(
   testcase( nPayload==(u32)pPage->maxLocal+1 );
   if( nPayload<=pPage->maxLocal ){
     /* This is the (easy) common case where the entire payload fits
-    ** on the local page.  No overflow is required.
+    ** on the page.  No overflow is required.
     */
     pInfo->nSize = nPayload + (u16)(pIter - pCell);
     if( pInfo->nSize<4 ) pInfo->nSize = 4;
@@ -71476,7 +71476,7 @@ static void btreeParseCell(
 **
 ** Compute the total number of bytes that a Cell needs in the cell
 ** data area of the btree-page.  The return number includes the cell
-** data header and the local payload, but not any overflow page or
+** data header and the payload, but not any overflow page or
 ** the space used by the cell pointer.
 **
 ** cellSizePtrNoPayload()    =>   table internal nodes
@@ -75390,7 +75390,7 @@ SQLITE_PRIVATE int sqlite3BtreePayloadChecked(BtCursor *pCur, u32 offset, u32 am
 ** returned will not be a valid pointer.
 **
 ** This routine is an optimization.  It is common for the entire key
-** and data to fit on the local page and for there to be no overflow
+** and data to fit on the page and for there to be no overflow
 ** pages.  When that is so, this routine can be used to access the
 ** key and data without making a copy.  If the key and/or data spills
 ** onto overflow pages, then accessPayload() must be used to reassemble
@@ -75416,7 +75416,7 @@ static const void *fetchPayload(
   amt = pCur->info.nLocal;
   if( amt>(int)(pCur->pPage->aDataEnd - pCur->info.pPayload) ){
     /* There is too little space on the page for the expected amount
-    ** of local content. Database must be corrupt. */
+    ** of content. Database must be corrupt. */
     assert( CORRUPT_DB );
     amt = MAX(0, (int)(pCur->pPage->aDataEnd - pCur->info.pPayload));
   }
@@ -77118,7 +77118,7 @@ static int fillInCell(
   **   pPayload           Begin writing payload here
   **   spaceLeft          Space available at pPayload.  If nPayload>spaceLeft,
   **                      that means content must spill into overflow pages.
-  **   *pnSize            Size of the local cell (not counting overflow pages)
+  **   *pnSize            Size of the cell (not counting overflow pages)
   **   pPrior             Where to write the pgno of the first overflow page
   **
   ** Use a call to btreeParseCellPtr() to verify that the values above
@@ -77135,7 +77135,7 @@ static int fillInCell(
   }
 #endif
 
-  /* Write the payload into the local Cell and any extra into overflow pages */
+  /* Write the payload into the Cell and any extra into overflow pages */
   while( 1 ){
     n = nPayload;
     if( n>spaceLeft ) n = spaceLeft;
@@ -78364,7 +78364,7 @@ static int balance_nonroot(
 
   /*
   ** Load pointers to all cells on sibling pages and the divider cells
-  ** into the local b.apCell[] array.  Make copies of the divider cells
+  ** into the b.apCell[] array.  Make copies of the divider cells
   ** into space obtained from aSpace1[]. The divider cells have already
   ** been removed from pParent.
   **
@@ -79269,7 +79269,7 @@ static SQLITE_NOINLINE int btreeOverwriteOverflowCell(
 
   assert( pCur->info.nLocal<nTotal );  /* pCur is an overflow cell */
 
-  /* Overwrite the local portion first */
+  /* Overwrite the portion first */
   rc = btreeOverwriteContent(pPage, pCur->info.pPayload, pX,
                              0, pCur->info.nLocal);
   if( rc ) return rc;
@@ -79316,7 +79316,7 @@ static int btreeOverwriteCell(BtCursor *pCur, const BtreePayload *pX){
     return SQLITE_CORRUPT_BKPT;
   }
   if( pCur->info.nLocal==nTotal ){
-    /* The entire cell is local */
+    /* The entire cell is */
     return btreeOverwriteContent(pPage, pCur->info.pPayload, pX,
                                  0, pCur->info.nLocal);
   }else{
@@ -83493,7 +83493,7 @@ SQLITE_PRIVATE int sqlite3VdbeMemSetStr(
   }
 
   /* The following block sets the new values of Mem.z and Mem.xDel. It
-  ** also sets a flag in local variable "flags" to indicate the memory
+  ** also sets a flag in variable "flags" to indicate the memory
   ** management (one of MEM_Dyn or MEM_Static).
   */
   if( xDel==SQLITE_TRANSIENT ){
@@ -83577,7 +83577,7 @@ SQLITE_PRIVATE int sqlite3VdbeMemFromBtreeZeroOffset(
   u32 amt,          /* Number of bytes to return. */
   Mem *pMem         /* OUT: Return data in this Mem structure. */
 ){
-  u32 available = 0;  /* Number of bytes available on the local btree page */
+  u32 available = 0;  /* Number of bytes available on the btree page */
   int rc = SQLITE_OK; /* Return code */
 
   assert( sqlite3BtreeCursorIsValid(pCur) );
@@ -88340,7 +88340,7 @@ SQLITE_PRIVATE u64 sqlite3FloatSwap(u64 in){
 ** and store the result in pMem.
 **
 ** This function is implemented as two separate routines for performance.
-** The few cases that require local variables are broken out into a separate
+** The few cases that require variables are broken out into a separate
 ** routine so that in most cases the overhead of moving the stack pointer
 ** is avoided.
 */
@@ -88444,7 +88444,7 @@ SQLITE_PRIVATE void sqlite3VdbeSerialGet(
     }
     case 6:   /* 8-byte signed integer */
     case 7: { /* IEEE floating point */
-      /* These use local variables, so do them in a separate routine
+      /* These use variables, so do them in a separate routine
       ** to avoid having to move the frame pointer in the common case */
       serialGet(buf,serial_type,pMem);
       return;
@@ -98385,7 +98385,7 @@ case OP_Delete: {
 #endif
 
   /* If the update-hook or pre-update-hook will be invoked, set zDb to
-  ** the name of the db to pass as to it. Also set local pTab to a copy
+  ** the name of the db to pass as to it. Also set pTab to a copy
   ** of p4.pTab. Finally, if p5 is true, indicating that this cursor was
   ** last moved with OP_Next or OP_Prev, not Seek or NotFound, set
   ** VdbeCursor.movetoTarget to the current rowid.  */
@@ -107977,7 +107977,7 @@ static int resolveSelectStep(Walker *pWalker, Select *p){
       pOuterNC->nNestedSelect--;
     }
 
-    /* Set up the local name-context to pass to sqlite3ResolveExprNames() to
+    /* Set up the name-context to pass to sqlite3ResolveExprNames() to
     ** resolve the result-set expression list.
     */
     sNC.ncFlags = NC_AllowAgg|NC_AllowWin;
@@ -138540,7 +138540,7 @@ SQLITE_PRIVATE void sqlite3Pragma(
   **  PRAGMA [schema.]cache_size
   **  PRAGMA [schema.]cache_size=N
   **
-  ** The first form reports the current local setting for the
+  ** The first form reports the current setting for the
   ** page cache size. The second form sets the local
   ** page cache size value.  If N is positive then that is the
   ** number of pages in the cache.  If N is negative, then the
@@ -138564,7 +138564,7 @@ SQLITE_PRIVATE void sqlite3Pragma(
   **  PRAGMA cache_spill=BOOLEAN
   **  PRAGMA [schema.]cache_spill=N
   **
-  ** The first form reports the current local setting for the
+  ** The first form reports the current setting for the
   ** page cache spill size. The second form turns cache spill on
   ** or off.  When turning cache spill on, the size is set to the
   ** current cache_size.  The third form sets a spill size that
@@ -138650,8 +138650,8 @@ SQLITE_PRIVATE void sqlite3Pragma(
   **   PRAGMA temp_store
   **   PRAGMA temp_store = "default"|"memory"|"file"
   **
-  ** Return or set the local value of the temp_store flag.  Changing
-  ** the local value does not make changes to the disk file and the default
+  ** Return or set the value of the temp_store flag.  Changing
+  ** the value does not make changes to the disk file and the default
   ** value will be restored the next time the database is opened.
   **
   ** Note that it is possible for the library compile-time options to
@@ -138670,7 +138670,7 @@ SQLITE_PRIVATE void sqlite3Pragma(
   **   PRAGMA temp_store_directory
   **   PRAGMA temp_store_directory = ""|"directory_name"
   **
-  ** Return or set the local value of the temp_store_directory flag.  Changing
+  ** Return or set the value of the temp_store_directory flag.  Changing
   ** the value sets a specific directory to be used for temporary files.
   ** Setting to a null string reverts to the default temporary directory search.
   ** If temporary directory is changed, then invalidateTempStorage.
@@ -138714,7 +138714,7 @@ SQLITE_PRIVATE void sqlite3Pragma(
   **   PRAGMA data_store_directory
   **   PRAGMA data_store_directory = ""|"directory_name"
   **
-  ** Return or set the local value of the data_store_directory flag.  Changing
+  ** Return or set the value of the data_store_directory flag.  Changing
   ** the value sets a specific directory to be used for database files that
   ** were specified with a relative pathname.  Setting to a null string reverts
   ** to the default database directory, which for database files specified with
@@ -138792,8 +138792,8 @@ SQLITE_PRIVATE void sqlite3Pragma(
   **   PRAGMA [schema.]synchronous
   **   PRAGMA [schema.]synchronous=OFF|ON|NORMAL|FULL|EXTRA
   **
-  ** Return or set the local value of the synchronous flag.  Changing
-  ** the local value does not make changes to the disk file and the
+  ** Return or set the value of the synchronous flag.  Changing
+  ** the value does not make changes to the disk file and the
   ** default value will be restored the next time the database is
   ** opened.
   */
@@ -149509,7 +149509,7 @@ SQLITE_PRIVATE int sqlite3Select(
 #endif
   }
 
-  /* Various elements of the SELECT copied into local variables for
+  /* Various elements of the SELECT copied into variables for
   ** convenience */
   pEList = p->pEList;
   pWhere = p->pWhere;
@@ -170707,7 +170707,7 @@ SQLITE_PRIVATE void sqlite3WindowCodeStep(
   ** at regNew. If the window has a PARTITION clause, this block generates
   ** VM code to check if the input row is the start of a new partition.
   ** If so, it does an OP_Gosub to an address to be filled in later. The
-  ** address of the OP_Gosub is stored in local variable addrGosubFlush. */
+  ** address of the OP_Gosub is stored in variable addrGosubFlush. */
   if( pMWin->pPartition ){
     int addr;
     ExprList *pPart = pMWin->pPartition;
@@ -182078,7 +182078,7 @@ SQLITE_API int sqlite3_table_column_metadata(
   }
 
   /* The following block stores the meta information that will be returned
-  ** to the caller in local variables zDataType, zCollSeq, notnull, primarykey
+  ** to the caller in variables zDataType, zCollSeq, notnull, primarykey
   ** and autoinc. At this point there are two possibilities:
   **
   **     1. The specified column name was rowid", "oid" or "_rowid_"
@@ -182105,7 +182105,7 @@ error_out:
   sqlite3BtreeLeaveAll(db);
 
   /* Whether the function call succeeded or failed, set the output parameters
-  ** to whatever their local counterparts contain. If an error did occur,
+  ** to whatever their counterparts contain. If an error did occur,
   ** this has the effect of zeroing all output parameters.
   */
   if( pzDataType ) *pzDataType = zDataType;
@@ -187484,7 +187484,7 @@ static int fts3SegReaderCursor(
     while( rc==SQLITE_OK && SQLITE_ROW==(rc = sqlite3_step(pStmt)) ){
       Fts3SegReader *pSeg = 0;
 
-      /* Read the values returned by the SELECT into local variables. */
+      /* Read the values returned by the SELECT into variables. */
       sqlite3_int64 iStartBlock = sqlite3_column_int64(pStmt, 1);
       sqlite3_int64 iLeavesEndBlock = sqlite3_column_int64(pStmt, 2);
       sqlite3_int64 iEndBlock = sqlite3_column_int64(pStmt, 3);
@@ -187809,7 +187809,7 @@ static int fts3FilterMethod(
   assert( eSearch>=0 && eSearch<=(FTS3_FULLTEXT_SEARCH+p->nColumn) );
   assert( p->pSegments==0 );
 
-  /* Collect arguments into local variables */
+  /* Collect arguments into variables */
   iIdx = 0;
   if( eSearch!=FTS3_FULLSCAN_SEARCH ) pCons = apVal[iIdx++];
   if( idxNum & FTS3_HAVE_LANGID ) pLangid = apVal[iIdx++];
@@ -201592,7 +201592,7 @@ static int fts3ExprGlobalHitsCb(
 
 /*
 ** sqlite3Fts3ExprIterate() callback used to collect the "local" part of the
-** FTS3_MATCHINFO_HITS array. The local stats are those elements of the
+** FTS3_MATCHINFO_HITS array. The stats are those elements of the
 ** array that are different for each row returned by the query.
 */
 static int fts3ExprLocalHitsCb(
@@ -201993,7 +201993,7 @@ static void fts3GetMatchinfo(
   MatchInfo sInfo;
   Fts3Table *pTab = (Fts3Table *)pCsr->base.pVtab;
   int rc = SQLITE_OK;
-  int bGlobal = 0;                /* Collect 'global' stats as well as local */
+  int bGlobal = 0;                /* Collect 'global' stats as well as */
 
   u32 *aOut = 0;
   void (*xDestroyOut)(void*) = 0;
@@ -221735,7 +221735,7 @@ typedef struct StatCell StatCell;
 
 /* Size information for a single cell within a btree page */
 struct StatCell {
-  int nLocal;                     /* Bytes of local payload */
+  int nLocal;                     /* Bytes of payload */
   u32 iChildPg;                   /* Child node (or 0 if this is a leaf) */
   int nOvfl;                      /* Entries in aOvfl[] */
   u32 *aOvfl;                     /* Array of overflow page numbers */
@@ -229127,7 +229127,7 @@ static void sessionAppendRecordMerge(
 }
 
 /*
-** This function is called when rebasing a local UPDATE change against one
+** This function is called when rebasing a UPDATE change against one
 ** or more remote UPDATE changes. The aRec/nRec buffer contains the current
 ** old.* and new.* records for the change. The rebase buffer (a single
 ** record) is in aChange/nChange. The rebased change is appended to buffer
@@ -229140,14 +229140,14 @@ static void sessionAppendRecordMerge(
 **     means the UPDATE change updates no fields, nothing is appended
 **     to the output buffer.
 **
-**   * For each field modified by the local change for which the
+**   * For each field modified by the change for which the
 **     corresponding field in the rebase buffer is not "undefined" (0x00)
 **     or "replaced" (0xFF), the old.* value is replaced by the value
 **     in the rebase buffer.
 */
 static void sessionAppendPartialUpdate(
   SessionBuffer *pBuf,            /* Append record here */
-  sqlite3_changeset_iter *pIter,  /* Iterator pointed at local change */
+  sqlite3_changeset_iter *pIter,  /* Iterator pointed at change */
   u8 *aRec, int nRec,             /* Local change */
   u8 *aChange, int nChange,       /* Record to rebase against */
   int *pRc                        /* IN/OUT: Return Code */

@@ -48,7 +48,7 @@ assert(#localchain == #expectedlocalchain)
 for k, cert in ipairs( localchain ) do
   util.show(cert)
  expectedpem = assert(io.open(expectedlocalchain[k])):read("*a")
-  assert(cert.pem(cert) == expectedpem, "local chain mismatch @ "..tostring(k))
+  assert(cert.pem(cert) == expectedpem, "chain mismatch @ "..tostring(k))
   if (k == 1) then
     assert(cert.pem(cert) == conn.getlocalcertificate(conn):pem())
   end

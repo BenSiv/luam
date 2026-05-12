@@ -19,8 +19,8 @@ dependencies = {
    "lua >= 5.1"
 }
 
-local function make_plat(plat)
-   local defines = {
+function make_plat(plat)
+   defines = {
       unix = {
          "LUA_COMPAT_APIINTCASTS",
          "LUASOCKET_DEBUG",
@@ -52,7 +52,7 @@ local function make_plat(plat)
          "MIME_API=__declspec(dllexport)"
       }
    }
-   local modules = {
+   modules = {
       ["socket.core"] = {
          sources = { "src/luasocket.c", "src/timeout.c", "src/buffer.c", "src/io.c", "src/auxiliar.c",
                      "src/options.c", "src/inet.c", "src/except.c", "src/select.c", "src/tcp.c", "src/udp.c" },

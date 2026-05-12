@@ -48,7 +48,7 @@ unconnected:<b>close()</b>
 
 <p class="description">
 Closes a UDP object. The internal socket
-used by the object is closed and the local address to which the
+used by the object is closed and the address to which the
 object was bound is made available to other applications. No
 further operations (except for further calls to the <tt>close</tt>
 method) are allowed on a closed socket.
@@ -127,13 +127,13 @@ unconnected:<b>getsockname()</b>
 </p>
 
 <p class="description">
-Returns the local address information associated to the object.
+Returns the address information associated to the object.
 </p>
 
 
 <p class="return">
-The method returns a string with local IP address, a number with
-the local port,
+The method returns a string with IP address, a number with
+the port,
 and a string with the family ("<tt>inet</tt>" or "<tt>inet6</tt>").
 In case of error, the method returns <b><tt>nil</tt></b>.
 </p>
@@ -292,7 +292,7 @@ broadcast datagrams on the socket.
 Receives a boolean value;</li>
 <li> '<tt>reuseaddr</tt>': Indicates that the rules used in
 validating addresses supplied in a <tt>bind()</tt> call
-should allow reuse of local addresses.
+should allow reuse of addresses.
 Receives a boolean value;</li>
 <li> '<tt>reuseport</tt>': Allows completely duplicate
 bindings by multiple processes if they all set
@@ -397,13 +397,13 @@ unconnected:<b>setsockname(</b>address, port<b>)</b>
 </p>
 
 <p class="description">
-Binds the UDP object to a local address.
+Binds the UDP object to a address.
 </p>
 
 <p class="parameters">
 <tt>Address</tt> can be an IP address or a
 host name. If <tt>address</tt> is '<tt>*</tt>' the system binds to
-all local interfaces using the constant <tt>INADDR_ANY</tt>. If
+all interfaces using the constant <tt>INADDR_ANY</tt>. If
 <tt>port</tt> is 0, the system chooses an ephemeral port.
 </p>
 
@@ -416,9 +416,9 @@ message.
 <p class="note">
 Note: This method can only be called before any
 datagram is sent through the UDP object, and only once. Otherwise,
-the system automatically binds the object to all local interfaces
+the system automatically binds the object to all interfaces
 and chooses an ephemeral port as soon as the first datagram is
-sent. After the local address is set, either automatically by the
+sent. After the address is set, either automatically by the
 system or explicitly by <tt>setsockname</tt>, it cannot be
 changed.
 </p>

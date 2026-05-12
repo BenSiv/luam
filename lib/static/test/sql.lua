@@ -1,6 +1,6 @@
-local sqlite3 = require("lsqlite3")
+sqlite3 = require("lsqlite3")
 
-local db = sqlite3.open_memory()
+db = sqlite3.open_memory()
 
 db:exec[[
   CREATE TABLE test (id INTEGER PRIMARY KEY, content);

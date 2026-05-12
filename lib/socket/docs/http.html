@@ -61,7 +61,7 @@ To obtain the <tt>http</tt> namespace, run:
 
 <pre class="example">
 -- loads the HTTP module and any libraries it requires
-local http = require("socket.http")
+http = require("socket.http")
 </pre>
 
 <p>
@@ -215,9 +215,9 @@ Here are a few examples with the simple interface:
 
 <pre class="example">
 -- load the http module
-local io = require("io")
-local http = require("socket.http")
-local ltn12 = require("ltn12")
+io = require("io")
+http = require("socket.http")
+ltn12 = require("ltn12")
 
 -- connect to server "www.cs.princeton.edu" and retrieves this manual
 -- file from "~diego/professional/luasocket/http.html" and print it to stdout

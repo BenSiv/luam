@@ -112,7 +112,7 @@ LUAPREFIX_solaris?=/usr/local
 CDIR_solaris?=lib/lua/$(LUAV)
 LDIR_solaris?=share/lua/$(LUAV)
 
-# prefix: /usr/local /usr /opt/local /sw
+# prefix: /usr//usr /opt//sw
 # the top of the default install tree
 prefix?=$(LUAPREFIX_$(PLAT))
 
@@ -342,7 +342,7 @@ MIME_OBJS= \
 	compat.$(O)
 
 #------
-# Modules belonging unix (local domain sockets)
+# Modules belonging unix (domain sockets)
 #
 UNIX_OBJS=\
 	buffer.$(O) \

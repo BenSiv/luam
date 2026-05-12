@@ -1,16 +1,16 @@
 encode, decode = nil
 
 test_module = ... -- command line argument
---local test_module = 'cmj-json'
---local test_module = 'dkjson'
---local test_module = 'dkjson-nopeg'
---local test_module = 'fleece'
---local test_module = 'jf-json'
+--test_module = 'cmj-json'
+--test_module = 'dkjson'
+--test_module = 'dkjson-nopeg'
+--test_module = 'fleece'
+--test_module = 'jf-json'
 --locel test_module = 'lua-yajl'
---local test_module = 'mp-cjson'
---local test_module = 'nm-json'
---local test_module = 'sb-json'
---local test_module = 'th-json'
+--test_module = 'mp-cjson'
+--test_module = 'nm-json'
+--test_module = 'sb-json'
+--test_module = 'th-json'
 
 
 if test_module == 'cmj-json' then

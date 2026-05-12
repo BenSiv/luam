@@ -141,6 +141,47 @@ sourcet["until-closed"] = function(sock)
     }))
 end
 
+-- HTTP chunked
+sourcet["http-chunked"] = function(sock)
+   done = nil
+    return base.setmetatable(({
+        getfd = function() return getmetatable(sock).__index.getfd(sock) end,
+        dirty = function() return getmetatable(sock).__index.dirty(sock) end
+    }), ({
+        __call = function()
+            if (done != nil and done != false) then return nil end
+           line, err = getmetatable(sock).__index.receive(sock, "*l")
+            if (err != nil and err != false) then return nil, err end
+           size = base.tonumber(string.gsub(line, ";.*", ""), 16)
+            if (size == nil or size == false) then return nil, "invalid chunk size" end
+            if size > 0 then
+               chunk, err = getmetatable(sock).__index.receive(sock, size)
+                if (err != nil and err != false) then return nil, err end
+                getmetatable(sock).__index.receive(sock, 2) -- skip \r\n
+                return chunk
+            else
+                getmetatable(sock).__index.receive(sock, 2) -- skip \r\n
+                done = 1
+                return nil
+            end
+        end
+    }))
+end
+
+sinkt["http-chunked"] = function(sock)
+    return base.setmetatable(({
+        getfd = function() return getmetatable(sock).__index.getfd(sock) end,
+        dirty = function() return getmetatable(sock).__index.dirty(sock) end
+    }), ({
+        __call = function(self, chunk, err)
+            if (chunk == nil or chunk == false) then
+                return getmetatable(sock).__index.send(sock, "0\r\n\r\n")
+            end
+           size = string.format("%x\r\n", string.len(chunk))
+            return getmetatable(sock).__index.send(sock, size .. chunk .. "\r\n")
+        end
+    }))
+end
 
 sourcet["default"] = sourcet["until-closed"]
 

@@ -66,7 +66,7 @@ FIND_PATH(LUA_INCLUDE_DIR lua.h
   /usr/local
   /usr
   /sw # Fink
-  /opt/local # DarwinPorts
+  /opt/# DarwinPorts
   /opt/csw # Blastwave
   /opt
 )

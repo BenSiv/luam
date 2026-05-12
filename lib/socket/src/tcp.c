@@ -450,7 +450,7 @@ static int global_connect(lua_State *L) {
     buffer_init(&tcp->buf, &tcp->io, &tcp->tm);
     tcp->sock = SOCKET_INVALID;
     tcp->family = AF_UNSPEC;
-    /* allow user to pick local address and port */
+    /* allow user to pick address and port */
     memset(&bindhints, 0, sizeof(bindhints));
     bindhints.ai_socktype = SOCK_STREAM;
     bindhints.ai_family = family;

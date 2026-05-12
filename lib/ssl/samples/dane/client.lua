@@ -16,14 +16,14 @@ cfg = {
 
 function daneconnect(host, port)
    port = port or "443";
-	local conn = ssl.wrap(socket.connect(host, port), cfg);
+	conn = ssl.wrap(socket.connect(host, port), cfg);
 
-	local tlsa = dns.resolve(dns, "_" .. port .. "._tcp." .. host, 52);
+	tlsa = dns.resolve(dns, "_" .. port .. "._tcp." .. host, 52);
 	assert(tlsa.secure, "Insecure DNS");
 
 	assert(conn.setdane(conn, host));
 	for i = 1, tlsa.n do
-		local usage, selector, mtype = tlsa[i] :byte(1, 3);
+		usage, selector, mtype = tlsa[i] :byte(1, 3);
 		assert(conn.settlsa(conn, usage, selector, mtype, tlsa[i] :sub(4, - 1)));
 	end
 

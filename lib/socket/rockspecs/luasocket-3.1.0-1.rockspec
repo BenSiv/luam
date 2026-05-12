@@ -19,8 +19,8 @@ dependencies = {
   "lua >= 5.1"
 }
 
-local function make_plat(plat)
-  local defines = {
+function make_plat(plat)
+  defines = {
     unix = {
       "LUASOCKET_DEBUG"
     },
@@ -38,7 +38,7 @@ local function make_plat(plat)
       "WINVER=0x0501"
     }
   }
-  local modules = {
+  modules = {
     ["socket.core"] = {
       sources = {
         "src/luasocket.c"

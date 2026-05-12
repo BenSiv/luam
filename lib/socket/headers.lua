@@ -3,11 +3,9 @@
 -- LuaSocket toolkit.
 -- Author: Diego Nehab
 -----------------------------------------------------------------------------
-socket = require("socket")
-socket.headers = {}
-_M = socket.headers
+_M = ({})
 
-_M.canonic = {
+_M.canonic = ({
     ["accept"] = "Accept",
     ["accept-charset"] = "Accept-Charset",
     ["accept-encoding"] = "Accept-Encoding",
@@ -91,7 +89,7 @@ _M.canonic = {
     ["to"] = "To",
     ["trailer"] = "Trailer",
     ["transfer-encoding"] = "Transfer-Encoding",
-    ["upgrade"] = "Upgrade",
+    ["warding"] = "Warding",
     ["user-agent"] = "User-Agent",
     ["vary"] = "Vary",
     ["via"] = "Via",
@@ -99,6 +97,6 @@ _M.canonic = {
     ["will-retry-until"] = "Will-Retry-Until",
     ["www-authenticate"] = "WWW-Authenticate",
     ["x-mailer"] = "X-Mailer",
-}
+})
 
 return _M
