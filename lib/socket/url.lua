@@ -86,25 +86,33 @@ function _M.parse(url_in, default_in)
     parsed_res = ({})
     if (url_in == nil or url_in == false) then return parsed_res end
     
-    scheme_res, rest_res = string.match(url_in, "^([%w%.%+%a%-]+):(.*)")
+    match_scheme = ({ string.match(url_in, "^([%w%.%+%a%-]+):(.*)") })
+    scheme_res = match_scheme[1]
+    rest_res = match_scheme[2]
     if (scheme_res != nil and scheme_res != false) then
         parsed_res.scheme = string.lower(scheme_res)
         url_in = rest_res
     end
     
-    auth_res, rest_res = string.match(url_in, "^//([^/]*)(.*)")
+    match_auth = ({ string.match(url_in, "^//([^/]*)(.*)") })
+    auth_res = match_auth[1]
+    rest_res = match_auth[2]
     if (auth_res != nil and auth_res != false) then
         parsed_res.authority = auth_res
         url_in = rest_res
     end
     
-    rest_res, frag_res = string.match(url_in, "^(.*)#([^/]*)$")
+    match_frag = ({ string.match(url_in, "^(.*)#([^/]*)$") })
+    rest_res = match_frag[1]
+    frag_res = match_frag[2]
     if (frag_res != nil and frag_res != false) then
         parsed_res.fragment = frag_res
         url_in = rest_res
     end
     
-    rest_res, query_res = string.match(url_in, "^(.*)%?([^/]*)$")
+    match_query = ({ string.match(url_in, "^(.*)%?([^/]*)$") })
+    rest_res = match_query[1]
+    query_res = match_query[2]
     if (query_res != nil and query_res != false) then
         parsed_res.query = query_res
         url_in = rest_res
@@ -117,13 +125,17 @@ function _M.parse(url_in, default_in)
     end
     
     if (parsed_res.authority != nil and parsed_res.authority != false) then
-        userinfo_res, hostport_res = string.match(parsed_res.authority, "^([^@]*)@(.*)")
+        match_user = ({ string.match(parsed_res.authority, "^([^@]*)@(.*)") })
+        userinfo_res = match_user[1]
+        hostport_res = match_user[2]
         if (userinfo_res != nil and userinfo_res != false) then
             parsed_res.userinfo = userinfo_res
             parsed_res.authority = hostport_res
         end
         
-        host_res, port_res = string.match(parsed_res.authority, "^([^:]*):(.*)$")
+        match_host = ({ string.match(parsed_res.authority, "^([^:]*):(.*)$") })
+        host_res = match_host[1]
+        port_res = match_host[2]
         if (host_res != nil and host_res != false) then
             parsed_res.host = host_res
             parsed_res.port = base.tonumber(port_res)

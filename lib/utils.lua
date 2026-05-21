@@ -335,7 +335,7 @@ function reverse(input)
 end
 
 function readdir(directory)
-    if (lfs == nil) then error("luafilesystem (lfs) (loaded" == nil or loaded" == false)) end
+    if (lfs == nil) then error("luafilesystem (lfs) not loaded") end
     directory = directory or "."
     files = {}
     for file in lfs.dir(directory) do
@@ -353,7 +353,7 @@ function sleep(n)
 end
 
 function read_yaml(file_path)
-    if yaml == nil then error("yaml library (loaded" == nil or loaded" == false)) end
+    if yaml == nil then error("yaml library not loaded") end
     file = io.open(file_path, "r")
     data = nil 
     if (file == nil) then
@@ -368,7 +368,7 @@ function read_yaml(file_path)
 end
 
 function read_json(file_path)
-    if (json == nil) then error("json library (loaded" == nil or loaded" == false)) end
+    if (json == nil) then error("json library not loaded") end
     file = io.open(file_path, "r")
     data = nil 
     if file == nil then
@@ -383,7 +383,7 @@ function read_json(file_path)
 end
 
 function write_json(file_path, lua_table)
-    if json == nil then error("json library (loaded" == nil or loaded" == false)) end
+    if json == nil then error("json library not loaded") end
     content = json.encode(lua_table, { indent = true })  -- pretty-print with indentation
     file, err = io.open(file_path, "w")
     if (file == nil) then

@@ -9,8 +9,8 @@ temp_files = {}
 function write_temp_file(content)
     fname = os.tmpname()
     f = io.open(fname, "w")
-    f.write(f, content)
-    f.close(f)
+    io.write(f, content)
+    io.close(f)
     table.insert(temp_files, fname)
     return fname
 end
@@ -37,8 +37,8 @@ function array_to_file(arr)
     -- write to temporary file
     tmpname = os.tmpname()
     f = assert(io.open(tmpname, "w"))
-    f.write(f, table.concat(lines, "\n"))
-    f.close(f)
+    io.write(f, table.concat(lines, "\n"))
+    io.close(f)
     return tmpname
 end
 
