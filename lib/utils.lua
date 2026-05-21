@@ -693,7 +693,10 @@ end
 
 function exec_command(command)
     tmpfile = os.tmpname()
-    ok, why, code = os.execute(command .. " > " .. tmpfile .. " 2>&1")
+    exec_res = ({ os.execute(command .. " > " .. tmpfile .. " 2>&1") })
+    ok = exec_res[1]
+    why = exec_res[2]
+    code = exec_res[3]
 
     output = ""
     file = io.open(tmpfile, "r")
