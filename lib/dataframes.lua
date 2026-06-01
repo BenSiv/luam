@@ -1,5 +1,14 @@
 utils = require("utils")
 
+function strip_ansi(str)
+    if str == nil then return "" end
+    return (string.gsub(tostring(str), "\027%[[%d;]*%a", ""))
+end
+
+function visual_len(str)
+    return #strip_ansi(str)
+end
+
 -- Define a module table
 dataframes = {}
 
@@ -100,7 +109,7 @@ function df_get_columns(data_table)
     if (utils.isempty(data_table) != nil and utils.isempty(data_table) != false) then
         print("Empty table")
         return ({})
-    elseif ((is_dataframe == nil or is_dataframe == false)(data_table)) then
+    elseif not is_dataframe(data_table) then
         print("ot a valid dataframe")
         return ({})
     end
@@ -136,7 +145,7 @@ end
 function df_get_column_widths(data_table, columns, limit)
     column_widths = {}
     for _, col_name in ipairs(columns) do
-        column_widths[col_name] = #tostring(col_name)
+        column_widths[col_name] = visual_len(col_name)
     end
 
     row_count = 0
@@ -146,8 +155,8 @@ function df_get_column_widths(data_table, columns, limit)
         end
         for col_idx, col_name in ipairs(columns) do
             cell_value = df_get_cell_value(row, col_name, col_idx)
-            val_width = #tostring(cell_value)
-            column_widths[col_name] = math.max(column_widths[col_name] or 0, #tostring(col_name), val_width)
+            val_width = visual_len(cell_value)
+            column_widths[col_name] = math.max(column_widths[col_name] or 0, visual_len(col_name), val_width)
         end
         row_count = row_count + 1
     end
@@ -186,13 +195,19 @@ function df_fit_cell(value, width)
     if (width <= 0) then
         return ""
     end
-    if (#value > width) then
-        if (width <= 3) then
-            return string.sub(value, 1, width)
+    vis_len = visual_len(value)
+    if (vis_len > width) then
+        stripped = strip_ansi(value)
+        if (#stripped > width) then
+            if (width <= 3) then
+                return string.sub(stripped, 1, width)
+            end
+            return string.sub(stripped, 1, width - 3) .. "..."
+        else
+            return stripped .. string.rep(" ", width - #stripped)
         end
-        return string.sub(value, 1, width - 3) .. "..."
     end
-    return value .. string.rep(" ", width - #value)
+    return value .. string.rep(" ", width - vis_len)
 end
 
 function df_format_header(columns, column_widths, bold_headers)
@@ -220,7 +235,7 @@ function df_render_lines(data_table, args)
     args = args or ({})
     if (utils.isempty(data_table) != nil and utils.isempty(data_table) != false) then
         return ({"Empty table"})
-    elseif ((is_dataframe == nil or is_dataframe == false)(data_table)) then
+    elseif not is_dataframe(data_table) then
         return ({"ot a valid dataframe"})
     end
 

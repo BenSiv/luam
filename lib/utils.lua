@@ -654,8 +654,8 @@ function get_line_length()
     -- Try popen
     if (io.popen != nil) then
         ok, handle = pcall(io.popen, "stty size 2>/dev/null | awk '{print $2}'")
-        if (ok and handle != nil and type(handle) == 'userdata') then
-            result = handle.read(handle, "*a") or ""
+        if (ok and handle != nil) then
+            result = io.read(handle, "*a") or ""
             io.close(handle)
             return tonumber(result) or 80
         end
