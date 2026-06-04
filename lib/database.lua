@@ -7,7 +7,23 @@ _G.sqlite3 = nil
 -- Define a module table
 database = {}
 
-function local_query(db_path, query)
+unpack = unpack or table.unpack
+
+-- Escapes single quotes for safe SQLite string usage
+function escape_sqlite(value)
+    return string.gsub(tostring(value), "'", "''")
+end
+
+function local_query(db_path, query, ...)
+    local_args = {...}
+    if #local_args > 0 then
+        for i, val in ipairs(local_args) do
+            if type(val) == "string" then
+                local_args[i] = escape_sqlite(val)
+            end
+        end
+        query = string.format(query, unpack(local_args))
+    end
     query = query
     db = sqlite.open(db_path)
     if (db == nil) then
@@ -79,7 +95,16 @@ function local_query(db_path, query)
     return result_rows, column_names
 end
 
-function local_update(db_path, statement)
+function local_update(db_path, statement, ...)
+    local_args = {...}
+    if #local_args > 0 then
+        for i, val in ipairs(local_args) do
+            if type(val) == "string" then
+                local_args[i] = escape_sqlite(val)
+            end
+        end
+        statement = string.format(statement, unpack(local_args))
+    end
     statement = statement
     db = sqlite.open(db_path)
 
@@ -159,11 +184,6 @@ function export_delimited(db_path, query, file_path, delimiter, header)
 
     delimited_files.writedlm(results, file_path, delimiter, header, false, col_names)
     return true
-end
-
--- Escapes single quotes for safe SQLite string usage
-function escape_sqlite(value)
-    return string.gsub(tostring(value), "'", "''")
 end
 
 function load_df_rows(db_path, table_name, dataframe)
