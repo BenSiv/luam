@@ -1,164 +1,147 @@
----------------------------------------------------------------------------
--- LuaSec 0.6
--- Copyright (C) 2009-2016 Bruno Silvestre
+----------------------------------------------------------------------------
+-- LuaSec 1.3.2
 --
--- https.lua - HTTPS (built on top of LuaSocket http.lua)
+-- Copyright (C) 2009-2023 PUC-Rio
+--
+-- Author: Pablo Musa
+-- Author: Tomas Guisasola
 ---------------------------------------------------------------------------
 
 socket = require("socket")
 ssl    = require("ssl")
+ltn12  = require("ltn12")
 http   = require("socket.http")
 url    = require("socket.url")
-ltn12  = require("ltn12")
-base   = _G
 
-_M = ({})
+try    = socket.try
 
--- For procedural calls
-metat = ({ __index = ({}) })
+--
+-- Module
+--
+_M = {
+  _VERSION   = "1.3.2",
+  _COPYRIGHT = "LuaSec 1.3.2 - Copyright (C) 2009-2023 PUC-Rio",
+  PORT       = 443,
+  TIMEOUT    = 60
+}
 
-function tcp()
-   params_tcp = ({})
-   conn_tcp = socket.tcp()
-    return base.setmetatable(({
-      c = conn_tcp,
-      s = nil,
-      p = params_tcp,
-      try = socket.newtry(conn_tcp)
-    }), metat)
+-- TLS configuration
+cfg = {
+  protocol = "any",
+  options  = {"all", "no_sslv2", "no_sslv3", "no_tlsv1"},
+  verify   = "none",
+}
+
+--------------------------------------------------------------------
+-- Auxiliar Functions
+--------------------------------------------------------------------
+
+-- Insert default HTTPS port.
+function default_https_port(u)
+   return url.build(url.parse(u, {port = _M.PORT}))
 end
 
-function metat.__index.connect(self, host, port)
-    return getmetatable(self.c).__index.connect(self.c, host, port)
-end
-
-function metat.__index.send(self, data, i, j)
-    if (self.s != nil and self.s != false) then
-        return getmetatable(self.s).__index.send(self.s, data, i, j)
-    end
-    return getmetatable(self.c).__index.send(self.c, data, i, j)
-end
-
-function metat.__index.receive(self, pattern, prefix)
-    if (self.s != nil and self.s != false) then
-        return getmetatable(self.s).__index.receive(self.s, pattern, prefix)
-    end
-    return getmetatable(self.c).__index.receive(self.c, pattern, prefix)
-end
-
-function metat.__index.close(self)
-    if (self.s != nil and self.s != false) then
-        getmetatable(self.s).__index.close(self.s)
-    end
-    return getmetatable(self.c).__index.close(self.c)
-end
-
-function metat.__index.settimeout(self, value, mode)
-    return getmetatable(self.c).__index.settimeout(self.c, value, mode)
-end
-
-function metat.__index.setoption(self, option, value)
-    return getmetatable(self.c).__index.setoption(self.c, option, value)
-end
-
-function metat.__index.setparams(self, params)
-    self.p = params
-end
-
-function metat.__index.dohandshake(self)
-   s_wrap, err_wrap = ssl.wrap(self.c, self.p)
-    if (s_wrap == nil or s_wrap == false) then return nil, err_wrap end
-    self.s = s_wrap
-    return getmetatable(self.s).__index.dohandshake(self.s)
-end
-
-function metat.__index.getpeercertificate(self)
-    if (self.s != nil and self.s != false) then
-        return getmetatable(self.s).__index.getpeercertificate(self.s)
-    end
-    return nil
-end
-
-function metat.__index.getpeerverification(self)
-    if (self.s != nil and self.s != false) then
-        return getmetatable(self.s).__index.getpeerverification(self.s)
-    end
-    return nil
-end
-
--- Default configuration for LuaSec
-_M.PORT = 443
-
-function _M.request(url_val, body_val)
-    parsed_https = ({})
-    if (base.type(url_val) == "string") then
-        parsed_https = url.parse(url_val)
-    else
-        parsed_https = url_val
-        if (parsed_https.url != nil and parsed_https.url != false) then
-            parsed_from_url = url.parse(parsed_https.url)
-            for i_upd, v_upd in base.pairs(parsed_from_url) do
-                if (parsed_https[i_upd] == nil or parsed_https[i_upd] == false) then
-                    parsed_https[i_upd] = v_upd
-                end
-            end
-        end
-    end
-    
-    if (parsed_https.scheme != "https") then
-        return nil, "invalid protocol"
-    end
-    
-   host_https = parsed_https.host
-   port_https = parsed_https.port or _M.PORT
-   
-   create_https = function()
-       c_https = tcp()
-       
-       -- DEFAULT SSL PARAMS
-       sslparams_https = parsed_https.sslparams or ({})
-       if (sslparams_https.protocol == nil or sslparams_https.protocol == false) then
-           sslparams_https.protocol = "any"
-       end
-       if (sslparams_https.mode == nil or sslparams_https.mode == false) then
-           sslparams_https.mode = "client"
-       end
-       if (sslparams_https.verify == nil or sslparams_https.verify == false) then
-           sslparams_https.verify = "none"
-       end
-       if (sslparams_https.options == nil or sslparams_https.options == false) then
-           sslparams_https.options = "all"
-       end
-       
-       getmetatable(c_https).__index.setparams(c_https, sslparams_https)
-       
-       -- Wrapped create function for http.lua
-       obj_https = ({
-           c = c_https,
-           connect = function(self_c, h, p)
-               res_conn, err_conn = getmetatable(self_c.c).__index.connect(self_c.c, h, p)
-               if (res_conn == nil or res_conn == false) then return nil, err_conn end
-               return getmetatable(self_c.c).__index.dohandshake(self_c.c)
-           end,
-           send = function(self_c, data, i, j)
-               return getmetatable(self_c.c).__index.send(self_c.c, data, i, j)
-           end,
-           receive = function(self_c, pattern, prefix)
-               return getmetatable(self_c.c).__index.receive(self_c.c, pattern, prefix)
-           end,
-           close = function(self_c)
-               return getmetatable(self_c.c).__index.close(self_c.c)
-           end,
-           settimeout = function(self_c, value, mode)
-               return getmetatable(self_c.c).__index.settimeout(self_c.c, value, mode)
-           end
-       })
-       mt_https = ({ __index = obj_https })
-       return base.setmetatable(obj_https, mt_https)
+-- Convert an URL to a table according to Luasocket needs.
+function urlstring_totable(url, body, result_table)
+   url = {
+      url = default_https_port(url),
+      method = body and "POST" or "GET",
+      sink = ltn12.sink.table(result_table)
+   }
+   if ((body != nil and body != false)) then
+      url.source = ltn12.source.string(body)
+      url.headers = {
+         ["content-length"] = #body,
+         ["content-type"] = "application/x-www-form-urlencoded",
+      }
    end
-   
-   parsed_https.create = create_https
-   return http.request(parsed_https, body_val)
+   return url
 end
+
+-- Forward calls to the real connection object.
+function reg(conn)
+  mt = getmetatable(conn.sock).__index
+   for name, method in pairs(mt) do
+      if (type(method) == "function") then
+         conn[name] = function (self, ...)
+                         return method(self.sock, ...)
+                      end
+      end
+   end
+end
+
+-- Return a function which performs the SSL/TLS connection.
+function tcp(params)
+   params = params or ({})
+   -- Default settings
+   for k, v in pairs(cfg) do 
+      params[k] = params[k] or v
+   end
+   -- Force client mode
+   params.mode = "client"
+   -- 'create' function for LuaSocket
+   return function ()
+     conn = {}
+      conn.sock = try(socket.tcp())
+     st = getmetatable(conn.sock).__index.settimeout
+      function conn.settimeout(conn, ...)
+         return st(self.sock, _M.TIMEOUT)
+      end
+      -- Replace TCP's connection function
+      function conn.connect(conn, host, port)
+         try(self.sock.connect(sock, host, port))
+         self.sock = try(ssl.wrap(self.sock, params))
+         self.sock.sni(sock, host)
+         self.sock.settimeout(sock, _M.TIMEOUT)
+         try(self.sock.dohandshake(sock))
+         reg(self)
+         return 1
+      end
+      return conn
+  end
+end
+
+--------------------------------------------------------------------
+-- Main Function
+--------------------------------------------------------------------
+
+-- Make a HTTP request over secure connection.  This function receives
+--  the same parameters of LuaSocket's HTTP module (except 'proxy' and
+--  'redirect') plus LuaSec parameters.
+--
+-- @param url mandatory (string or table)
+-- @param body optional (string)
+-- @return (string if url == string or 1), code, headers, status
+--
+function request(url, body)
+ result_table = {}
+ stringrequest = type(url) == "string"
+  if ((stringrequest != nil and stringrequest != false)) then
+    url = urlstring_totable(url, body, result_table)
+  else
+    url.url = default_https_port(url.url)
+  end
+  if (http.PROXY or url.proxy != nil and http.PROXY or url.proxy != false) then
+    return nil, "proxy (supported" == nil or supported" == false)
+  elseif (url.redirect != nil and url.redirect != false) then
+    return nil, "redirect (supported" == nil or supported" == false)
+  elseif ((url.create != nil and url.create != false)) then
+    return nil, "create function (permitted" == nil or permitted" == false)
+  end
+  -- New 'create' function to establish a secure connection
+  url.create = tcp(url)
+ res, code, headers, status = http.request(url)
+  if res and stringrequest then
+    return table.concat(result_table), code, headers, status
+  end
+  return res, code, headers, status
+end
+
+--------------------------------------------------------------------------------
+-- Export module
+--
+
+_M.request = request
+_M.tcp = tcp
 
 return _M

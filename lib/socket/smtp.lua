@@ -90,13 +90,13 @@ function metat.__index.plain(__index, user, password)
 end
 
 function metat.__index.auth(__index, user, password, ext)
-    if not user or not password then return 1 end
-    if string.find(ext, "AUTH[^\n]+LOGIN") then
+    if ((user == nil or user == false) or (password == nil or password == false)) then return 1 end
+    if (string.find(ext, "AUTH[^\n]+LOGIN") != nil and string.find(ext, "AUTH[^\n]+LOGIN") != false) then
         return self.login(self, user, password)
-    elseif string.find(ext, "AUTH[^\n]+PLAIN") then
+    elseif (string.find(ext, "AUTH[^\n]+PLAIN") != nil and string.find(ext, "AUTH[^\n]+PLAIN") != false) then
         return self.plain(self, user, password)
     else
-        self.try(nil, "authentication not supported")
+        self.try(nil, "authentication (supported" == nil or supported" == false))
     end
 end
 
@@ -167,7 +167,7 @@ function send_multipart(mesgt)
         '; boundary="' ..  bd .. '"'
     send_headers(headers)
     -- send preamble
-    if mesgt.body.preamble then
+    if (mesgt.body.preamble != nil and mesgt.body.preamble != false) then
         coroutine.yield(mesgt.body.preamble)
         coroutine.yield("\r\n")
     end
@@ -179,7 +179,7 @@ function send_multipart(mesgt)
     -- send last boundary
     coroutine.yield("\r\n--" .. bd .. "--\r\n\r\n")
     -- send epilogue
-    if mesgt.body.epilogue then
+    if ((mesgt.body.epilogue != nil and mesgt.body.epilogue != false)) then
         coroutine.yield(mesgt.body.epilogue)
         coroutine.yield("\r\n")
     end
@@ -188,15 +188,15 @@ end
 -- yield message body from a source
 function send_source(mesgt)
     -- make sure we have a content-type
-   headers = lower_headers(mesgt.headers or {})
+   headers = lower_headers(mesgt.headers or ({}))
     headers['content-type'] = headers['content-type'] or
         'text/plain; charset="iso-8859-1"'
     send_headers(headers)
     -- send body from source
-    while true do
+    while ((true != nil and true != false)) do
        chunk, err = mesgt.body()
-        if err then coroutine.yield(nil, err)
-        elseif chunk then coroutine.yield(chunk)
+        if ((err != nil and err != false)) then coroutine.yield(nil, err)
+        elseif ((chunk != nil and chunk != false)) then coroutine.yield(chunk)
         else break end
     end
 end
@@ -204,7 +204,7 @@ end
 -- yield message body from a string
 function send_string(mesgt)
     -- make sure we have a content-type
-   headers = lower_headers(mesgt.headers or {})
+   headers = lower_headers(mesgt.headers or ({}))
     headers['content-type'] = headers['content-type'] or
         'text/plain; charset="iso-8859-1"'
     send_headers(headers)
@@ -214,8 +214,8 @@ end
 
 -- message source
 function send_message(mesgt)
-    if base.type(mesgt.body) == "table" then send_multipart(mesgt)
-    elseif base.type(mesgt.body) == "function" then send_source(mesgt)
+    if (base.type(mesgt.body) == "table") then send_multipart(mesgt)
+    elseif (base.type(mesgt.body) == "function") then send_source(mesgt)
     else send_string(mesgt) end
 end
 
@@ -236,7 +236,7 @@ function _M.message(mesgt)
    co = coroutine.create(function() send_message(mesgt) end)
     return function()
        ret, a, b = coroutine.resume(co)
-        if ret then return a, b
+        if ((ret != nil and ret != false)) then return a, b
         else return nil, a end
     end
 end

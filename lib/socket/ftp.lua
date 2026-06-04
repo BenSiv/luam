@@ -57,7 +57,7 @@ end
 function metat.__index.login(__index, user, password)
     self.try(self.tp.command(self.tp, "user", user or _M.USER))
    code, _ = self.try(self.tp.check(self.tp, {"2..", 331}))
-    if code == 331 then
+    if (code == 331) then
         self.try(self.tp.command(self.tp, "pass", password or _M.PASSWORD))
         self.try(self.tp.check(self.tp, "2.."))
     end
@@ -74,7 +74,7 @@ function metat.__index.pasv(__index)
         address = string.format("%d.%d.%d.%d", a, b, c, d),
         port = p1*256 + p2
     }
-    if self.server then
+    if ((self.server != nil and self.server != false)) then
         self.server.close(self.server)
         self.server = nil
     end
@@ -91,7 +91,7 @@ function metat.__index.epsv(__index)
         address = self.tp.getpeername(self.tp),
         port = port
     }
-    if self.server then
+    if ((self.server != nil and self.server != false)) then
         self.server.close(self.server)
         self.server = nil
     end
@@ -101,7 +101,7 @@ end
 
 function metat.__index.port(__index, address, port)
     self.pasvt = nil
-    if not address then
+    if ((address == nil or address == false)) then
         address = self.try(self.tp.getsockname(self.tp))
         self.server = self.try(socket.bind(address, 0))
         address, port = self.try(self.server.getsockname(self.server))
@@ -117,7 +117,7 @@ end
 
 function metat.__index.eprt(__index, family, address, port)
     self.pasvt = nil
-    if not address then
+    if ((address == nil or address == false)) then
         address = self.try(self.tp.getsockname(self.tp))
         self.server = self.try(socket.bind(address, 0))
         address, port = self.try(self.server.getsockname(self.server))
@@ -134,31 +134,31 @@ function metat.__index.send(__index, sendt)
     self.try(self.pasvt or self.server, "need port or pasv first")
     -- if there is a pasvt table, we already sent a PASV command
     -- we just get the data connection into self.data
-    if self.pasvt then self.pasvconnect(self) end
+    if ((self.pasvt != nil and self.pasvt != false)) then self.pasvconnect(self) end
     -- get the transfer argument and command
    argument = sendt.argument or
         url.unescape(string.gsub(sendt.path or "", "^[/\\]", ""))
-    if argument == "" then argument = nil end
+    if (argument == "") then argument = nil end
    command = sendt.command or "stor"
     -- send the transfer command and check the reply
     self.try(self.tp.command(self.tp, command, argument))
    code, _ = self.try(self.tp.check(self.tp, {"2..", "1.."}))
-    -- if there is not a pasvt table, then there is a server
+    -- if there is (a == nil or a == false) pasvt table, then there is a server
     -- and we already sent a PORT command
-    if not self.pasvt then self.portconnect(self) end
+    if ((self.pasvt == nil or self.pasvt == false)) then self.portconnect(self) end
     -- get the sink, source and step for the transfer
    step = sendt.step or ltn12.pump.step
    readt = { self.tp }
    checkstep = function(src, snk)
         -- check status in control connection while downloading
        readyt = socket.select(readt, nil, 0)
-        if readyt[tp] then code = self.try(self.tp.check(self.tp, "2..")) end
+        if ((readyt[tp] != nil and readyt[tp] != false)) then code = self.try(self.tp.check(self.tp, "2..")) end
         return step(src, snk)
     end
    sink = socket.sink("close-when-done", self.data)
     -- transfer all data and check error
     self.try(ltn12.pump.all(sendt.source, sink, checkstep))
-    if string.find(code, "1..") then self.try(self.tp.check(self.tp, "2..")) end
+    if (string.find(code, "1..") != nil and string.find(code, "1..") != false) then self.try(self.tp.check(self.tp, "2..")) end
     -- done with data connection
     self.data.close(self.data)
     -- find out how many bytes were sent
@@ -169,22 +169,22 @@ end
 
 function metat.__index.receive(__index, recvt)
     self.try(self.pasvt or self.server, "need port or pasv first")
-    if self.pasvt then self.pasvconnect(self) end
+    if ((self.pasvt != nil and self.pasvt != false)) then self.pasvconnect(self) end
    argument = recvt.argument or
         url.unescape(string.gsub(recvt.path or "", "^[/\\]", ""))
-    if argument == "" then argument = nil end
+    if (argument == "") then argument = nil end
    command = recvt.command or "retr"
     self.try(self.tp.command(self.tp, command, argument))
    code,reply = self.try(self.tp.check(self.tp, {"1..", "2.."}))
-    if (code >= 200) and (code <= 299) then
+    if ((code >= 200) and (code <= 299)) then
         recvt.sink(reply)
         return 1
     end
-    if not self.pasvt then self.portconnect(self) end
+    if ((self.pasvt == nil or self.pasvt == false)) then self.portconnect(self) end
    source = socket.source("until-closed", self.data)
    step = recvt.step or ltn12.pump.step
     self.try(ltn12.pump.all(source, recvt.sink, step))
-    if string.find(code, "1..") then self.try(self.tp.check(self.tp, "2..")) end
+    if (string.find(code, "1..") != nil and string.find(code, "1..") != false) then self.try(self.tp.check(self.tp, "2..")) end
     self.data.close(self.data)
     self.data = nil
     return 1
@@ -204,7 +204,7 @@ end
 
 function metat.__index.greet(__index)
    code = self.try(self.tp.check(self.tp, {"1..", "2.."}))
-    if string.find(code, "1..") then self.try(self.tp.check(self.tp, "2..")) end
+    if (string.find(code, "1..") != nil and string.find(code, "1..") != false) then self.try(self.tp.check(self.tp, "2..")) end
     return 1
 end
 
@@ -215,8 +215,8 @@ function metat.__index.quit(__index)
 end
 
 function metat.__index.close(__index)
-    if self.data then self.data.close(self.data) end
-    if self.server then self.server.close(self.server) end
+    if ((self.data != nil and self.data != false)) then self.data.close(self.data) end
+    if ((self.server != nil and self.server != false)) then self.server.close(self.server) end
     return self.tp.close(self.tp)
 end
 
@@ -224,7 +224,7 @@ end
 -- High level FTP API
 -----------------------------------------------------------------------------
 function override(t)
-    if t.url then
+    if ((t.url != nil and t.url != false)) then
        u = url.parse(t.url)
         for i,v in base.pairs(t) do
             u[i] = v
@@ -239,7 +239,7 @@ function tput(putt)
    f = _M.open(putt.host, putt.port, putt.create)
     f.greet(f)
     f.login(f, putt.user, putt.password)
-    if putt.type then f.type(f, putt.type) end
+    if ((putt.type != nil and putt.type != false)) then f.type(f, putt.type) end
     f.epsv(f)
    sent = f.send(f, putt)
     f.quit(f)
@@ -257,7 +257,7 @@ function genericform(u)
     socket.try(t.scheme == "ftp", "wrong scheme '" .. t.scheme .. "'")
     socket.try(t.host, "missing hostname")
    pat = "^type=(.)$"
-    if t.params then
+    if ((t.params != nil and t.params != false)) then
         t.type = socket.skip(2, string.find(t.params, pat))
         socket.try(t.type == "a" or t.type == "i",
             "invalid type '" .. t.type .. "'")
@@ -274,7 +274,7 @@ function sput(u, body)
 end
 
 _M.put = socket.protect(function(putt, body)
-    if base.type(putt) == "string" then return sput(putt, body)
+    if (base.type(putt) == "string") then return sput(putt, body)
     else return tput(putt) end
 end)
 
@@ -284,7 +284,7 @@ function tget(gett)
    f = _M.open(gett.host, gett.port, gett.create)
     f.greet(f)
     f.login(f, gett.user, gett.password)
-    if gett.type then f.type(f, gett.type) end
+    if ((gett.type != nil and gett.type != false)) then f.type(f, gett.type) end
     f.epsv(f)
     f.receive(f, gett)
     f.quit(f)
@@ -306,23 +306,23 @@ _M.command = socket.protect(function(cmdt)
    f = _M.open(cmdt.host, cmdt.port, cmdt.create)
     f.greet(f)
     f.login(f, cmdt.user, cmdt.password)
-    if type(cmdt.command) == "table" then
-       argument = cmdt.argument or {}
-       check = cmdt.check or {}
+    if (type(cmdt.command) == "table") then
+       argument = cmdt.argument or ({})
+       check = cmdt.check or ({})
         for i,cmd in ipairs(cmdt.command) do
             f.try(f.tp.command(tp, cmd, argument[i]))
-            if check[i] then f.try(f.tp.check(tp, check[i])) end
+            if ((check[i] != nil and check[i] != false)) then f.try(f.tp.check(tp, check[i])) end
         end
     else
         f.try(f.tp.command(tp, cmdt.command, cmdt.argument))
-        if cmdt.check then f.try(f.tp.check(tp, cmdt.check)) end
+        if ((cmdt.check != nil and cmdt.check != false)) then f.try(f.tp.check(tp, cmdt.check)) end
     end
     f.quit(f)
     return f.close(f)
 end)
 
 _M.get = socket.protect(function(gett)
-    if base.type(gett) == "string" then return sget(gett)
+    if (base.type(gett) == "string") then return sget(gett)
     else return tget(gett) end
 end)
 
