@@ -197,15 +197,7 @@ function df_fit_cell(value, width)
     end
     vis_len = visual_len(value)
     if (vis_len > width) then
-        stripped = strip_ansi(value)
-        if (#stripped > width) then
-            if (width <= 3) then
-                return string.sub(stripped, 1, width)
-            end
-            return string.sub(stripped, 1, width - 3) .. "..."
-        else
-            return stripped .. string.rep(" ", width - #stripped)
-        end
+        return value
     end
     return value .. string.rep(" ", width - vis_len)
 end
