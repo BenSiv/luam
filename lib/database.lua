@@ -499,6 +499,7 @@ database.get_columns = get_columns
 database.get_table_info = get_table_info
 database.get_schema = get_schema
 database.compare_schemas = compare_schemas
+database.escape_sqlite = escape_sqlite
 
 -- Export the module
 return database
