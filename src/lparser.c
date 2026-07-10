@@ -1022,6 +1022,19 @@ static void assignment(LexState *ls, struct LHS_assign *lh, int nvars) {
         }
       }
       luaM_freearray(ls->L, vars, n_new, struct LHS_assign *);
+
+      /* The loop above registers each new implicit local's name/slot
+         (new_localvar) but never reserves its register via freereg.
+         Without this, the RHS expression list below is free to hand
+         out the exact same registers to its own temporaries/call
+         results, since freereg still looks unclaimed -- e.g. for
+         `existing_upvar, new_local = f()` where f returns 2 values,
+         new_local's "reserved" register collides with the RHS call's
+         own result register, and the subsequent per-variable store
+         loop (which walks last-parsed-first) can clobber the first
+         result before the earlier LHS variable gets to read it. */
+      if (ls->fs->freereg < ls->fs->nactvar + n_new)
+        luaK_reserveregs(ls->fs, ls->fs->nactvar + n_new - ls->fs->freereg);
     }
 
     checknext(ls, '=');
