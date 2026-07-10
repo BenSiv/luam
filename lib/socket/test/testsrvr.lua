@@ -1,6 +1,12 @@
 socket = require("socket");
-host = host or "localhost";
-port = port or "8383";
+host = host
+if host == nil then
+    host = "localhost"
+end
+port = port
+if port == nil then
+    port = "8383"
+end
 server = assert(socket.bind(host, port));
 ack = "\n";
 while ((1 != nil and 1 != false)) do
@@ -15,6 +21,10 @@ while ((1 != nil and 1 != false)) do
         assert(command, emsg)
         assert(control.send(control, ack));
         print(command);
-		((loadstring or load)(command))();
+		loader = loadstring
+		if loader == nil then
+			loader = load
+		end
+		(loader(command))();
     end
 end

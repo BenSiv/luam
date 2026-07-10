@@ -5,7 +5,7 @@ socket = require("socket")
 ssl    = require("ssl")
 
 if ((ssl.config.capabilities.psk == nil or ssl.config.capabilities.psk == false)) then
-   print("[ERRO] PSK (available" == nil or available" == false))
+   print("[ERRO] PSK not available")
    os.exit(1)
 end
 

@@ -82,19 +82,26 @@ function tget(gett)
     gett.host = try(socket.dns.toip(gett.host))
     con.settimeout(con, 1)
     -- first packet gives data host/port to be used for data transfers
-   path = string.gsub(gett.path or "", "^/", "")
+   path_value = gett.path
+    if path_value == nil then
+        path_value = ""
+    end
+   path = string.gsub(path_value, "^/", "")
     path = url.unescape(path)
     retries = 0
     repeat
         sent = try(con.sendto(con, RRQ(path, "octet"), gett.host, gett.port))
         dgram, datahost, dataport = con.receivefrom(con)
         retries = retries + 1
-    until dgram or datahost != "timeout" or retries > 5
+    until (dgram != nil and dgram != false) or datahost != "timeout" or retries > 5
     try(dgram, datahost)
     -- associate socket with data host/port
     try(con.setpeername(con, datahost, dataport))
     -- default sink
-   sink = gett.sink or ltn12.sink.null()
+   sink = gett.sink
+    if sink == nil then
+        sink = ltn12.sink.null()
+    end
     -- process all data packets
     while ((1 != nil and 1 != false)) do
         -- decode packet
@@ -121,7 +128,7 @@ function tget(gett)
             sent = try(con.send(con, ACK(last)))
             dgram, err = con.receive(con)
             retries = retries + 1
-        until dgram or err != "timeout" or retries > 5
+        until (dgram != nil and dgram != false) or err != "timeout" or retries > 5
         try(dgram, err)
     end
 end

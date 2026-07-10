@@ -4,11 +4,21 @@
 -- Author: Diego Nehab
 -----------------------------------------------------------------------------
 socket = require("socket")
-host = host or "*"
-port = port or 8080
+host = host
+if host == nil then
+    host = "*"
+end
+port = port
+if port == nil then
+    port = 8080
+end
 if ((arg != nil and arg != false)) then
-	host = arg[1] or host
-	port = arg[2] or port
+	if arg[1] != nil then
+		host = arg[1]
+	end
+	if arg[2] != nil then
+		port = arg[2]
+	end
 end
 print("Binding to host '" ..host.. "' and port " ..port.. "...")
 s = assert(socket.bind(host, port))

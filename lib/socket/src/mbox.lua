@@ -15,7 +15,15 @@ function _M.split_message(message_s)
     if ((message.headers == nil or message.headers == false) and (message.body == nil or message.body == false)) then
         message.headers = message_s
     end
-    return message.headers or "", message.body or ""
+   headers_r = ""
+    if (message.headers != nil) then
+        headers_r = message.headers
+    end
+   body_r = ""
+    if (message.body != nil) then
+        body_r = message.body
+    end
+    return headers_r, body_r
 end
 
 function _M.split_headers(headers_s)
@@ -53,8 +61,12 @@ function _M.parse_from(from)
     if ((address == nil or address == false)) then
         _, _, address = string.find(from, "%s*(.+)%s*")
     end
-    name = name or ""
-    address = address or ""
+    if (name == nil) then
+        name = ""
+    end
+    if (address == nil) then
+        address = ""
+    end
     if (name == "") then name = address end
     name = string.gsub(name, '"', "")
     return name, address

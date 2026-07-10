@@ -144,7 +144,13 @@ f = io.open(tmpfile, "w")
 result, mode = lfs.setmode(f, "binary")
 assert(result) -- on non-Windows platforms, mode is always returned as "binary"
 result, mode = lfs.setmode(f, "text")
-assert(result and mode == "binary")
+mode_check = false
+if result != nil then
+    if mode == "binary" then
+        mode_check = true
+    end
+end
+assert(mode_check)
 f.close(f)
 ok, err = pcall(lfs.setmode, f, "binary")
 -- assert((ok == nil or ok == false), "could setmode on closed file")
@@ -170,7 +176,7 @@ for key, value in pairs(attr) do
   t = {}
   lfs.attributes(tmpfile, t)
   assert (value == t[key],
-          "lfs.attributes values (consistent" == nil or consistent" == false))
+          "lfs.attributes values not consistent")
 end
 
 -- Check that lfs.attributes accepts a table as second argument
@@ -180,7 +186,7 @@ for key, value in pairs(attr2) do
   t = {}
   lfs.attributes(tmpfile, t)
   assert (value == t[key],
-          "lfs.attributes values with table argument (consistent" == nil or consistent" == false))
+          "lfs.attributes values with table argument not consistent")
 end
 
 -- Check that extra arguments are ignored
@@ -227,7 +233,7 @@ for i = 1, 4000 do
         count = count + 1
         file = dir.next(dir)
     end
-    assert((pcall == nil or pcall == false)(dir.next, dir))
+    assert(not pcall(dir.next, dir))
 end
 
 io.write(".")
@@ -236,5 +242,5 @@ io.flush()
 -- directory explicit close
 iter, dir = lfs.dir(tmp)
 dir.close(dir)
-assert((pcall == nil or pcall == false)(dir.next, dir))
+assert(not pcall(dir.next, dir))
 print"Ok!"

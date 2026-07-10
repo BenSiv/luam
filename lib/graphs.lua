@@ -40,7 +40,9 @@ function build_graph(data)
     for _, entry in ipairs(data) do
         src_idx = get_or_create_index(entry.source, node_map)
         name_idx = get_or_create_index(entry.name, node_map)
-        graph[src_idx] = graph[src_idx] or ({})
+        if (graph[src_idx] == nil) then
+            graph[src_idx] = {}
+        end
         table.insert(graph[src_idx], name_idx)
     end
     return graph, node_map
@@ -51,7 +53,9 @@ function build_reverse_graph(graph)
     reversed = {}
     for parent, children in pairs(graph) do
         for _, child in ipairs(children) do
-            reversed[child] = reversed[child] or ({})
+            if (reversed[child] == nil) then
+                reversed[child] = {}
+            end
             table.insert(reversed[child], parent)
         end
     end
@@ -155,11 +159,16 @@ function get_lineage_depth(graph, node_map, sample_name)
     reversed = build_reverse_graph(graph)
 
     function depth(curr, visited)
-        visited = visited or ({})
+        if (visited == nil) then
+            visited = {}
+        end
         if ((visited[curr] != nil and visited[curr] != false)) then return -1 end  -- cycle detected, treat as invalid
         visited[curr] = true
 
-        parents = reversed[curr] or ({})
+        parents = reversed[curr]
+        if (parents == nil) then
+            parents = {}
+        end
         if (#parents == 0) then
             return 0  -- root node
         end

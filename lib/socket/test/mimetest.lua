@@ -2,7 +2,10 @@ socket = require("socket")
 ltn12 = require("ltn12")
 mime = require("mime")
 
-unpack = unpack or table.unpack
+unpack = unpack
+if unpack == nil then
+    unpack = table.unpack
+end
 
 dofile("testsupport.lua")
 
@@ -50,7 +53,13 @@ function random(handle, io_err)
             end
             return chunk
         end
-    else return ltn12.source.empty(io_err or "unable to open file") end
+    else
+        err_msg = io_err
+        if err_msg == nil then
+            err_msg = "unable to open file"
+        end
+        return ltn12.source.empty(err_msg)
+    end
 end
 
 
@@ -231,7 +240,11 @@ function chunkcheck(original, encoded)
        b = string.sub(original, i+1)
        e, r = mime.b64(a, b)
        f = (mime.b64(r))
-        if ((e .. (f or "") != encoded)) then fail(e .. (f or "")) end
+        f_or_empty = f
+        if f_or_empty == nil then
+            f_or_empty = ""
+        end
+        if (e .. f_or_empty != encoded) then fail(e .. f_or_empty) end
     end
 end
 

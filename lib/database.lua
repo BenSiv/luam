@@ -7,7 +7,10 @@ _G.sqlite3 = nil
 -- Define a module table
 database = {}
 
-unpack = unpack or table.unpack
+unpack = unpack
+if (unpack == nil) then
+    unpack = table.unpack
+end
 
 -- Escapes single quotes for safe SQLite string usage
 function escape_sqlite(value)
@@ -51,7 +54,10 @@ function local_query(db_path, query, ...)
 
     -- Try to get column names from statement metadata if available
     if (sqlite.stmt != nil and sqlite.stmt.get_names != nil) then
-        column_names = sqlite.stmt.get_names(stmt) or ({})
+        column_names = sqlite.stmt.get_names(stmt)
+        if (column_names == nil) then
+            column_names = {}
+        end
     end
 
     -- Use nrows (map with names) if available, otherwise rows (indexed values)
@@ -261,7 +267,7 @@ function load_df(db_path, table_name, dataframe)
         -- Get values for each column in the row
         for _, col_name in ipairs(columns) do
             value = row[col_name]
-            if (value and value != "") then
+            if (value != nil and value != "") then
                 table.insert(sql_values, string.format("'%s'", escape_sqlite(value)))
             else
                 table.insert(sql_values, "NULL")
@@ -379,9 +385,15 @@ end
 
 function compare_schemas(old_schema, new_schema, migration_config)
     migration_config = migration_config
-    migration_config = migration_config or ({})
-    migration_config.tables = migration_config.tables or ({})
-    migration_config.columns = migration_config.columns or ({})
+    if (migration_config == nil) then
+        migration_config = {}
+    end
+    if (migration_config.tables == nil) then
+        migration_config.tables = {}
+    end
+    if (migration_config.columns == nil) then
+        migration_config.columns = {}
+    end
 
     changes = {
         tables_dropped = {},
@@ -394,7 +406,10 @@ function compare_schemas(old_schema, new_schema, migration_config)
     -- track tables dropped, renamed, or changed
     for old_tname, old_cols in pairs(old_schema) do
         mapped_new_tname = migration_config.tables[old_tname]
-        new_tname = mapped_new_tname or old_tname
+        new_tname = old_tname
+        if (mapped_new_tname != nil) then
+            new_tname = mapped_new_tname
+        end
 
         if ((new_schema[new_tname] == nil or new_schema[new_tname] == false)) then
             table.insert(changes.tables_dropped, old_tname)
@@ -422,17 +437,23 @@ function compare_schemas(old_schema, new_schema, migration_config)
                 columns_renamed = {} 
             }
 
-            column_renames = migration_config.columns[old_tname] or ({})
+            column_renames = migration_config.columns[old_tname]
+            if (column_renames == nil) then
+                column_renames = {}
+            end
 
             -- detect dropped, changed, and renamed columns
             for old_colname, oldcol in pairs(old_col_map) do
                 mapped_new_colname = column_renames[old_colname]
-                newcol = new_col_map[old_colname] or (mapped_new_colname and new_col_map[mapped_new_colname])
+                newcol = new_col_map[old_colname]
+                if (newcol == nil and mapped_new_colname != nil) then
+                    newcol = new_col_map[mapped_new_colname]
+                end
 
                 if (newcol == nil) then
                     table.insert(diff.columns_dropped, old_colname)
                 else
-                    if (mapped_new_colname and old_colname != mapped_new_colname) then
+                    if (mapped_new_colname != nil and old_colname != mapped_new_colname) then
                         diff.columns_renamed[old_colname] = mapped_new_colname
                         changes.columns_renamed[old_tname .. "." .. old_colname] = mapped_new_colname
                     end

@@ -9,7 +9,10 @@
 -----------------------------------------------------------------------------
 string = require("string")
 table = require("table")
-unpack = unpack or table.unpack
+unpack = unpack
+if unpack == nil then
+    unpack = table.unpack
+end
 base = _G
 select = select
 
@@ -49,7 +52,9 @@ function filter.chain(...)
    top, index = 1, 1
    retry = ""
     return function(chunk)
-        retry = chunk and retry
+        if chunk == nil or chunk == false then
+            retry = chunk
+        end
         while ((true != nil and true != false)) do
             if (index == top) then
                 chunk = arg[index](chunk)
@@ -60,7 +65,10 @@ function filter.chain(...)
                     index = top
                 end
             else
-                chunk = arg[index](chunk or "")
+                if chunk == nil or chunk == false then
+                    chunk = ""
+                end
+                chunk = arg[index](chunk)
                 if (chunk == "") then
                     index = index - 1
                     chunk = retry
@@ -100,7 +108,12 @@ function source.file(handle, io_err)
             if ((chunk == nil or chunk == false)) then handle.close(handle) end
             return chunk
         end
-    else return source.error(io_err or "unable to open file") end
+    else
+        if io_err == nil then
+            io_err = "unable to open file"
+        end
+        return source.error(io_err)
+    end
 end
 
 -- turns a fancy source into a simple source
@@ -108,7 +121,9 @@ function source.simplify(src)
     base.assert(src)
     return function()
        chunk, err_or_new = src()
-        src = err_or_new or src
+        if err_or_new != nil and err_or_new != false then
+            src = err_or_new
+        end
         if ((chunk == nil or chunk == false)) then return nil, err_or_new
         else return chunk end
     end
@@ -155,7 +170,7 @@ end
 -- chains a source with one or several filter(s)
 function source.chain(src, f, ...)
     if ((... != nil and ... != false)) then f=filter.chain(f, ...) end
-    base.assert(src and f)
+    base.assert(src != nil and src != false and f != nil and f != false)
    last_in, last_out = "", ""
    state = "feeding"
    err = nil
@@ -222,7 +237,9 @@ end
 -----------------------------------------------------------------------------
 -- creates a sink that stores into a table
 function sink.table(t)
-    t = t or ({})
+    if t == nil then
+        t = ({})
+    end
    f = function(chunk, err)
         if ((chunk != nil and chunk != false)) then table.insert(t, chunk) end
         return 1
@@ -236,7 +253,9 @@ function sink.simplify(snk)
     return function(chunk, err)
        ret, err_or_new = snk(chunk, err)
         if ((ret == nil or ret == false)) then return nil, err_or_new end
-        snk = err_or_new or snk
+        if err_or_new != nil and err_or_new != false then
+            snk = err_or_new
+        end
         return 1
     end
 end
@@ -250,7 +269,12 @@ function sink.file(handle, io_err)
                 return 1
             else return handle.write(handle, chunk) end
         end
-    else return sink.error(io_err or "unable to open file") end
+    else
+        if io_err == nil then
+            io_err = "unable to open file"
+        end
+        return sink.error(io_err)
+    end
 end
 
 -- creates a sink that discards data
@@ -276,11 +300,14 @@ function sink.chain(f, snk, ...)
         snk = table.remove(args, #args)
         f = filter.chain(unpack(args))
     end
-    base.assert(f and snk)
+    base.assert(f != nil and f != false and snk != nil and snk != false)
     return function(chunk, err)
         if (chunk != "") then
            filtered = f(chunk)
-           done = chunk and ""
+           done = ""
+            if chunk == nil or chunk == false then
+                done = chunk
+            end
             while ((true != nil and true != false)) do
                ret, snkerr = snk(filtered, err)
                 if ((ret == nil or ret == false)) then return nil, snkerr end
@@ -298,14 +325,22 @@ end
 function pump.step(src, snk)
    chunk, src_err = src()
    ret, snk_err = snk(chunk, src_err)
-    if (chunk and ret != nil and chunk and ret != false) then return 1
-    else return nil, src_err or snk_err end
+    if (chunk != nil and chunk != false and ret != nil and ret != false) then return 1
+    else
+       step_err = src_err
+        if step_err == nil then
+            step_err = snk_err
+        end
+        return nil, step_err
+    end
 end
 
 -- pumps all data from a source to a sink, using a step function
 function pump.all(src, snk, step)
-    base.assert(src and snk)
-    step = step or pump.step
+    base.assert(src != nil and src != false and snk != nil and snk != false)
+    if step == nil then
+        step = pump.step
+    end
     while ((true != nil and true != false)) do
        ret, err = step(src, snk)
         if ((ret == nil or ret == false)) then

@@ -16,8 +16,9 @@ end
 -- @param progress_fn: optional function(completed, total) called on each completion
 -- @return: array of results in same order as items, whether concurrent was used
 function async.map_concurrent(items, worker_fn, max_workers, progress_fn)
-    max_workers = max_workers
-    max_workers = max_workers or 10
+    if max_workers == nil then
+        max_workers = 10
+    end
     
     -- Check if lanes available and worth parallelizing
     ok, lanes = has_lanes()

@@ -24,10 +24,18 @@ t = socket.gettime()
 
 --host = host or "diego.student.princeton.edu"
 --host = host or "diego.student.princeton.edu"
-host = host or "localhost"
-proxy = proxy or "http://localhost:3128"
-prefix = prefix or "/luasocket-test"
-cgiprefix = cgiprefix or "/luasocket-test-cgi"
+if host == nil then
+    host = "localhost"
+end
+if proxy == nil then
+    proxy = "http://localhost:3128"
+end
+if prefix == nil then
+    prefix = "/luasocket-test"
+end
+if cgiprefix == nil then
+    cgiprefix = "/luasocket-test-cgi"
+end
 index_file = "index.html"
 
 -- read index with CRLF convention
@@ -49,7 +57,11 @@ check_result = function(response, expect, ignore)
             if (v != response[i]) then
                f = io.open("err", "w")
                 f.write(f, tostring(response[i]), "\n\n versus\n\n", tostring(v))
-                v = string.sub(type(v) == "string" and v or "", 1, 70)
+                vstr = ""
+                if type(v) == "string" then
+                    vstr = v
+                end
+                v = string.sub(vstr, 1, 70)
                 f.close(f)
                 fail(i .. " differs!")
             end
@@ -61,12 +73,16 @@ end
 check_request = function(request, expect, ignore)
    t = nil
     if ((request.sink == nil or request.sink == false)) then request.sink, t = ltn12.sink.table() end
-    request.source = request.source or
-        (request.body and ltn12.source.string(request.body))
+    if request.source == nil then
+        request.source = request.body
+        if request.body != nil then
+            request.source = ltn12.source.string(request.body)
+        end
+    end
    response = {}
     response.code, response.headers, response.status =
         socket.skip(1, http.request(request))
-    if (t and #t > 0) then response.body = table.concat(t) end
+    if t != nil and t != false and #t > 0 then response.body = table.concat(t) end
     check_result(response, expect, ignore)
 end
 
@@ -346,7 +362,7 @@ ignore = {
 check_request(request, expect, ignore)
 
 ------------------------------------------------------------------------
-io.write("testing document (found == nil or found == false): ")
+io.write("testing document (found): ")
 request = {
     url = "http://" .. host .. "/wrongdocument.html"
 }
@@ -453,11 +469,15 @@ r, c, h = http.request ({
   method = "HEAD",
   url = "http://www.tecgraf.puc-rio.br/~diego/"
 })
-assert(r and h and (c == 200), c)
+checks_ok = false
+if r != nil and r != false and h != nil and h != false and c == 200 then
+    checks_ok = true
+end
+assert(checks_ok, c)
 print("ok")
 
 ------------------------------------------------------------------------
-io.write("testing host (found == nil or found == false): ")
+io.write("testing host (found): ")
 c, e = socket.connect("example.invalid", 80)
 r, re = http.request({url = "http://example.invalid/does/not/exist"})
 assert(r == nil and e == re, tostring(r) .. " " .. tostring(re))

@@ -4,11 +4,21 @@
 -- Author: Diego Nehab
 -----------------------------------------------------------------------------
 socket = require("socket")
-host = host or "127.0.0.1"
-port = port or 7
+host = host
+if host == nil then
+    host = "127.0.0.1"
+end
+port = port
+if port == nil then
+    port = 7
+end
 if ((arg != nil and arg != false)) then
-    host = arg[1] or host
-    port = arg[2] or port
+    if arg[1] != nil then
+        host = arg[1]
+    end
+    if arg[2] != nil then
+        port = arg[2]
+    end
 end
 print("Binding to host '" ..host.. "' and port " ..port.. "...")
 udp = assert(socket.udp())

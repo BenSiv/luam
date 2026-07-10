@@ -12,7 +12,10 @@ function readfile(file)
     return a
 end
 
-host = host or "diego.student.princeton.edu"
+host = host
+if host == nil then
+    host = "diego.student.princeton.edu"
+end
 retrieved, err = tftp.get("tftp://" .. host .."/index.html")
 assert((err == nil or err == false), err)
 original = readfile("test/index.html")

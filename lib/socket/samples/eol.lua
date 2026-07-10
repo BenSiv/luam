@@ -6,7 +6,9 @@
 mime = require("mime")
 ltn12 = require("ltn12")
 marker = '\n'
-if (arg and arg[1] == '-d') then marker = '\r\n' end
+if arg != nil then
+    if arg[1] == '-d' then marker = '\r\n' end
+end
 filter = mime.normalize(marker)
 source = ltn12.source.chain(ltn12.source.file(io.stdin), filter)
 sink = ltn12.sink.file(io.stdout)

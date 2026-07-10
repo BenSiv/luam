@@ -393,7 +393,13 @@ tc_mt = {
     rawset(tc, key, value)
     if is_string(key) and is_function(value) then
      name = string.lower(key)
-      if string.find(name, "^test") or string.find(name, "test$") then
+      is_test_name = false
+      if string.find(name, "^test") != nil then
+        is_test_name = true
+      elseif string.find(name, "test$") != nil then
+        is_test_name = true
+      end
+      if is_test_name then
         table.insert(tc.__lunit_tests, key)
       elseif name == "setup" then
         tc.__lunit_setup = value
@@ -481,10 +487,22 @@ function run()
   print("#### Test Suite finished.")
   
  msg_assertions = stats.assertions.." Assertions checked. "
- msg_passed     = stats.passed == stats.tests and "All Tests passed" or  stats.passed.." Tests passed"
- msg_failed     = stats.failed > 0 and ", "..stats.failed.." failed" or ""
- msg_run	       = stats.notrun > 0 and ", "..stats.notrun.." not run" or ""
- msg_warn       = stats.warnings > 0 and ", "..stats.warnings.." warnings" or ""
+ msg_passed     = stats.passed.." Tests passed"
+ if stats.passed == stats.tests then
+   msg_passed = "All Tests passed"
+ end
+ msg_failed     = ""
+ if stats.failed > 0 then
+   msg_failed = ", "..stats.failed.." failed"
+ end
+ msg_run	       = ""
+ if stats.notrun > 0 then
+   msg_run = ", "..stats.notrun.." not run"
+ end
+ msg_warn       = ""
+ if stats.warnings > 0 then
+   msg_warn = ", "..stats.warnings.." warnings"
+ end
   
   print()
   print(msg_assertions..msg_passed..msg_failed..msg_run..msg_warn.."!")
@@ -648,9 +666,9 @@ function import(name)
     install_asserts()
     install_tests()
     install("TestCase")
-  elseif string.find(name, "^assert.*") and P[name] then
+  elseif string.find(name, "^assert.*") != nil and P[name] != nil then
     install(name)
-  elseif string.find(name, "^is_.+") and P[name] then
+  elseif string.find(name, "^is_.+") != nil and P[name] != nil then
     install(name)
   elseif name == "TestCase" then
     install("TestCase")
@@ -685,7 +703,11 @@ function stats_inc(varname, value)
   orig_assert(is_string(varname))
   orig_assert(is_nil(value) or is_number(value))
   if not stats[varname] then return end
-  stats[varname] = stats[varname] + (value or 1)
+  increment = value
+  if increment == nil then
+    increment = 1
+  end
+  stats[varname] = stats[varname] + increment
 end
 
 

@@ -15,7 +15,9 @@ cfg = {
 };
 
 function daneconnect(host, port)
-   port = port or "443";
+   if port == nil then
+      port = "443";
+   end
 	conn = ssl.wrap(socket.connect(host, port), cfg);
 
 	tlsa = dns.resolve(dns, "_" .. port .. "._tcp." .. host, 52);

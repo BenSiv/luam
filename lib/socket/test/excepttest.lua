@@ -19,12 +19,12 @@ assert((finalizer_called == nil or finalizer_called == false), "unexpected final
 assert(ret1 == 1 and ret2 == 2 and ret3 == 3, "incorrect return values")
 
 ret1, ret2, ret3 = func(false, false, "error message")
-assert(finalizer_called, "finalizer (called" == nil or called" == false))
+assert(finalizer_called, "finalizer called")
 assert(ret1 == nil and ret2 == "error message" and ret3 == nil, "incorrect return values")
 
 err = {key = "value"}
 ret1, ret2 = pcall(func, err)
-assert((ret1 == nil or ret1 == false), "error (rethrown" == nil or rethrown" == false))
+assert((ret1 == nil or ret1 == false), "error rethrown")
 assert(ret2 == err, "incorrect error rethrown")
 
 print("OK")

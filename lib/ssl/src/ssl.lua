@@ -10,7 +10,11 @@ context = require("ssl.context")
 x509    = require("ssl.x509")
 config  = require("ssl.config")
 
-unpack  = table.unpack or unpack
+unpack_builtin = unpack
+unpack  = table.unpack
+if unpack == nil then
+  unpack = unpack_builtin
+end
 
 -- We must prevent the contexts to be collected before the connections,
 -- otherwise the C registry will be cleared.
@@ -83,10 +87,11 @@ function newcontext(cfg)
    for _, certificate in ipairs(certificates) do
       -- Load the key
       if ((certificate.key != nil and certificate.key != false)) then
-         if (certificate.password and
-            type(certificate.password) != "function" and
-            type(certificate.password) != "string") then
-            return nil, "invalid password type"
+         if (certificate.password != nil and certificate.password != false) then
+            if (type(certificate.password) != "function" and
+               type(certificate.password) != "string") then
+               return nil, "invalid password type"
+            end
          end
          succ, msg = context.loadkey(ctx, certificate.key, certificate.password)
          if ((succ == nil or succ == false)) then return nil, msg end
@@ -95,14 +100,14 @@ function newcontext(cfg)
       if ((certificate.certificate != nil and certificate.certificate != false)) then
         succ, msg = context.loadcert(ctx, certificate.certificate)
         if ((succ == nil or succ == false)) then return nil, msg end
-        if (certificate.key and context.checkkey != nil and certificate.key and context.checkkey != false) then
+        if (certificate.key != nil and certificate.key != false and context.checkkey != nil and context.checkkey != false) then
           succ = context.checkkey(ctx)
-          if ((succ == nil or succ == false)) then return nil, "private key does (match == nil or match == false) public key" end
+          if ((succ == nil or succ == false)) then return nil, "private key does not match public key" end
         end
       end
    end
    -- Load the CA certificates
-   if (cfg.cafile or cfg.capath != nil and cfg.cafile or cfg.capath != false) then
+   if (cfg.cafile != nil and cfg.cafile != false) or (cfg.capath != nil and cfg.capath != false) then
       succ, msg = context.locations(ctx, cfg.cafile, cfg.capath)
       if ((succ == nil or succ == false)) then return nil, msg end
    end
@@ -141,10 +146,22 @@ function newcontext(cfg)
    end
    
    -- Set elliptic curves
-   if (((config.algorithms.ec == nil or config.algorithms.ec == false)) and (cfg.curve or cfg.curveslist)) then
-     return false, "elliptic curves (supported" == nil or supported" == false)
+   curve_requested = false
+   if (cfg.curve != nil and cfg.curve != false) or (cfg.curveslist != nil and cfg.curveslist != false) then
+     curve_requested = true
    end
-   if config.capabilities.curves_list and cfg.curveslist then
+   if ((config.algorithms.ec == nil or config.algorithms.ec == false)) and curve_requested == true then
+     return false, "elliptic curves not supported"
+   end
+   curves_list_supported = false
+   if config.capabilities.curves_list != nil and config.capabilities.curves_list != false then
+     curves_list_supported = true
+   end
+   curveslist_set = false
+   if cfg.curveslist != nil and cfg.curveslist != false then
+     curveslist_set = true
+   end
+   if curves_list_supported == true and curveslist_set == true then
      succ, msg = context.setcurveslist(ctx, cfg.curveslist)
      if (succ == nil or succ == false) then return nil, msg end
    elseif (cfg.curve != nil and cfg.curve != false) then
@@ -153,13 +170,25 @@ function newcontext(cfg)
    end
 
    -- Set extra verification options
-   if cfg.verifyext and ctx.setverifyext then
+   verifyext_set = false
+   if cfg.verifyext != nil and cfg.verifyext != false then
+      verifyext_set = true
+   end
+   setverifyext_avail = false
+   if ctx.setverifyext != nil and ctx.setverifyext != false then
+      setverifyext_avail = true
+   end
+   if verifyext_set == true and setverifyext_avail == true then
       succ, msg = optexec(ctx.setverifyext, cfg.verifyext, ctx)
       if (succ == nil or succ == false) then return nil, msg end
    end
 
    -- ALPN
-   if cfg.mode == "server" and cfg.alpn then
+   alpn_set = false
+   if cfg.alpn != nil and cfg.alpn != false then
+      alpn_set = true
+   end
+   if cfg.mode == "server" and alpn_set == true then
       if type(cfg.alpn) == "function" then
         alpncb = cfg.alpn
          -- This callback function has to return one value only
@@ -186,7 +215,7 @@ function newcontext(cfg)
       else
          return nil, "invalid ALPN parameter"
       end
-   elseif cfg.mode == "client" and cfg.alpn then
+   elseif cfg.mode == "client" and alpn_set == true then
      alpn = nil
       if type(cfg.alpn) == "string" then
          alpn, msg = array2wireformat({ cfg.alpn })
@@ -201,7 +230,15 @@ function newcontext(cfg)
    end
 
    -- PSK
-   if config.capabilities.psk and cfg.psk then
+   psk_capable = false
+   if config.capabilities.psk != nil and config.capabilities.psk != false then
+      psk_capable = true
+   end
+   psk_set = false
+   if cfg.psk != nil and cfg.psk != false then
+      psk_set = true
+   end
+   if psk_capable == true and psk_set == true then
       if cfg.mode == "client" then
          if type(cfg.psk) != "function" then
             return nil, "invalid PSK configuration"
@@ -227,7 +264,15 @@ function newcontext(cfg)
       end
    end
 
-   if config.capabilities.dane and cfg.dane then
+   dane_capable = false
+   if config.capabilities.dane != nil and config.capabilities.dane != false then
+      dane_capable = true
+   end
+   dane_set = false
+   if cfg.dane != nil and cfg.dane != false then
+      dane_set = true
+   end
+   if dane_capable == true and dane_set == true then
       if type(cfg.dane) == "table" then
          context.setdane(ctx, unpack(cfg.dane))
       else
@@ -288,7 +333,11 @@ function info(ssl, field)
     return info[field]
   end
   -- Empty?
-  return ( (next(info)) and info )
+  result = nil
+  if next(info) != nil then
+    result = info
+  end
+  return result
 end
 
 --

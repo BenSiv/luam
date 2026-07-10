@@ -109,7 +109,10 @@ end
 
 function metat.__index.source(__index, source, step)
    sink = socket.sink("keep-open", self.c)
-   ret, err = ltn12.pump.all(source, sink, step or ltn12.pump.step)
+    if (step == nil) then
+        step = ltn12.pump.step
+    end
+   ret, err = ltn12.pump.all(source, sink, step)
     return ret, err
 end
 
@@ -121,9 +124,15 @@ end
 
 -- connect with server and return c object
 function _M.connect(host, port, timeout, create)
-   c, e = (create or socket.tcp)()
+    if (create == nil) then
+        create = socket.tcp
+    end
+   c, e = create()
     if ((c == nil or c == false)) then return nil, e end
-    c.settimeout(c, timeout or _M.TIMEOUT)
+    if (timeout == nil) then
+        timeout = _M.TIMEOUT
+    end
+    c.settimeout(c, timeout)
    r, e = c.connect(c, host, port)
     if ((r == nil or r == false)) then
         c.close(c)

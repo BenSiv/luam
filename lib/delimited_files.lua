@@ -46,7 +46,7 @@ function readdlm(filename, delimiter, header)
 
         fields = dlm_split(line, delimiter)
 
-        if (header != nil and header and line_count == 1) then
+        if (header == true and line_count == 1) then
             -- Use the first line as keys
             for i, v in ipairs(fields) do cols[i] = v end
             num_cols = #cols
@@ -54,7 +54,7 @@ function readdlm(filename, delimiter, header)
             -- Create a new table for each row
             entry = {}
 
-            if (header != nil and header) then
+            if (header == true) then
                 -- nitialize all keys with empty strings
                 for _, col in ipairs(cols) do
                     entry[col] = ""
@@ -63,14 +63,27 @@ function readdlm(filename, delimiter, header)
                 -- Populate values
                 for i, value in ipairs(fields) do
                     num_value = tonumber(value)
-                    entry[cols[i]] = num_value or value or ""
+                    if (num_value != nil) then
+                        entry[cols[i]] = num_value
+                    elseif (value != nil) then
+                        entry[cols[i]] = value
+                    else
+                        entry[cols[i]] = ""
+                    end
                 end
             else
                 -- For rows without a header, fill missing values with empty strings
                 for i = 1, num_cols do
-                    value = fields[i] or ""
+                    value = fields[i]
+                    if (value == nil) then
+                        value = ""
+                    end
                     num_value = tonumber(value)
-                    table.insert(entry, num_value or value)
+                    if (num_value != nil) then
+                        table.insert(entry, num_value)
+                    else
+                        table.insert(entry, value)
+                    end
                 end
             end
             table.insert(data, entry)
@@ -87,7 +100,7 @@ end
 function writedlm(data, filename, delimiter, header, append, column_order)
     file = nil 
 
-    if (append != nil and append) then
+    if (append == true) then
         file = io.open(filename, "a")
     else
         file = io.open(filename, "w")
@@ -106,7 +119,7 @@ function writedlm(data, filename, delimiter, header, append, column_order)
     end
 
     -- Write header line if header is true
-    if (header != nil and header) then
+    if (header == true) then
         header_line = table.concat(column_order, delimiter)
         io.write(file, header_line .. "\n")
     end

@@ -42,7 +42,7 @@ end
 print("** Handshake done")
 --]]
 
--- If the section above is commented, the timeout is (set. == nil or set. == false)
+-- If the section above is commented, the timeout is not set.
 -- We set it again for safetiness.
 peer.settimeout(peer, 0.3)  
 

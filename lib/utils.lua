@@ -49,8 +49,8 @@ end
 
 -- write content to file
 function write(path, content, append)
-    file = nil 
-    if (append != nil and append) then
+    file = nil
+    if (append != nil and append != false) then
         file = io.open(path, "a")
     else
         file = io.open(path, "w")
@@ -66,8 +66,12 @@ end
 
 -- Pretty print a table with limit
 function show_table(tbl, indent_level, limit)
-    indent_level = indent_level or 0
-    limit = limit or math.huge  -- if limit (provided == nil or provided == false), show all
+    if indent_level == nil then
+        indent_level = 0
+    end
+    if limit == nil then
+        limit = math.huge  -- if limit not provided, show all
+    end
     indent = repeat_string(" ", 4)
     current_indent = repeat_string(indent, indent_level)
     print(current_indent .. "{")
@@ -131,7 +135,10 @@ end
 
 -- ound a number
 function round(value, decimal)
-    factor = 10 ^ (decimal or 0)
+    if decimal == nil then
+        decimal = 0
+    end
+    factor = 10 ^ decimal
     return math.floor(value * factor + 0.5) / factor
 end
 
@@ -188,7 +195,7 @@ end
 
 function isempty(source)
     answer = false
-    if (source != nil and source and (type(source) == "table" or type(source) == "string")) then
+    if (source != nil and source != false and (type(source) == "table" or type(source) == "string")) then
         if (length(source) == 0) then
             answer = true
         end
@@ -336,7 +343,9 @@ end
 
 function readdir(directory)
     if (lfs == nil) then error("luafilesystem (lfs) not loaded") end
-    directory = directory or "."
+    if directory == nil then
+        directory = "."
+    end
     files = {}
     for file in lfs.dir(directory) do
         if file != "." and file != ".." then
@@ -553,8 +562,12 @@ function deep_sort(tbl)
 end
 
 function apply(func, tbl, level, key, _current_level)
-    _current_level = _current_level or 0
-    level = level or 0
+    if _current_level == nil then
+        _current_level = 0
+    end
+    if level == nil then
+        level = 0
+    end
     result = {}
     if (_current_level < level) then
         for k,v in pairs(tbl) do
@@ -655,9 +668,16 @@ function get_line_length()
     if (io.popen != nil) then
         ok, handle = pcall(io.popen, "stty size 2>/dev/null | awk '{print $2}'")
         if (ok and handle != nil) then
-            result = io.read(handle, "*a") or ""
+            result = io.read(handle, "*a")
+            if result == nil then
+                result = ""
+            end
             io.close(handle)
-            return tonumber(result) or 80
+            result_number = tonumber(result)
+            if result_number == nil then
+                result_number = 80
+            end
+            return result_number
         end
     end
     -- Fallback via temp file
@@ -665,12 +685,19 @@ function get_line_length()
     if (os.execute("stty size > " .. tmpfile .. " 2>/dev/null") == 0) then
         file = io.open(tmpfile, "r")
         if (file != nil) then
-             result = io.read(file, "*a") or ""
+             result = io.read(file, "*a")
+             if result == nil then
+                 result = ""
+             end
              io.close(file)
              os.remove(tmpfile)
              -- stty size output is "rows cols"
-             rows, cols = string.match(result or "", "(%d+)%s+(%d+)")
-             return tonumber(cols) or 80
+             rows, cols = string.match(result, "(%d+)%s+(%d+)")
+             cols_number = tonumber(cols)
+             if cols_number == nil then
+                 cols_number = 80
+             end
+             return cols_number
         end
     end
     os.remove(tmpfile)
@@ -888,7 +915,10 @@ end
 -- Parse function header and first comment
 function extract_help_from_source(source)
     -- Extract first line with 'function ...'
-    header = string.match(source, "function%s+.-%b()%s*") or string.match(source, "function%s+.-\n")
+    header = string.match(source, "function%s+.-%b()%s*")
+    if header == nil then
+        header = string.match(source, "function%s+.-\n")
+    end
     if ((header != nil and header != false)) then
         header = string.gsub(string.gsub(header, "^.*function%s+", ""), "%s*$", "")
     end
@@ -897,7 +927,10 @@ function extract_help_from_source(source)
     comment = string.match(source, "%-%-%[%[(.-)%]%]") 
     if ((comment == nil or comment == false)) then
         -- Fallback: single line comment
-        comment = string.match(source, "\n%s*%-%-%s*(.-)\n") or string.match(source, "\n%s*%-%-%s*(.-)$")
+        comment = string.match(source, "\n%s*%-%-%s*(.-)\n")
+        if comment == nil then
+            comment = string.match(source, "\n%s*%-%-%s*(.-)$")
+        end
     end
 
     if ((comment != nil and comment != false)) then

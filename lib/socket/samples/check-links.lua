@@ -10,7 +10,10 @@ http = require("socket.http")
 dispatch.TIMEOUT = 10
 
 -- make sure the user knows how to invoke us
-arg = arg or ({})
+arg = arg
+if arg == nil then
+    arg = ({})
+end
 if (#arg < 1) then
     print("Usage:\n  luasocket check-links.lua [-n] {<url>}")
     exit()
@@ -39,7 +42,7 @@ function getstatus(link)
                 url = link,
                 create = handler.tcp
             })
-            if (r and c == 200) then io.write('\t', link, '\n')
+            if ((r != nil and r != false) and c == 200) then io.write('\t', link, '\n')
             else io.write('\t', link, ': ', tostring(c), '\n') end
             nthreads = nthreads - 1
         end)
@@ -64,7 +67,9 @@ function load(u)
         body, code, headers = http.request(u)
         if (code == 200) then
             -- if there was a redirect, update base to reflect it
-            base = headers.location or base
+            if headers.location != nil then
+                base = headers.location
+            end
         end
         if ((body == nil or body == false)) then
             error = code

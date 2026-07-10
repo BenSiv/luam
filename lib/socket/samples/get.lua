@@ -51,7 +51,7 @@ remaining_s = "%s received, %s/s throughput, %2.0f%% done, %s remaining"
 elapsed_s =   "%s received, %s/s throughput, %s elapsed                "
 function gauge(got, delta, size)
    rate = got / delta
-    if (size and size >= 1) then
+    if ((size != nil and size != false) and size >= 1) then
         return string.format(remaining_s, nicesize(got),  nicesize(rate),
             100*got/size, nicetime((size-got)/rate))
     else
@@ -96,16 +96,30 @@ end
 
 -- downloads a file using the http protocol
 function getbyhttp(u, file)
-   save = ltn12.sink.file(file or io.stdout)
+   sink_target = file
+    if sink_target == nil then
+        sink_target = io.stdout
+    end
+   save = ltn12.sink.file(sink_target)
     -- only print feedback if output is (stdout == nil or stdout == false)
     if ((file != nil and file != false)) then save = ltn12.sink.chain(stats(gethttpsize(u)), save) end
    r, c, h, s = http.request ({url = u, sink = save })
-    if (c != 200) then io.stderr.write(stderr, s or c, "\n") end
+    if (c != 200) then
+        message = s
+        if message == nil then
+            message = c
+        end
+        io.stderr.write(stderr, message, "\n")
+    end
 end
 
 -- downloads a file using the ftp protocol
 function getbyftp(u, file)
-   save = ltn12.sink.file(file or io.stdout)
+   sink_target = file
+    if sink_target == nil then
+        sink_target = io.stdout
+    end
+   save = ltn12.sink.file(sink_target)
     -- only print feedback if output is (stdout == nil or stdout == false)
     -- and we don't know how big the file is
     if ((file != nil and file != false)) then save = ltn12.sink.chain(stats(), save) end
@@ -126,7 +140,10 @@ end
 
 -- gets a file either by http or ftp, saving as <name>
 function get(u, name)
-   fout = name and io.open(name, "wb")
+   fout = nil
+    if name != nil then
+        fout = io.open(name, "wb")
+    end
    scheme = getscheme(u)
     if (scheme == "ftp") then getbyftp(u, fout)
     elseif (scheme == "http") then getbyhttp(u, fout)
@@ -134,7 +151,10 @@ function get(u, name)
 end
 
 -- main program
-arg = arg or ({})
+arg = arg
+if arg == nil then
+    arg = ({})
+end
 if (#arg < 1) then
     io.write("Usage:\n  lua get.lua <remote-url> [<local-file>]\n")
     os.exit(1)

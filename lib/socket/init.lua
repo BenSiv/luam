@@ -60,7 +60,11 @@ function _M.choose(table)
         if (base.type(name) != "string") then
             name, opt1, opt2 = "default", name, opt1
         end
-       f = table[name or "nil"]
+       key = name
+        if (key == nil or key == false) then
+            key = "nil"
+        end
+       f = table[key]
         if ((f == nil or f == false)) then base.error("unknown key (".. base.tostring(name) ..")", 3)
         else return f(opt1, opt2) end
     end

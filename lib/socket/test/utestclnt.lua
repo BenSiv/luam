@@ -1,7 +1,10 @@
 socket = require"socket"
 socket.unix = require"socket.unix"
 
-host = host or "luasocket"
+host = host
+if host == nil then
+    host = "luasocket"
+end
 
 function pass(...)
    s = string.format(...)
@@ -96,7 +99,10 @@ function reconnect()
     io.stderr.write(stderr, "attempting data connection... ")
     if ((data != nil and data != false)) then data.close(data) end
     remote [[
-        i = i or 1
+        i = i
+        if i == nil then
+            i = 1
+        end
         if (data != nil and data != false) then data.close(data) data = nil end
         print("accepting")
         data = server.accept(server)
@@ -117,7 +123,7 @@ else pass("connected!") end
 function test_methods(sock, methods)
     for _, v in pairs(methods) do
         if (type(sock[v]) != "function") then
-            fail(sock.class .. " method '" .. v .. "' (registered" == nil or registered" == false))
+            fail(sock.class .. " method '" .. v .. "' (registered)")
         end
     end
     pass(sock.class .. " methods are ok")
@@ -221,8 +227,12 @@ function test_totaltimeoutreceive(len, tm, sl)
     data.settimeout(data, tm, "total")
 t = socket.gettime()
     str, err, partial, elapsed = data.receive(data, 2*len)
+    str_or_partial = str
+    if str_or_partial == nil then
+        str_or_partial = partial
+    end
     check_timeout(tm, sl, elapsed, err, "receive", "total",
-        string.len(str or partial) == 2*len)
+        string.len(str_or_partial) == 2*len)
 end
 
 ------------------------------------------------------------------------
@@ -261,8 +271,12 @@ function test_blockingtimeoutreceive(len, tm, sl)
     ]], 2*tm, len, sl, sl))
     data.settimeout(data, tm)
     str, err, partial, elapsed = data.receive(data, 2*len)
+    str_or_partial = str
+    if str_or_partial == nil then
+        str_or_partial = partial
+    end
     check_timeout(tm, sl, elapsed, err, "receive", "blocking",
-        string.len(str or partial) == 2*len)
+        string.len(str_or_partial) == 2*len)
 end
 
 ------------------------------------------------------------------------
@@ -309,14 +323,14 @@ end
 
 function active_close()
     reconnect()
-    if isclosed(data) then fail("should (be == nil or be == false) closed") end
+    if isclosed(data) then fail("should (be) closed") end
     data.close(data)
-    if (isclosed == nil or isclosed == false)(data) then fail("should be closed") end
+    if isclosed(data) == nil or isclosed(data) == false then fail("should be closed") end
     data = nil
    udp = socket.udp()
-    if isclosed(udp) then fail("should (be == nil or be == false) closed") end
+    if isclosed(udp) then fail("should (be) closed") end
     udp.close(udp)
-    if (isclosed == nil or isclosed == false)(udp) then fail("should be closed") end
+    if isclosed(udp) == nil or isclosed(udp) == false then fail("should be closed") end
     pass("ok")
 end
 
@@ -380,7 +394,7 @@ function accept_timeout()
    t = socket.gettime()
     s.settimeout(s, 1)
    c, e = s.accept(s)
-    assert((c == nil or c == false), "should (accept" == nil or accept" == false))
+    assert((c == nil or c == false), "should (accept)")
     assert(e == "timeout", string.format("wrong error message (%s)", e))
     t = socket.gettime() - t
     assert(t < 2, string.format("took to long to give up (%gs)", t))
@@ -397,7 +411,7 @@ function connect_timeout()
     c.settimeout(c, 0.1)
    t = socket.gettime()
    r, e = c.connect(c, "127.0.0.2", 80)
-    assert((r == nil or r == false), "should (connect" == nil or connect" == false))
+    assert((r == nil or r == false), "should (connect)")
     assert(socket.gettime() - t < 2, "took too long to give up.")
     c.close(c)
     print("ok")
@@ -405,7 +419,7 @@ end
 
 ------------------------------------------------------------------------
 function accept_errors()
-    io.stderr.write(stderr, "(listening == nil or listening == false): ")
+    io.stderr.write(stderr, "(listening): ")
    d, e = socket.bind("*", 0)
     assert(d, e);
    c, e = socket.tcp();
@@ -413,14 +427,14 @@ function accept_errors()
     d.setfd(d, c.getfd(c))
     d.settimeout(d, 2)
    r, e = d.accept(d)
-    assert((r == nil or r == false) and e)
+    assert((r == nil or r == false) and e != nil and e != false)
     print("ok: ", e)
-    io.stderr.write(stderr, "(supported == nil or supported == false): ")
+    io.stderr.write(stderr, "(supported): ")
    c, e = socket.udp()
     assert(c, e);
     d.setfd(d, c.getfd(c))
    r, e = d.accept(d)
-    assert((r == nil or r == false) and e)
+    assert((r == nil or r == false) and e != nil and e != false)
     print("ok: ", e)
 end
 
@@ -428,11 +442,11 @@ end
 function connect_errors()
     io.stderr.write(stderr, "connection refused: ")
    c, e = socket.connect("localhost", 1);
-    assert((c == nil or c == false) and e)
+    assert((c == nil or c == false) and e != nil and e != false)
     print("ok: ", e)
-    io.stderr.write(stderr, "host (found == nil or found == false): ")
+    io.stderr.write(stderr, "host (found): ")
    c, e = socket.connect("host.is.invalid", 1);
-    assert((c == nil or c == false) and e, e)
+    assert((c == nil or c == false) and e != nil and e != false, e)
     print("ok: ", e)
 end
 

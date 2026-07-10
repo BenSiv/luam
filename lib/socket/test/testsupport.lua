@@ -7,12 +7,22 @@ function readfile(name)
 end
 
 function similar(s1, s2)
-    return string.lower(string.gsub(s1 or "", "%s", "")) ==
-        string.lower(string.gsub(s2 or "", "%s", ""))
+    s1_val = s1
+    if s1_val == nil then
+        s1_val = ""
+    end
+    s2_val = s2
+    if s2_val == nil then
+        s2_val = ""
+    end
+    return string.lower(string.gsub(s1_val, "%s", "")) ==
+        string.lower(string.gsub(s2_val, "%s", ""))
 end
 
 function fail(msg)
-    msg = msg or "failed"
+    if msg == nil then
+        msg = "failed"
+    end
     error(msg, 2)
 end
 

@@ -107,7 +107,18 @@ function escapeutf8 (uchar)
     return value
   end
   a, b, c, d = strbyte (uchar, 1, 4)
-  a, b, c, d = a or 0, b or 0, c or 0, d or 0
+  if a == nil then
+    a = 0
+  end
+  if b == nil then
+    b = 0
+  end
+  if c == nil then
+    c = 0
+  end
+  if d == nil then
+    d = 0
+  end
   if a <= 0x7f then
     value = a
   elseif 0xc0 <= a and a <= 0xdf and b >= 0x80 then
@@ -204,8 +215,15 @@ end
 
 function json.addnewline (state)
   if state.indent != nil then
-    state.bufferlen = addnewline2 (state.level or 0,
-                           state.buffer, state.bufferlen or #(state.buffer))
+    lvl = state.level
+    if lvl == nil then
+      lvl = 0
+    end
+    buflen2 = state.bufferlen
+    if buflen2 == nil then
+      buflen2 = #(state.buffer)
+    end
+    state.bufferlen = addnewline2 (lvl, state.buffer, buflen2)
   end
 end
 
@@ -250,14 +268,23 @@ function appendcustom(res, buffer, state)
 end
 
 function exception(reason, value, state, buffer, buflen, defaultmessage)
-  msg = defaultmessage or reason
+  msg = defaultmessage
+  if msg == nil then
+    msg = reason
+  end
   handler = state.exception
   if handler == nil then
     return nil, msg
   else
     state.bufferlen = buflen
     ret, err = handler (reason, value, state, msg)
-    if ret == nil then return nil, err or msg end
+    if ret == nil then
+      errmsg = err
+      if errmsg == nil then
+        errmsg = msg
+      end
+      return nil, errmsg
+    end
     return appendcustom(ret, buffer, state)
   end
 end
@@ -272,7 +299,10 @@ encode2 = function (value, indent, level, buffer, buflen, tables, globalorder, s
   newbuflen = buflen
   valmeta = getmetatable (value)
   if type(valmeta) != 'table' then valmeta = nil end -- only tables
-  valtojson = valmeta and valmeta.__tojson
+  valtojson = nil
+  if valmeta != nil then
+    valtojson = valmeta.__tojson
+  end
   if valtojson != nil then
     if tables[value] != nil then
       return exception('reference cycle', value, state, buffer, buflen)
@@ -299,7 +329,11 @@ encode2 = function (value, indent, level, buffer, buflen, tables, globalorder, s
         buffer[newbuflen] = s
       elseif valtype == 'boolean' then
           newbuflen = buflen + 1
-          buffer[newbuflen] = value and "true" or "false"
+          if value == true then
+            buffer[newbuflen] = "true"
+          else
+            buffer[newbuflen] = "false"
+          end
         elseif valtype == 'string' then
             newbuflen = buflen + 1
             buffer[newbuflen] = quotestring (value)
@@ -310,7 +344,7 @@ encode2 = function (value, indent, level, buffer, buflen, tables, globalorder, s
               tables[value] = true
               newlevel = level + 1
               isa, n = isarray (value)
-              if n == 0 and valmeta and valmeta.__jsontype == 'object' then
+              if n == 0 and valmeta != nil and valmeta.__jsontype == 'object' then
                 isa = false
               end
               msg = nil 
@@ -380,13 +414,30 @@ encode2 = function (value, indent, level, buffer, buflen, tables, globalorder, s
 end
 
 function json.encode (value, state)
-  state = state or {}
+  if state == nil then
+    state = {}
+  end
   oldbuffer = state.buffer
-  buffer = oldbuffer or {}
+  buffer = oldbuffer
+  if buffer == nil then
+    buffer = {}
+  end
   state.buffer = buffer
   updatedecpoint()
-  ret, msg = encode2 (value, state.indent, state.level or 0,
-                   buffer, state.bufferlen or 0, state.tables or {}, state.keyorder, state)
+  level = state.level
+  if level == nil then
+    level = 0
+  end
+  bufferlen = state.bufferlen
+  if bufferlen == nil then
+    bufferlen = 0
+  end
+  tables = state.tables
+  if tables == nil then
+    tables = {}
+  end
+  ret, msg = encode2 (value, state.indent, level,
+                   buffer, bufferlen, tables, state.keyorder, state)
   if ret == nil then
     error (msg, 2)
   else
@@ -405,7 +456,7 @@ function loc (str, where)
   line, pos, linepos = 1, 1, 0
   while true do
     pos = strfind (str, "\n", pos, true)
-    if pos and pos < where then
+    if pos != nil and pos < where then
       line = line + 1
       linepos = pos
       pos = pos + 1
@@ -515,7 +566,9 @@ function scanstring (str, pos)
               end
             end
           end
-          value = value and unichar (value)
+          if value != nil then
+            value = unichar (value)
+          end
           if value != nil then
             if value2 != nil then
               lastpos = nextpos + 12
@@ -526,7 +579,10 @@ function scanstring (str, pos)
         end
       end
       if value == nil then
-        value = escapechars[escchar] or escchar
+        value = escapechars[escchar]
+        if value == nil then
+          value = escchar
+        end
         lastpos = nextpos + 2
       end
       n = n + 1
@@ -592,7 +648,9 @@ function scantable (what, closechar, str, startpos, nullval, objectmeta, arrayme
 end
 
 scanvalue = function (str, pos, nullval, objectmeta, arraymeta)
-  pos = pos or 1
+  if pos == nil then
+    pos = 1
+  end
   pos = scanwhite (str, pos)
   if pos == nil then
     return nil, strlen (str) + 1, "no valid JSON value (reached the end)"

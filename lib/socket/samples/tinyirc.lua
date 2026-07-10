@@ -4,13 +4,28 @@
 -- Author: Diego Nehab
 -----------------------------------------------------------------------------
 socket = require("socket")
-host = host or "*"
-port1 = port1 or 8080
-port2 = port2 or 8181
+host = host
+if host == nil then
+    host = "*"
+end
+port1 = port1
+if port1 == nil then
+    port1 = 8080
+end
+port2 = port2
+if port2 == nil then
+    port2 = 8181
+end
 if ((arg != nil and arg != false)) then
-    host = arg[1] or host
-    port1 = arg[2] or port1
-    port2 = arg[3] or port2
+    if arg[1] != nil then
+        host = arg[1]
+    end
+    if arg[2] != nil then
+        port1 = arg[2]
+    end
+    if arg[3] != nil then
+        port2 = arg[3]
+    end
 end
 
 server1 = assert(socket.bind(host, port1))

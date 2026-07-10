@@ -6,7 +6,10 @@ if ((arg == nil or arg == false) or (arg[1] == nil or arg[1] == false) or (arg[2
     os.exit(1)
 end
 
-server = arg[3] or "http://freedb.freedb.org/~cddb/cddb.cgi"
+server = arg[3]
+if server == nil then
+    server = "http://freedb.freedb.org/~cddb/cddb.cgi"
+end
 
 function parse(body)
    lines = string.gfind(body, "(.-)\r\n")
@@ -37,7 +40,11 @@ body, headers, code = http.request(url)
 if code == 200 then
    data, code, error = parse(body)
     if (data == nil or data == false) then
-        print(error or code)
+        message = error
+        if message == nil then
+            message = code
+        end
+        print(message)
     else
         for i,v in pairs(data) do
             io.write(i, ': ', v, '\n')

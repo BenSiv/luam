@@ -25,7 +25,10 @@ function choose(table)
         if (base.type(name) != "string") then
             name, opt1, opt2 = "default", name, opt1
         end
-       f = table[name or "nil"]
+       f = table[name]
+        if (name == nil) then
+            f = table["nil"]
+        end
         if (f == nil) then
             base.error("unknown key (" .. base.tostring(name) .. ")", 3)
         else return f(opt1, opt2) end
@@ -38,8 +41,11 @@ encodet['base64'] = function()
 end
 
 encodet['quoted-printable'] = function(mode)
-    return ltn12.filter.cycle(_M.qp, "",
-        (mode == "binary") and "=0D=0A" or "\r\n")
+   sep = "\r\n"
+    if (mode == "binary") then
+        sep = "=0D=0A"
+    end
+    return ltn12.filter.cycle(_M.qp, "", sep)
 end
 
 -- define the decoding filters
@@ -53,7 +59,9 @@ end
 
 -- define the line-wrap filters
 wrapt['text'] = function(length)
-    length = length or 76
+    if (length == nil) then
+        length = 76
+    end
     return ltn12.filter.cycle(_M.wrp, length, length)
 end
 wrapt['base64'] = wrapt['text']

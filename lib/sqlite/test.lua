@@ -2,8 +2,12 @@ require("lsqlite3")
 
 width = 78
 function line(pref, suff)
-    pref = pref or ''
-    suff = suff or ''
+    if pref == nil then
+        pref = ''
+    end
+    if suff == nil then
+        suff = ''
+    end
    len = width - 2 - string.len(pref) - string.len(suff)
     print(pref .. string.rep('-', len) .. suff)
 end
@@ -81,7 +85,10 @@ end
 
 function udf1_scalar(ctx, v)
    ud = ctx.user_data(ctx)
-    ud.r = (ud.r or '') .. tostring(v)
+    if ud.r == nil then
+        ud.r = ''
+    end
+    ud.r = ud.r .. tostring(v)
     ctx.result_text(ctx, ud.r)
 end
 
@@ -97,12 +104,21 @@ function udf2_aggregate(ctx, ...)
         ud = {}
         ctx.set_aggregate_data(ctx, ud)
     end
-    ud.r = (ud.r or 0) + 2
+    if ud.r == nil then
+        ud.r = 0
+    end
+    ud.r = ud.r + 2
 end
 
 function udf2_aggregate_finalize(ctx, v)
    ud = ctx.get_aggregate_data(ctx)
-    ctx.result_number(ctx, ud and ud.r or 0)
+    result = 0
+    if ud != nil then
+        if ud.r != nil then
+            result = ud.r
+        end
+    end
+    ctx.result_number(ctx, result)
 end
 
 db.create_aggregate(db, 'udf2', 1, udf2_aggregate, udf2_aggregate_finalize, { })

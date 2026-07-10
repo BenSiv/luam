@@ -4,11 +4,21 @@
 -- Author: Diego Nehab
 -----------------------------------------------------------------------------
 socket = require("socket")
-host = host or "localhost"
-port = port or 7
+host = host
+if host == nil then
+    host = "localhost"
+end
+port = port
+if port == nil then
+    port = 7
+end
 if ((arg != nil and arg != false)) then
-    host = arg[1] or host
-    port = arg[2] or port
+    if arg[1] != nil then
+        host = arg[1]
+    end
+    if arg[2] != nil then
+        port = arg[2]
+    end
 end
 host = socket.dns.toip(host)
 udp = assert(socket.udp())

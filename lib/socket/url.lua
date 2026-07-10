@@ -146,7 +146,10 @@ end
 function _M.parse(url, default)
     -- initialize default parameters
    parsed = {}
-    for i,v in base.pairs(default or parsed) do parsed[i] = v end
+    if (default == nil or default == false) then
+        default = parsed
+    end
+    for i,v in base.pairs(default) do parsed[i] = v end
     -- empty url is parsed to nil
     if ((url == nil or url == false) or url == "") then return nil, "invalid url" end
     -- remove whitespace
@@ -184,7 +187,11 @@ function _M.parse(url, default)
         function(p) parsed.port = p; return "" end)
     if (authority != "") then
         -- IPv6?
-        parsed.host = string.match(authority, "^%[(.+)%]$") or authority
+       host = string.match(authority, "^%[(.+)%]$")
+        if (host == nil or host == false) then
+            host = authority
+        end
+        parsed.host = host
     end
    userinfo = parsed.userinfo
     if ((userinfo == nil or userinfo == false)) then return parsed end
@@ -205,7 +212,10 @@ end
 function _M.build(parsed)
     --ppath = _M.parse_path(parsed.path or "")
     --url = _M.build_path(ppath)
-   url = parsed.path or ""
+   url = parsed.path
+    if (url == nil or url == false) then
+        url = ""
+    end
     if ((parsed.params != nil and parsed.params != false)) then url = url .. ";" .. parsed.params end
     if ((parsed.query != nil and parsed.query != false)) then url = url .. "?" .. parsed.query end
    authority = parsed.authority
@@ -268,7 +278,11 @@ function _M.absolute(base_url, relative_url)
                     end
                 end
             else
-                relative_parsed.path = absolute_path(base_parsed.path or "",
+               abs_base_path = base_parsed.path
+                if (abs_base_path == nil or abs_base_path == false) then
+                    abs_base_path = ""
+                end
+                relative_parsed.path = absolute_path(abs_base_path,
                     relative_parsed.path)
             end
         end
@@ -286,7 +300,9 @@ end
 -----------------------------------------------------------------------------
 function _M.parse_path(path)
    parsed = {}
-    path = path or ""
+    if (path == nil or path == false) then
+        path = ""
+    end
     --path = string.gsub(path, "%s", "")
     string.gsub(path, "([^/]+)", function (s) table.insert(parsed, s) end)
     for i = 1, #parsed do

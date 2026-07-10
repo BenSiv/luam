@@ -32,7 +32,10 @@ _M.SERVER = "localhost"
 _M.PORT = 25
 -- domain used in HELO command and default sendmail
 -- If we are under a CGI, try to get from environment
-_M.DOMAIN = os.getenv("SERVER_NAME") or "localhost"
+_M.DOMAIN = os.getenv("SERVER_NAME")
+if _M.DOMAIN == nil then
+    _M.DOMAIN = "localhost"
+end
 -- default time zone (means we don't know)
 _M.ZONE = "-0000"
 
@@ -43,7 +46,10 @@ metat = { __index = {} }
 
 function metat.__index.greet(__index, domain)
     self.try(self.tp.check(self.tp, "2.."))
-    self.try(self.tp.command(self.tp, "EHLO", domain or _M.DOMAIN))
+    if domain == nil then
+        domain = _M.DOMAIN
+    end
+    self.try(self.tp.command(self.tp, "EHLO", domain))
     return socket.skip(1, self.try(self.tp.check(self.tp, "2..")))
 end
 
@@ -96,7 +102,7 @@ function metat.__index.auth(__index, user, password, ext)
     elseif (string.find(ext, "AUTH[^\n]+PLAIN") != nil and string.find(ext, "AUTH[^\n]+PLAIN") != false) then
         return self.plain(self, user, password)
     else
-        self.try(nil, "authentication (supported" == nil or supported" == false))
+        self.try(nil, "authentication method not supported")
     end
 end
 
@@ -114,8 +120,13 @@ function metat.__index.send(__index, mailt)
 end
 
 function _M.open(server, port, create)
-   tp = socket.try(tp.connect(server or _M.SERVER, port or _M.PORT,
-        _M.TIMEOUT, create))
+    if server == nil then
+        server = _M.SERVER
+    end
+    if port == nil then
+        port = _M.PORT
+    end
+   tp = socket.try(tp.connect(server, port, _M.TIMEOUT, create))
    s = base.setmetatable({tp = tp}, metat)
     -- make sure tp is closed if we get an exception
     s.try = socket.newtry(function()
@@ -127,7 +138,10 @@ end
 -- convert headers to lowercase
 function lower_headers(headers)
    lower = {}
-    for i,v in base.pairs(headers or lower) do
+    if headers == nil then
+        headers = lower
+    end
+    for i,v in base.pairs(headers) do
         lower[string.lower(i)] = v
     end
     return lower
@@ -152,7 +166,11 @@ function send_headers(tosend)
    canonic = headers.canonic
    h = "\r\n"
     for f,v in base.pairs(tosend) do
-        h = (canonic[f] or f) .. ': ' .. v .. "\r\n" .. h
+       canonic_name = f
+        if canonic[f] != nil then
+            canonic_name = canonic[f]
+        end
+        h = canonic_name .. ': ' .. v .. "\r\n" .. h
     end
     coroutine.yield(h)
 end
@@ -161,8 +179,14 @@ end
 function send_multipart(mesgt)
     -- make sure we have our boundary and send headers
    bd = newboundary()
-   headers = lower_headers(mesgt.headers or {})
-    headers['content-type'] = headers['content-type'] or 'multipart/mixed'
+   mesgt_headers = mesgt.headers
+    if mesgt_headers == nil then
+        mesgt_headers = {}
+    end
+   headers = lower_headers(mesgt_headers)
+    if headers['content-type'] == nil then
+        headers['content-type'] = 'multipart/mixed'
+    end
     headers['content-type'] = headers['content-type'] ..
         '; boundary="' ..  bd .. '"'
     send_headers(headers)
@@ -188,9 +212,14 @@ end
 -- yield message body from a source
 function send_source(mesgt)
     -- make sure we have a content-type
-   headers = lower_headers(mesgt.headers or ({}))
-    headers['content-type'] = headers['content-type'] or
-        'text/plain; charset="iso-8859-1"'
+   mesgt_headers = mesgt.headers
+    if mesgt_headers == nil then
+        mesgt_headers = ({})
+    end
+   headers = lower_headers(mesgt_headers)
+    if headers['content-type'] == nil then
+        headers['content-type'] = 'text/plain; charset="iso-8859-1"'
+    end
     send_headers(headers)
     -- send body from source
     while ((true != nil and true != false)) do
@@ -204,9 +233,14 @@ end
 -- yield message body from a string
 function send_string(mesgt)
     -- make sure we have a content-type
-   headers = lower_headers(mesgt.headers or ({}))
-    headers['content-type'] = headers['content-type'] or
-        'text/plain; charset="iso-8859-1"'
+   mesgt_headers = mesgt.headers
+    if mesgt_headers == nil then
+        mesgt_headers = ({})
+    end
+   headers = lower_headers(mesgt_headers)
+    if headers['content-type'] == nil then
+        headers['content-type'] = 'text/plain; charset="iso-8859-1"'
+    end
     send_headers(headers)
     -- send body from string
     coroutine.yield(mesgt.body)
@@ -222,9 +256,16 @@ end
 -- set defaul headers
 function adjust_headers(mesgt)
    lower = lower_headers(mesgt.headers)
-    lower["date"] = lower["date"] or
-        os.date("!%a, %d %b %Y %H:%M:%S ") .. (mesgt.zone or _M.ZONE)
-    lower["x-mailer"] = lower["x-mailer"] or socket._VERSION
+   mesgt_zone = mesgt.zone
+    if mesgt_zone == nil then
+        mesgt_zone = _M.ZONE
+    end
+    if lower["date"] == nil then
+        lower["date"] = os.date("!%a, %d %b %Y %H:%M:%S ") .. mesgt_zone
+    end
+    if lower["x-mailer"] == nil then
+        lower["x-mailer"] = socket._VERSION
+    end
     -- this can't be overridden
     lower["mime-version"] = "1.0"
     return lower

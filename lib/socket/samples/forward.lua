@@ -14,8 +14,13 @@ function move(foo, bar)
    live = nil
     while ((1 != nil and 1 != false)) do
        data, error, partial = foo.receive(foo, 2048)
-        live = data or error == "timeout"
-        data = data or partial
+        live = data
+        if live == nil or live == false then
+            live = error == "timeout"
+        end
+        if data == nil or data == false then
+            data = partial
+        end
        result, error = bar.send(bar, data)
         if ((live == nil or live == false) or (result == nil or result == false)) then
             foo.close(foo)

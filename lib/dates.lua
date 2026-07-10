@@ -9,7 +9,9 @@ dates = {}
 
 function pad_to_length(input, total_length, pad_char)
     input = input
-    pad_char = pad_char or '0'
+    if (pad_char == nil) then
+        pad_char = '0'
+    end
     while (utils.length(input) < total_length) do
         input = input .. pad_char
     end
@@ -51,12 +53,35 @@ function normalize_datetime(datetime_str)
         return nil
     end
 
-    n_year = pad_to_length(n_year or "", 4, "0")
-    n_month = pad_to_length(n_month or "01", 2, "0")
-    n_day = pad_to_length(n_day or "01", 2, "0")
-    n_hour = pad_to_length(n_hour or "00", 2, "0")
-    n_min = pad_to_length(n_min or "00", 2, "0")
-    n_sec = pad_to_length(n_sec or "00", 2, "0")
+    if (n_year == nil) then
+        n_year = ""
+    end
+    n_year = pad_to_length(n_year, 4, "0")
+
+    if (n_month == nil) then
+        n_month = "01"
+    end
+    n_month = pad_to_length(n_month, 2, "0")
+
+    if (n_day == nil) then
+        n_day = "01"
+    end
+    n_day = pad_to_length(n_day, 2, "0")
+
+    if (n_hour == nil) then
+        n_hour = "00"
+    end
+    n_hour = pad_to_length(n_hour, 2, "0")
+
+    if (n_min == nil) then
+        n_min = "00"
+    end
+    n_min = pad_to_length(n_min, 2, "0")
+
+    if (n_sec == nil) then
+        n_sec = "00"
+    end
+    n_sec = pad_to_length(n_sec, 2, "0")
 
     return n_year .. "-" .. n_month .. "-" .. n_day .. " " .. n_hour .. ":" .. n_min .. ":" .. n_sec
 end
@@ -65,7 +90,7 @@ function is_valid_timestamp(timestamp)
     -- Expected format: "yyyy-mm-dd HH:MM:SS" (19 chars)
     ts_answer = false
 
-    if (timestamp and type(timestamp) == "string" and #timestamp == 19) then
+    if (timestamp != nil and type(timestamp) == "string" and #timestamp == 19) then
         -- Use string.sub for fixed-width extraction (avoids luam pattern bug)
         ts_year = tonumber(string.sub(timestamp, 1, 4))
         ts_month = tonumber(string.sub(timestamp, 6, 7))
@@ -81,8 +106,12 @@ function is_valid_timestamp(timestamp)
             
             if (ts_year != nil and ts_month != nil and ts_day != nil and ts_hour != nil and ts_minute != nil and ts_second != nil) then
                 ts_is_leap_year = (ts_year % 4 == 0 and ts_year % 100 != 0) or (ts_year % 400 == 0)
+                ts_feb_days = 28
+                if (ts_is_leap_year == true) then
+                    ts_feb_days = 29
+                end
                 ts_days_in_month = {
-                    31, (ts_is_leap_year and 29 or 28), 31, 30, 31, 30, 31, 31, 30, 31, 30, 31
+                    31, ts_feb_days, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31
                 }
 
                 if (ts_month >= 1 and ts_month <= 12 and

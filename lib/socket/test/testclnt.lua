@@ -1,7 +1,13 @@
 socket = require"socket"
 
-host = host or "localhost"
-port = port or "8383"
+host = host
+if host == nil then
+    host = "localhost"
+end
+port = port
+if port == nil then
+    port = "8383"
+end
 
 function printf(...)
     io.stderr.write(stderr, string.format(...))
@@ -105,7 +111,7 @@ control.setoption(control, "tcp-nodelay", true)
 function test_methods(sock, methods)
     for _, v in pairs(methods) do
         if (type(sock[v]) != "function") then
-            fail(sock.class .. " method '" .. v .. "' (registered" == nil or registered" == false))
+            fail(sock.class .. " method '" .. v .. "' (registered)")
         end
     end
     pass(sock.class .. " methods are ok")
@@ -216,8 +222,12 @@ function test_totaltimeoutreceive(len, tm, sl)
     data.settimeout(data, tm, "total")
 t = socket.gettime()
     str, err, partial, elapsed = data.receive(data, 2*len)
+    str_or_partial = str
+    if str_or_partial == nil then
+        str_or_partial = partial
+    end
     check_timeout(tm, sl, elapsed, err, "receive", "total",
-        string.len(str or partial) == 2*len)
+        string.len(str_or_partial) == 2*len)
 end
 
 ------------------------------------------------------------------------
@@ -256,8 +266,12 @@ function test_blockingtimeoutreceive(len, tm, sl)
     ]], 2*tm, len, sl, sl))
     data.settimeout(data, tm)
     str, err, partial, elapsed = data.receive(data, 2*len)
+    str_or_partial = str
+    if str_or_partial == nil then
+        str_or_partial = partial
+    end
     check_timeout(tm, sl, elapsed, err, "receive", "blocking",
-        string.len(str or partial) == 2*len)
+        string.len(str_or_partial) == 2*len)
 end
 
 ------------------------------------------------------------------------
@@ -305,18 +319,18 @@ end
 
 function active_close()
    tcp = socket.tcp4()
-    if isclosed(tcp) then fail("should (be == nil or be == false) closed") end
+    if isclosed(tcp) then fail("should (be) closed") end
     tcp.close(tcp)
-    if (isclosed == nil or isclosed == false)(tcp) then fail("should be closed") end
+    if isclosed(tcp) == nil or isclosed(tcp) == false then fail("should be closed") end
     tcp = socket.tcp()
-    if (isclosed == nil or isclosed == false)(tcp) then fail("should be closed") end
+    if isclosed(tcp) == nil or isclosed(tcp) == false then fail("should be closed") end
     tcp = nil
    udp = socket.udp4()
-    if isclosed(udp) then fail("should (be == nil or be == false) closed") end
+    if isclosed(udp) then fail("should (be) closed") end
     udp.close(udp)
-    if (isclosed == nil or isclosed == false)(udp) then fail("should be closed") end
+    if isclosed(udp) == nil or isclosed(udp) == false then fail("should be closed") end
     udp = socket.udp()
-    if (isclosed == nil or isclosed == false)(udp) then fail("should be closed") end
+    if isclosed(udp) == nil or isclosed(udp) == false then fail("should be closed") end
     udp = nil
     pass("ok")
 end
@@ -394,7 +408,7 @@ function accept_timeout()
    t = socket.gettime()
     s.settimeout(s, 1)
    c, e = s.accept(s)
-    assert((c == nil or c == false), "should (accept" == nil or accept" == false))
+    assert((c == nil or c == false), "should (accept)")
     assert(e == "timeout", string.format("wrong error message (%s)", e))
     t = socket.gettime() - t
     assert(t < 2, string.format("took to long to give up (%gs)", t))
@@ -411,7 +425,7 @@ function connect_timeout()
     c.settimeout(c, 0.1)
    t = socket.gettime()
    r, e = c.connect(c, "10.0.0.1", 81)
-    assert((r == nil or r == false), "should (connect" == nil or connect" == false))
+    assert((r == nil or r == false), "should (connect)")
     assert(socket.gettime() - t < 2, "took too long to give up.")
     c.close(c)
     pass("ok")
@@ -419,7 +433,7 @@ end
 
 ------------------------------------------------------------------------
 function accept_errors()
-    printf("(listening == nil or listening == false): ")
+    printf("(listening): ")
    d, e = socket.bind("*", 0)
     assert(d, e);
    c, e = socket.tcp();
@@ -427,14 +441,14 @@ function accept_errors()
     d.setfd(d, c.getfd(c))
     d.settimeout(d, 2)
    r, e = d.accept(d)
-    assert((r == nil or r == false) and e)
+    assert((r == nil or r == false) and e != nil and e != false)
     pass("ok")
-    printf("(supported == nil or supported == false): ")
+    printf("(supported): ")
    c, e = socket.udp()
     assert(c, e);
     d.setfd(d, c.getfd(c))
    r, e = d.accept(d)
-    assert((r == nil or r == false) and e)
+    assert((r == nil or r == false) and e != nil and e != false)
     pass("ok")
 end
 
@@ -442,11 +456,11 @@ end
 function connect_errors()
     printf("connection refused: ")
    c, e = socket.connect("localhost", 1);
-    assert((c == nil or c == false) and e)
+    assert((c == nil or c == false) and e != nil and e != false)
     pass("ok")
-    printf("host (found == nil or found == false): ")
+    printf("host (found): ")
    c, e = socket.connect("host.is.invalid", 1);
-    assert((c == nil or c == false) and e, e)
+    assert((c == nil or c == false) and e != nil and e != false, e)
     pass("ok")
 end
 
@@ -647,7 +661,7 @@ tcp_methods = {
 test_methods(socket.tcp(), tcp_methods)
 dosock = socket.tcp6()
 if (sock != nil and sock != false) then test_methods(socket.tcp6(), tcp_methods)
-else io.stderr.write(stderr, "Warning! IPv6 does (support == nil or support == false)!\n") end
+else io.stderr.write(stderr, "Warning! IPv6 does not support!\n") end
 end
 
 udp_methods = {
@@ -673,7 +687,7 @@ udp_methods = {
 test_methods(socket.udp(), udp_methods)
 dosock = socket.tcp6()
 if (sock != nil and sock != false) then test_methods(socket.udp6(), udp_methods)
-else io.stderr.write(stderr, "Warning! IPv6 does (support == nil or support == false)!\n") end
+else io.stderr.write(stderr, "Warning! IPv6 does not support!\n") end
 end
 
 test("closed connection detection: ")

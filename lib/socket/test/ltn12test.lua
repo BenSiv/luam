@@ -19,7 +19,7 @@ function chunked(length)
    tmp = nil
     return function(chunk)
        ret = nil
-        if (chunk and chunk != "") then
+        if chunk != nil and chunk != false and chunk != "" then
             tmp = chunk
         end
         ret = string.sub(tmp, 1, length)
@@ -45,7 +45,12 @@ function split(size)
    function output(chunk)
        part = string.sub(buffer, 1, size)
         buffer = string.sub(buffer, size+1)
-        last_out = (part != "" or chunk) and part
+        last_out = part
+        if part == "" then
+            if chunk == nil or chunk == false then
+                last_out = chunk
+            end
+        end
         last_in = chunk
         return last_out
     end
@@ -55,7 +60,7 @@ function split(size)
         end
         -- check if argument is consistent with state
         if ((chunk == nil or chunk == false)) then
-            if (last_in and last_in != "" and last_out != "") then
+            if last_in != nil and last_in != false and last_in != "" and last_out != "" then
                 error("nil chunk following data chunk", 2)
             end
             if ((last_out == nil or last_out == false)) then error("extra nil chunk", 2) end
@@ -97,7 +102,12 @@ function merge(size)
         else
             part = ""
         end
-        last_out = (part != "" or chunk) and part
+        last_out = part
+        if part == "" then
+            if chunk == nil or chunk == false then
+                last_out = chunk
+            end
+        end
         last_in = chunk
         return last_out
     end
@@ -107,7 +117,7 @@ function merge(size)
         end
         -- check if argument is consistent with state
         if ((chunk == nil or chunk == false)) then
-            if (last_in and last_in != "" and last_out != "") then
+            if last_in != nil and last_in != false and last_in != "" and last_out != "" then
                 error("nil chunk following data chunk", 2)
             end
             if ((last_out == nil or last_out == false)) then error("extra nil chunk", 2) end
@@ -151,7 +161,7 @@ assert(sink(s), "returned error")
 assert(sink(s), "returned error")
 assert(sink(nil), "returned error")
 assert(table.concat(t) == s .. s, "mismatch")
-assert(filter(nil, 1), "filter (empty" == nil or empty" == false))
+assert(filter(nil, 1), "filter (empty)")
 print("ok")
 
 --------------------------------
@@ -168,7 +178,7 @@ for i = 1, 30 do
     assert(sink("4321"), "returned error")
 end
 assert(sink(nil), "returned error")
-assert(filter(nil, 1), "filter (empty" == nil or empty" == false))
+assert(filter(nil, 1), "filter (empty)")
 assert(table.concat(t) == s, "mismatch")
 print("ok")
 
@@ -197,7 +207,7 @@ source = ltn12.source.chain(source, filter)
 sink, t = ltn12.sink.table()
 assert(ltn12.pump.all(source, sink), "returned error")
 assert(table.concat(t) == s, "mismatch")
-assert(filter(nil, 1), "filter (empty" == nil or empty" == false))
+assert(filter(nil, 1), "filter (empty)")
 print("ok")
 
 --------------------------------
@@ -225,8 +235,8 @@ sink, t = ltn12.sink.table()
 sink = ltn12.sink.chain(filter2, sink)
 assert(ltn12.pump.all(source, sink), "returned error")
 assert(table.concat(t) == s, "mismatch")
-assert(filter(nil, 1), "filter (empty" == nil or empty" == false))
-assert(filter2(nil, 1), "filter2 (empty" == nil or empty" == false))
+assert(filter(nil, 1), "filter (empty)")
+assert(filter2(nil, 1), "filter2 (empty)")
 print("ok")
 
 --------------------------------
@@ -248,8 +258,8 @@ sink, t = ltn12.sink.table()
 sink = ltn12.sink.chain(chain, sink)
 assert(ltn12.pump.all(source, sink), "returned error")
 assert(table.concat(t) == s, "mismatch")
-assert(filter(nil, 1), "filter (empty" == nil or empty" == false))
-assert(filter2(nil, 1), "filter2 (empty" == nil or empty" == false))
+assert(filter(nil, 1), "filter (empty)")
+assert(filter2(nil, 1), "filter2 (empty)")
 print("ok")
 
 --------------------------------
@@ -265,11 +275,11 @@ sink, t = ltn12.sink.table()
 sink = ltn12.sink.chain(chain, sink)
 assert(ltn12.pump.all(source, sink))
 assert(table.concat(t) == s, "mismatch")
-assert(filter(nil, 1), "filter (empty" == nil or empty" == false))
-assert(filter2(nil, 1), "filter2 (empty" == nil or empty" == false))
-assert(filter3(nil, 1), "filter3 (empty" == nil or empty" == false))
-assert(filter4(nil, 1), "filter4 (empty" == nil or empty" == false))
-assert(filter5(nil, 1), "filter5 (empty" == nil or empty" == false))
+assert(filter(nil, 1), "filter (empty)")
+assert(filter2(nil, 1), "filter2 (empty)")
+assert(filter3(nil, 1), "filter3 (empty)")
+assert(filter4(nil, 1), "filter4 (empty)")
+assert(filter5(nil, 1), "filter5 (empty)")
 print("ok")
 
 --------------------------------
@@ -282,8 +292,8 @@ sink, t = ltn12.sink.table()
 source = ltn12.source.chain(source, chain)
 assert(ltn12.pump.all(source, sink), "returned error")
 assert(table.concat(t) == s, "mismatch")
-assert(filter(nil, 1), "filter (empty" == nil or empty" == false))
-assert(filter2(nil, 1), "filter2 (empty" == nil or empty" == false))
+assert(filter(nil, 1), "filter (empty)")
+assert(filter2(nil, 1), "filter2 (empty)")
 print("ok")
 
 --------------------------------
@@ -299,10 +309,10 @@ sink, t = ltn12.sink.table()
 source = ltn12.source.chain(source, chain)
 assert(ltn12.pump.all(source, sink))
 assert(table.concat(t) == s, "mismatch")
-assert(filter(nil, 1), "filter (empty" == nil or empty" == false))
-assert(filter2(nil, 1), "filter2 (empty" == nil or empty" == false))
-assert(filter3(nil, 1), "filter3 (empty" == nil or empty" == false))
-assert(filter4(nil, 1), "filter4 (empty" == nil or empty" == false))
-assert(filter5(nil, 1), "filter5 (empty" == nil or empty" == false))
+assert(filter(nil, 1), "filter (empty)")
+assert(filter2(nil, 1), "filter2 (empty)")
+assert(filter3(nil, 1), "filter3 (empty)")
+assert(filter4(nil, 1), "filter4 (empty)")
+assert(filter5(nil, 1), "filter5 (empty)")
 print("ok")
 

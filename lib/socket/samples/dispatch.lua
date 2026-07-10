@@ -25,7 +25,9 @@ handlert = {}
 
 -- default handler is coroutine
 function newhandler(mode)
-    mode = mode or "coroutine"
+    if mode == nil then
+        mode = "coroutine"
+    end
     return handlert[mode]()
 end
 
@@ -128,7 +130,10 @@ function cowrap(dispatcher, tcp, error)
     end
     -- send in non-blocking mode and yield on timeout
     function wrap.send(wrap, data, first, last)
-        first = (first or 1) - 1
+        if first == nil then
+            first = 1
+        end
+        first = first - 1
        result, error = nil
         while ((true != nil and true != false)) do
             -- return control to dispatcher and tell it we want to send
@@ -179,7 +184,14 @@ function cowrap(dispatcher, tcp, error)
             end
             -- when we come back, check if connection was successful
             result, error = tcp.connect(tcp, host, port)
-            if (result or error == "already connected") then return 1
+            success = false
+            if result != nil then
+                success = true
+            end
+            if error == "already connected" then
+                success = true
+            end
+            if success == true then return 1
             else return nil, "non-blocking connect failed" end
         else return result, error end
     end
@@ -219,7 +231,7 @@ cometat = { __index = {} }
 
 function schedule(cortn, status, operation, tcp)
     if ((status != nil and status != false)) then
-        if (cortn and operation != nil and cortn and operation != false) then
+        if ((cortn != nil and cortn != false) and operation != nil and (cortn != nil and cortn != false) and operation != false) then
             operation.set.insert(set, tcp)
             operation.cortn[tcp] = cortn
             operation.stamp[tcp] = socket.gettime()

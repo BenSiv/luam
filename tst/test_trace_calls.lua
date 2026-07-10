@@ -21,9 +21,17 @@ hook = function(event)
   end
  elseif t.what=="Lua" then
 -- table.foreach(t,print)
-  io.write(event," ",t.name or "(Lua)"," <",t.linedefined,":",t.short_src,">")
+  tname = t.name
+  if tname == nil then
+   tname = "(Lua)"
+  end
+  io.write(event," ",tname," <",t.linedefined,":",t.short_src,">")
  else
- io.write(event," ",t.name or "(C)"," [",t.what,"] ")
+ tname = t.name
+ if tname == nil then
+  tname = "(C)"
+ end
+ io.write(event," ",tname," [",t.what,"] ")
  end
  io.write("\n")
 end

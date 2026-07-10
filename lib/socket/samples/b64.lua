@@ -8,7 +8,13 @@ mime = require("mime")
 source = ltn12.source.file(io.stdin)
 sink = ltn12.sink.file(io.stdout)
 convert = nil
-if (arg and arg[1] == '-d') then
+is_decode = false
+if arg != nil then
+    if arg[1] == '-d' then
+        is_decode = true
+    end
+end
+if is_decode == true then
     convert = mime.decode("base64")
 else
    base64 = mime.encode("base64")

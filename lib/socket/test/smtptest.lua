@@ -33,7 +33,9 @@ similar = function(s1, s2)
 end
 
 fail = function(s)
-    s = s or "failed!"
+    if s == nil then
+        s = "failed!"
+    end
     print(s)
     os.exit()
 end
@@ -68,17 +70,27 @@ get = function()
 end
 
 check_headers = function(sent, got)
-    sent = sent or ({})
-    got = got or ({})
+    if sent == nil then
+        sent = {}
+    end
+    if got == nil then
+        got = {}
+    end
     for i,v in pairs(sent) do
-        if ((similar == nil or similar == false)(v, got[i])) then fail("header " .. v .. "failed!") end
+        similar_ok = similar(v, got[i])
+        if similar_ok == nil or similar_ok == false then fail("header " .. v .. "failed!") end
     end
 end
 
 check_body = function(sent, got)
-    sent = sent or ""
-    got = got or ""
-    if ((similar == nil or similar == false)(sent, got)) then fail("bodies differ!") end
+    if sent == nil then
+        sent = ""
+    end
+    if got == nil then
+        got = ""
+    end
+    similar_ok = similar(sent, got)
+    if similar_ok == nil or similar_ok == false then fail("bodies differ!") end
 end
 
 check = function(sent, m)
@@ -93,14 +105,16 @@ check = function(sent, m)
             return
         end
     end
-    fail("(found" == nil or found" == false))
+    fail("(found)")
 end
 
 insert = function(sent, message)
     if type(message.rcpt) == "table" then
         message.count = #message.rcpt
     else message.count = 1 end
-    message.headers = message.headers or {}
+    if message.headers == nil then
+        message.headers = {}
+    end
     message.headers.title = message.title
     table.insert(sent, message)
 end
@@ -207,14 +221,15 @@ insert(sent, {
     title = "minimum message"
 })
 
-io.write("testing host (found == nil or found == false): ")
+io.write("testing host (found): ")
 c, e = socket.connect("wrong.host", 25)
 ret, err = socket.smtp.mail{
     from = from,
     rcpt = rcpt,
     server = "wrong.host"
 }
-if ret or e != err then fail("wrong error message")
+if ret != nil and ret != false then fail("wrong error message")
+elseif e != err then fail("wrong error message")
 else print("ok") end
 
 io.write("testing invalid from: ")
@@ -222,14 +237,16 @@ ret, err = socket.smtp.mail{
     from = ' " " (( _ * ',
     rcpt = rcpt,
 }
-if ret or (err == nil or err == false) then fail("wrong error message")
+if ret != nil and ret != false then fail("wrong error message")
+elseif err == nil or err == false then fail("wrong error message")
 else print(err) end
 
 io.write("testing no rcpt: ")
 ret, err = socket.smtp.mail{
     from = from,
 }
-if ret or (err == nil or err == false) then fail("wrong error message")
+if ret != nil and ret != false then fail("wrong error message")
+elseif err == nil or err == false then fail("wrong error message")
 else print(err) end
 
 io.write("clearing mailbox: ")

@@ -2,9 +2,15 @@
 -- The author disclaims copyright to this source code.
 
 -- The C compiler used to compile and link the generated C source file.
-CC = os.getenv("CC") or "cc"
+CC = os.getenv("CC")
+if CC == nil then
+	CC = "cc"
+end
 -- The nm used to determine whether a library is liblua or a Lua binary module.
-NM = os.getenv("NM") or "nm"
+NM = os.getenv("NM")
+if NM == nil then
+	NM = "nm"
+end
 
 function file_exists(name)
 	file = io.open(name, "r")
@@ -98,7 +104,14 @@ dep_library_files = {}
 -- Additional arguments are passed to the C compiler.
 other_arguments = {}
 -- Get the operating system name.
-UNAME = string.match((shellout("uname -s") or "Unknown"), "%a+") or "Unknown"
+uname_output = shellout("uname -s")
+if uname_output == nil then
+	uname_output = "Unknown"
+end
+UNAME = string.match(uname_output, "%a+")
+if UNAME == nil then
+	UNAME = "Unknown"
+end
 link_with_libdl = ""
 -- Parse command line arguments. main.lua must be the first argument. Static libraries are 
 -- passed to the compiler in the order they appear and may be interspersed with arguments to 
@@ -115,12 +128,18 @@ for i, name in ipairs(arg) do
 		info = {}
 		info.path = name
 		info.basename = basename(info.path)
-		info.basename_noextension = string.match(info.basename, "(.+)%.") or info.basename
+		info.basename_noextension = string.match(info.basename, "(.+)%.")
+		if info.basename_noextension == nil then
+			info.basename_noextension = info.basename
+		end
 		-- Handle the common case of "./path/to/file.lua".
 		-- This won't work in all cases.
 		info.dotpath = string.gsub(info.path, "^%.%/", "")
 		info.dotpath = string.gsub(info.dotpath, "[\\/]", ".")
-		info.dotpath_noextension = string.match(info.dotpath, "(.+)%.") or info.dotpath
+		info.dotpath_noextension = string.match(info.dotpath, "(.+)%.")
+		if info.dotpath_noextension == nil then
+			info.dotpath_noextension = info.dotpath
+		end
 		info.dotpath_underscore = string.gsub(info.dotpath_noextension, "[.-]", "_")
 
 		if i == 1 or is_source_file(extension) then
@@ -337,7 +356,10 @@ end
 function lua_loader(name)
 	separator = string.sub(package.config, 1, 1)
 	name = string.gsub(name, separator, ".")
-	mod = lua_bundle[name] or lua_bundle[name .. ".init"]
+	mod = lua_bundle[name]
+	if mod == nil then
+		mod = lua_bundle[name .. ".init"]
+	end
 	if mod != nil then
 		if type(mod) == "string" then
 			chunk, errstr = load_string(mod, name)
@@ -356,10 +378,17 @@ function lua_loader(name)
 		return string.format("\n\tno module '%s' in static bundle", name)
 	end
 end
-table.insert(package.loaders or package.searchers, 2, lua_loader)
+loader_list = package.loaders
+if loader_list == nil then
+	loader_list = package.searchers
+end
+table.insert(loader_list, 2, lua_loader)
 
 -- Lua 5.1 has unpack(). Lua 5.2+ has table.unpack().
-unpack = unpack or table.unpack
+unpack = unpack
+if unpack == nil then
+	unpack = table.unpack
+end
 """)
 
 outhex(string.format("""

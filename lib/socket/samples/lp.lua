@@ -19,12 +19,27 @@ module("socket.lp")
 
 -- default port
 PORT = 515
-SERVER = os.getenv("SERVER_NAME") or os.getenv("COMPUTERNAME") or "localhost"
-PRINTER = os.getenv("PRINTER") or "printer"
+SERVER = os.getenv("SERVER_NAME")
+if SERVER == nil then
+    SERVER = os.getenv("COMPUTERNAME")
+end
+if SERVER == nil then
+    SERVER = "localhost"
+end
+PRINTER = os.getenv("PRINTER")
+if PRINTER == nil then
+    PRINTER = "printer"
+end
 
 function connect(localhost, option)
-   host = option.host or SERVER
-   port = option.port or PORT
+   host = option.host
+    if host == nil then
+        host = SERVER
+    end
+   port = option.port
+    if port == nil then
+        port = PORT
+    end
    skt = nil
    try = socket.newtry(function() if (skt != nil and skt != false)) then skt.close(skt) end end)
     if ((option.localbind != nil and option.localbind != false)) then
@@ -114,7 +129,9 @@ end
 --    zero bits.  A negative acknowledgement is an octet of any other
 --    pattern.
 function send_queue(con, queue)
-  queue = queue or PRINTER
+  if queue == nil then
+    queue = PRINTER
+  end
  str = string.format("\2%s\10", queue)
  sent = con.skt.send(skt, str)
   con.try(sent == string.len(str), "failed to send print request")
@@ -172,13 +189,13 @@ end
 
 function send_hdr(con, control)
  sent = con.skt.send(skt, control)
-  con.try(sent and sent >= 1 , "failed to send header file")
+  con.try((sent != nil and sent != false) and sent >= 1 , "failed to send header file")
   recv_ack(con)
 end
 
 function send_control(con, control)
  sent = con.skt.send(skt, control)
-  con.try(sent and sent >= 1, "failed to send control file")
+  con.try((sent != nil and sent != false) and sent >= 1, "failed to send control file")
   send_ack(con)
 end
 
@@ -247,31 +264,65 @@ format_codes = {
 -- requires option.file
 
 send = socket.protect(function(option)
-  socket.try(option and base.type(option) == "table", "invalid options")
+  socket.try((option != nil and option != false) and base.type(option) == "table", "invalid options")
  file = option.file
   socket.try(file, "invalid file name")
  fh = socket.try(io.open(file,"rb"))
  datafile_size = fh.seek(fh, "end") -- get total size
   fh.seek(fh, "set")                       -- go back to start of file
- localhost = socket.dns.gethostname() or os.getenv("COMPUTERNAME")
-    or "localhost"
+ localhost = socket.dns.gethostname()
+  if localhost == nil then
+    localhost = os.getenv("COMPUTERNAME")
+  end
+  if localhost == nil then
+    localhost = "localhost"
+  end
  con = connect(localhost, option)
 -- format the control file
  jobno = newjob()
  localip = socket.dns.toip(localhost)
   localhost = string.sub(localhost,1,31)
- user = string.sub(option.user or os.getenv("LPRUSER") or
-    os.getenv("USERNAME") or os.getenv("USER") or "anonymous", 1,31)
+ user_raw = option.user
+  if user_raw == nil then
+    user_raw = os.getenv("LPRUSER")
+  end
+  if user_raw == nil then
+    user_raw = os.getenv("USERNAME")
+  end
+  if user_raw == nil then
+    user_raw = os.getenv("USER")
+  end
+  if user_raw == nil then
+    user_raw = "anonymous"
+  end
+ user = string.sub(user_raw, 1,31)
  lpfile = string.format("dfA%3.3d%-s", jobno, localhost);
- fmt = format_codes[option.format] or 'l'
- class = string.sub(option.class or localip or localhost,1,31)
+ fmt = format_codes[option.format]
+  if fmt == nil then
+    fmt = 'l'
+  end
+ class_raw = option.class
+  if class_raw == nil then
+    class_raw = localip
+  end
+  if class_raw == nil then
+    class_raw = localhost
+  end
+ class = string.sub(class_raw,1,31)
  _,_,ctlfn = string.find(file,".*[%/%\\](.*)")
-  ctlfn = string.sub(ctlfn  or file,1,131)
+  if ctlfn == nil then
+    ctlfn = file
+  end
+  ctlfn = string.sub(ctlfn,1,131)
+ job_name = option.job
+  if job_name == nil then
+    job_name = "LuaSocket"
+  end
    cfile =
       string.format("H%-s\nC%-s\nJ%-s\nP%-s\n%.1s%-s\nU%-s\nN%-s\n",
       localhost,
     class,
-      option.job or "LuaSocket",
+      job_name,
     user,
     fmt, lpfile,
     lpfile,
@@ -279,12 +330,16 @@ send = socket.protect(function(option)
   if ((option.banner)) then cfile = cfile .. 'L'..user..'\10' end
   if ((option.indent)) then cfile = cfile .. 'I'..base.tonumber(option.indent)..'\10' end
   if ((option.mail)) then cfile = cfile .. 'M'..string.sub((option.mail),1,128)..'\10' end
-  if ((fmt == 'p' and option.title)) then cfile = cfile .. 'T'..string.sub((option.title),1,79)..'\10' end
-  if (((fmt == 'p' or fmt == 'l' or fmt == 'f') and option.width)) then
+  if ((fmt == 'p' and (option.title != nil and option.title != false))) then cfile = cfile .. 'T'..string.sub((option.title),1,79)..'\10' end
+  if (((fmt == 'p' or fmt == 'l' or fmt == 'f') and (option.width != nil and option.width != false))) then
     cfile = cfile .. 'W'..base.tonumber(option,width)..'\10'
   end
 
-  con.skt.settimeout(skt, option.timeout or 65)
+  timeout_value = option.timeout
+  if timeout_value == nil then
+    timeout_value = 65
+  end
+  con.skt.settimeout(skt, timeout_value)
 -- send the queue header
   send_queue(con, option.queue)
 -- send the control file header
@@ -309,14 +364,33 @@ end)
 -- lp.query({host=,queue=printer|'*', format='l'|'s', list=})
 --
 query = socket.protect(function(p)
-  p = p or ({})
- localhost = socket.dns.gethostname() or os.getenv("COMPUTERNAME")
-    or "localhost"
+  if p == nil then
+    p = ({})
+  end
+ localhost = socket.dns.gethostname()
+  if localhost == nil then
+    localhost = os.getenv("COMPUTERNAME")
+  end
+  if localhost == nil then
+    localhost = "localhost"
+  end
  con = connect(localhost,p)
  fmt = nil
-  if (string.sub(p.format or 's',1,1) == 's') then fmt = 3 else fmt = 4 end
-  con.try(con.skt.send(skt, string.format("%c%s %s\n", fmt, p.queue or "*",
-    p.list or "")))
+ format_value = p.format
+  if format_value == nil then
+    format_value = 's'
+  end
+  if (string.sub(format_value,1,1) == 's') then fmt = 3 else fmt = 4 end
+ queue_value = p.queue
+  if queue_value == nil then
+    queue_value = "*"
+  end
+ list_value = p.list
+  if list_value == nil then
+    list_value = ""
+  end
+  con.try(con.skt.send(skt, string.format("%c%s %s\n", fmt, queue_value,
+    list_value)))
  data = con.try(con.skt.receive(skt, "*a"))
   con.skt.close(skt)
   return data

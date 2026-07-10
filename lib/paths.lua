@@ -3,7 +3,10 @@ paths = {}
 
 -- Capture the path of the file that required this module
 do
-    info = debug.getinfo(4, "S") or debug.getinfo(3, "S")
+    info = debug.getinfo(4, "S")
+    if info == nil then
+        info = debug.getinfo(3, "S")
+    end
     if (info != nil and string.sub(info.source, 1, 1) == "@") then
         paths._caller_script = string.sub(info.source, 2)
     else

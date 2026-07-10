@@ -5,7 +5,11 @@
 function trace3()
   -- e = {}
   -- setmetatable(e, {__tostring = function() return "runtime error" end})
-  error(e or "runtime error")
+  error_val = e
+  if error_val == nil then
+    error_val = "runtime error"
+  end
+  error(error_val)
 end
 
 function trace2()

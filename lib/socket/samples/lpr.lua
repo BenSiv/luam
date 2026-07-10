@@ -38,10 +38,18 @@ do
     if (arg[1] != "query") then
         opt.file = arg[1]
         r,e=lp.send(opt)
-        io.stdout.write(stdout, tostring(r or e),'\n')
+        result_or_error = r
+        if result_or_error == nil then
+            result_or_error = e
+        end
+        io.stdout.write(stdout, tostring(result_or_error),'\n')
     else
         r,e=lp.query(opt)
-        io.stdout.write(stdout, tostring(r or e), '\n')
+        result_or_error = r
+        if result_or_error == nil then
+            result_or_error = e
+        end
+        io.stdout.write(stdout, tostring(result_or_error), '\n')
     end
 end
 

@@ -6,8 +6,16 @@
 ltn12 = require("ltn12")
 mime = require("mime")
 convert = nil
-arg = arg or ({})
-mode = arg and arg[1] or "-et"
+arg = arg
+if arg == nil then
+    arg = ({})
+end
+mode = "-et"
+if arg != nil then
+    if arg[1] != nil then
+        mode = arg[1]
+    end
+end
 if (mode == "-et") then
    normalize = mime.normalize()
    qp = mime.encode("quoted-printable")

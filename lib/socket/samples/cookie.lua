@@ -34,7 +34,9 @@ function parse_set_cookie(c, quoted, cookie_table)
 end
 
 function split_set_cookie(s, cookie_table)
-    cookie_table = cookie_table or ({})
+    if cookie_table == nil then
+        cookie_table = ({})
+    end
     -- remove quoted strings from cookie list
    quoted = {}
     s = string.gsub(s, '"(.-)"', function(q)
@@ -64,18 +66,26 @@ end
 _empty = {}
 function build_cookies(cookies)
     s = ""
-    for i,v in ipairs(cookies or _empty) do
+    cookie_list = cookies
+    if cookie_list == nil then
+        cookie_list = _empty
+    end
+    for i,v in ipairs(cookie_list) do
         if ((v.name != nil and v.name != false)) then
             s = s .. v.name
-            if (v.value and v.value != "") then
+            if ((v.value != nil and v.value != false) and v.value != "") then
                 s = s .. '=' .. quote(v.value)
             end
         end
-        if (v.name and #(v.attributes or _empty) > 0) then s = s .. "; "  end
-        for j,u in ipairs(v.attributes or _empty) do
+        attrs = v.attributes
+        if attrs == nil then
+            attrs = _empty
+        end
+        if ((v.name != nil and v.name != false) and #attrs > 0) then s = s .. "; "  end
+        for j,u in ipairs(attrs) do
             if ((u.name != nil and u.name != false)) then
                 s = s .. u.name
-                if (u.value and u.value != "") then
+                if ((u.value != nil and u.value != false) and u.value != "") then
                     s = s .. '=' .. quote(u.value)
                 end
             end

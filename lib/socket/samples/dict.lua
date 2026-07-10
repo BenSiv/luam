@@ -28,7 +28,13 @@ TIMEOUT = 10
 metat = { __index = {} }
 
 function open(host, port)
-   tp = socket.try(tp.connect(host or HOST, port or PORT, TIMEOUT))
+    if host == nil then
+        host = HOST
+    end
+    if port == nil then
+        port = PORT
+    end
+   tp = socket.try(tp.connect(host, port, TIMEOUT))
     return base.setmetatable({tp = tp}, metat)
 end
 
@@ -53,7 +59,9 @@ function metat.__index.getdef(__index)
 end
 
 function metat.__index.define(__index, database, word)
-    database = database or "!"
+    if database == nil then
+        database = "!"
+    end
       socket.try(self.tp.command(tp, "DEFINE",  database .. " " .. word))
    code, count = self.check(self, 150)
    defs = {}
@@ -66,8 +74,12 @@ function metat.__index.define(__index, database, word)
 end
 
 function metat.__index.match(__index, database, strat, word)
-    database = database or "!"
-    strat = strat or "."
+    if database == nil then
+        database = "!"
+    end
+    if strat == nil then
+        strat = "."
+    end
       socket.try(self.tp.command(tp, "MATCH",  database .." ".. strat .." ".. word))
     self.check(self, 152)
    mat = {}
@@ -110,7 +122,7 @@ function parse(u)
     socket.try(t.path, "invalid path in url")
    cmd, arg = socket.skip(2, string.find(t.path, "^/(.)(.*)$"))
     socket.try(cmd == "d" or cmd == "m", "<command> should be 'm' or 'd'")
-    socket.try(arg and arg != "", "need at least <word> in URL")
+    socket.try((arg != nil and arg != false) and arg != "", "need at least <word> in URL")
     t.command, t.argument = cmd, arg
     arg = string.gsub(arg, "^:([^:]+)", function(f) t.word = f end)
     socket.try(t.word, "need at least <word> in URL")

@@ -29,7 +29,11 @@ function array_to_file(arr)
             if (type(v) == "string") then
                 v = v.gsub(v, '"', '')  -- remove quotes if present
             end
-            line[j] = v != nil and tostring(v) or "a"
+            if (v != nil) then
+                line[j] = tostring(v)
+            else
+                line[j] = "a"
+            end
         end
         table.insert(lines, table.concat(line, " "))
     end
@@ -44,14 +48,18 @@ end
 
 -- create a plot object (data + config)
 function create(cfg)
-    cfg = cfg or ({})
+    if (cfg == nil) then
+        cfg = {}
+    end
     plot = {}
     plot.cfg = {}
     for k,v in pairs(cfg) do
         plot.cfg[k] = v
     end
 
-    plot.cfg.data = plot.cfg.data or ({})
+    if (plot.cfg.data == nil) then
+        plot.cfg.data = {}
+    end
     -- process arrays in data
     for i, d in ipairs(plot.cfg.data) do
         if (type(d[1]) == "table") then
@@ -69,7 +77,19 @@ function generate_code(plot, cmd, output_path)
     code = {}
 
     -- terminal + output
-    table.insert(code, string.format('set terminal %s size %d,%d', cfg.type or "pngcairo", cfg.width or 800, cfg.height or 600))
+    term_type = cfg.type
+    if (term_type == nil) then
+        term_type = "pngcairo"
+    end
+    term_width = cfg.width
+    if (term_width == nil) then
+        term_width = 800
+    end
+    term_height = cfg.height
+    if (term_height == nil) then
+        term_height = 600
+    end
+    table.insert(code, string.format('set terminal %s size %d,%d', term_type, term_width, term_height))
     if ((output_path != nil and output_path != false)) then
         table.insert(code, string.format('set output "%s"', output_path))
     end

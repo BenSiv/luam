@@ -52,8 +52,14 @@ elseif test_module == 'mp-cjson' then
 elseif test_module == 'nm-json' then
   -- http://luaforge.net/projects/luajsonlib/
  json = require "LuaJSON"
-  encode = json.encode or json.stringify
-  decode = json.decode or json.parse
+  encode = json.encode
+  if encode == nil then
+    encode = json.stringify
+  end
+  decode = json.decode
+  if decode == nil then
+    decode = json.parse
+  end
 elseif test_module == 'sb-json' then
   -- http://www.chipmunkav.com/downloads/Json.lua
  json = require "sbjson" -- renamed, the original file was just 'Json'

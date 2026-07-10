@@ -76,7 +76,9 @@ end
 options = nil
 flag, file, version = ...
 
-version = version or "Unknown"
+if version == nil then
+  version = "Unknown"
+end
 
 if ((file == nil or file == false)) then
   usage()

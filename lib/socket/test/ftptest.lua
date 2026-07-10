@@ -21,7 +21,10 @@ ltn12 = require("ltn12")
 
 dofile("testsupport.lua")
 
-host = host or "localhost"
+host = host
+if host == nil then
+    host = "localhost"
+end
 port, index_file, index, back, err, ret = nil
 
 t = socket.gettime()
@@ -35,7 +38,11 @@ function nlst(u)
     p.command = "nlst"
     p.sink = ltn12.sink.table(t)
    r, e = ftp.get(p)
-    return r and table.concat(t), e
+    result = nil
+    if r != nil and r != false then
+        result = table.concat(t)
+    end
+    return result, e
 end
 
 -- function that removes a remote file
@@ -58,7 +65,7 @@ print("ok")
 
 io.write("testing invalid url: ")
 back, err = ftp.get("localhost/dir1/index.html;type=i")
-assert((back == nil or back == false) and err)
+assert((back == nil or back == false) and err != nil and err != false)
 print("ok")
 
 io.write("testing anonymous file download: ")
@@ -73,17 +80,17 @@ else print("ok") end
 
 io.write("testing upload: ")
 ret, err = ftp.put("ftp://luasocket:password@" .. host .. "/index.up.html;type=i", index)
-assert(ret and (err == nil or err == false), err)
+assert(ret != nil and ret != false and (err == nil or err == false), err)
 print("ok")
 
 io.write("downloading uploaded file: ")
 back, err = ftp.get("ftp://luasocket:password@" .. host .. "/index.up.html;type=i")
-assert(ret and (err == nil or err == false) and index == back, err)
+assert(ret != nil and ret != false and (err == nil or err == false) and index == back, err)
 print("ok")
 
 io.write("erasing after upload/download: ")
 ret, err = dele("ftp://luasocket:password@" .. host .. "/index.up.html")
-assert(ret and (err == nil or err == false), err)
+assert(ret != nil and ret != false and (err == nil or err == false), err)
 print("ok")
 
 io.write("testing weird-character translation: ")
@@ -100,22 +107,22 @@ ret, err = ftp.get({
     type = "i",
     sink = ltn12.sink.table(back)
 })
-assert(ret and (err == nil or err == false) and table.concat(back) == index, err)
+assert(ret != nil and ret != false and (err == nil or err == false) and table.concat(back) == index, err)
 print("ok")
 
 io.write("testing upload denial: ")
 ret, err = ftp.put("ftp://" .. host .. "/index.up.html;type=a", index)
-assert((ret == nil or ret == false) and err, "should have failed")
+assert((ret == nil or ret == false) and err != nil and err != false, "should have failed")
 print(err)
 
 io.write("testing authentication failure: ")
 ret, err = ftp.get("ftp://luasocket:wrong@".. host .. "/index.html;type=a")
-assert((ret == nil or ret == false) and err, "should have failed")
+assert((ret == nil or ret == false) and err != nil and err != false, "should have failed")
 print(err)
 
 io.write("testing wrong file: ")
 back, err = ftp.get("ftp://".. host .. "/index.wrong.html;type=a")
-assert((back == nil or back == false) and err, "should have failed")
+assert((back == nil or back == false) and err != nil and err != false, "should have failed")
 print(err)
 
 print("passed all tests")

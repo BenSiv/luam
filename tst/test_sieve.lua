@@ -19,7 +19,10 @@ function filter (p, g)
   end)
 end
 
-N = N or 1000		-- from command line
+N = N		-- from command line
+if N == nil then
+	N = 1000
+end
 x = gen(N)		-- generate primes up to N 
 while true do
   n = x()		-- pick a number until done

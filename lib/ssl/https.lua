@@ -43,9 +43,13 @@ end
 
 -- Convert an URL to a table according to Luasocket needs.
 function urlstring_totable(url, body, result_table)
+   method = "GET"
+   if body != nil and body != false then
+      method = "POST"
+   end
    url = {
       url = default_https_port(url),
-      method = body and "POST" or "GET",
+      method = method,
       sink = ltn12.sink.table(result_table)
    }
    if ((body != nil and body != false)) then
@@ -72,10 +76,14 @@ end
 
 -- Return a function which performs the SSL/TLS connection.
 function tcp(params)
-   params = params or ({})
+   if params == nil then
+      params = {}
+   end
    -- Default settings
-   for k, v in pairs(cfg) do 
-      params[k] = params[k] or v
+   for k, v in pairs(cfg) do
+      if params[k] == nil or params[k] == false then
+         params[k] = v
+      end
    end
    -- Force client mode
    params.mode = "client"
@@ -121,17 +129,17 @@ function request(url, body)
   else
     url.url = default_https_port(url.url)
   end
-  if (http.PROXY or url.proxy != nil and http.PROXY or url.proxy != false) then
-    return nil, "proxy (supported" == nil or supported" == false)
+  if (http.PROXY != nil and http.PROXY != false) or (url.proxy != nil and url.proxy != false) then
+    return nil, "proxy not supported"
   elseif (url.redirect != nil and url.redirect != false) then
-    return nil, "redirect (supported" == nil or supported" == false)
+    return nil, "redirect not supported"
   elseif ((url.create != nil and url.create != false)) then
-    return nil, "create function (permitted" == nil or permitted" == false)
+    return nil, "create function not permitted"
   end
   -- New 'create' function to establish a secure connection
   url.create = tcp(url)
  res, code, headers, status = http.request(url)
-  if res and stringrequest then
+  if (res != nil and res != false) and stringrequest then
     return table.concat(result_table), code, headers, status
   end
   return res, code, headers, status

@@ -156,7 +156,11 @@ function df_get_column_widths(data_table, columns, limit)
         for col_idx, col_name in ipairs(columns) do
             cell_value = df_get_cell_value(row, col_name, col_idx)
             val_width = visual_len(cell_value)
-            column_widths[col_name] = math.max(column_widths[col_name] or 0, visual_len(col_name), val_width)
+            current_width = column_widths[col_name]
+            if (current_width == nil) then
+                current_width = 0
+            end
+            column_widths[col_name] = math.max(current_width, visual_len(col_name), val_width)
         end
         row_count = row_count + 1
     end
@@ -224,7 +228,9 @@ function df_format_row(row, columns, column_widths)
 end
 
 function df_render_lines(data_table, args)
-    args = args or ({})
+    if (args == nil) then
+        args = {}
+    end
     if (utils.isempty(data_table) != nil and utils.isempty(data_table) != false) then
         return ({"Empty table"})
     elseif not is_dataframe(data_table) then
@@ -250,7 +256,7 @@ function df_render_lines(data_table, args)
 
     row_count = 0
     for _, row in ipairs(data_table) do
-        if (limit and row_count >= limit) then
+        if (limit != nil and row_count >= limit) then
             break
         end
         table.insert(lines, df_format_row(row, columns, column_widths))
@@ -267,7 +273,9 @@ end
 
 -- Pretty print a dataframe
 function df_view(data_table, args)
-	args = args or ({})
+	if (args == nil) then
+		args = {}
+	end
     if (args.bold_headers == nil) then
         args.bold_headers = true
     end
@@ -407,8 +415,11 @@ function filter_by_value(tbl, column, condition)
     result = {}
     for row, values in pairs(tbl) do
         x = values[column]
-        if (x and fcon(x) != nil and x and fcon(x) != false) then
-            table.insert(result, values)
+        if ((x != nil and x != false)) then
+            fx = fcon(x)
+            if ((fx != nil and fx != false)) then
+                table.insert(result, values)
+            end
         end
     end
     return result
@@ -419,7 +430,7 @@ function filter_by_columns(tbl, col1, op, col2)
     result = {}
     for _, values in pairs(tbl) do
         v1, v2 = values[col1], values[col2]
-        if (v1 and v2 != nil and v1 and v2 != false) then
+        if ((v1 != nil and v1 != false) and (v2 != nil and v2 != false)) then
             condition = loadstring(string.format("return %s %s %s", v1 ,op ,v2))
             if (condition() != nil and condition() != false) then
                 table.insert(result, values)
@@ -436,7 +447,11 @@ function filter_unique(tbl, column)
     for _, row in pairs(tbl) do
         val = row[column]
         if ((val != nil and val != false)) then
-            count[val] = (count[val] or 0) + 1
+            current_count = count[val]
+            if (current_count == nil) then
+                current_count = 0
+            end
+            count[val] = current_count + 1
         end
     end
     
@@ -458,7 +473,7 @@ function generate_column(tbl, new_col, col1, op, col2)
     new_tbl = copy(tbl)
     for row, values in pairs(new_tbl) do
         v1, v2 = values[col1], values[col2]
-        if (v1 and v2 != nil and v1 and v2 != false) then
+        if ((v1 != nil and v1 != false) and (v2 != nil and v2 != false)) then
             condition = loadstring(string.format("return %s %s %s", v1 ,op ,v2))
             result = condition()
             if ((result != nil and result != false)) then
@@ -474,7 +489,7 @@ function transform(tbl, new_col, col1, col2, transform_fn)
     new_tbl = copy(tbl)
     for row, values in pairs(new_tbl) do
         v1, v2 = values[col1], values[col2]
-        if (v1 and v2 != nil and v1 and v2 != false) then
+        if ((v1 != nil and v1 != false) and (v2 != nil and v2 != false)) then
             result = transform_fn(v1, v2)
             if ((result != nil and result != false)) then
                 new_tbl[row][new_col] = result
@@ -503,7 +518,9 @@ function diff(tbl, col)
 end
 
 function innerjoin(df1, df2, columns, prefixes)
-    prefixes = prefixes or ({"df1", "df2"})
+    if (prefixes == nil) then
+        prefixes = {"df1", "df2"}
+    end
     joined_df = {}
 
     -- Convert join columns to a set for quick lookup
@@ -560,7 +577,10 @@ function innerjoin(df1, df2, columns, prefixes)
                 -- dd non-join columns from df1
                 for col, val in pairs(row1) do
                     if ((join_columns[col] == nil or join_columns[col] == false)) then
-                        key = shared_columns[col] and (prefixes[1] .. "_" .. col) or col
+                        key = col
+                        if (shared_columns[col] == true) then
+                            key = prefixes[1] .. "_" .. col
+                        end
                         joined_row[key] = val
                     end
                 end
@@ -568,7 +588,10 @@ function innerjoin(df1, df2, columns, prefixes)
                 -- dd non-join columns from df2
                 for col, val in pairs(row2) do
                     if ((join_columns[col] == nil or join_columns[col] == false)) then
-                        key = shared_columns[col] and (prefixes[2] .. "_" .. col) or col
+                        key = col
+                        if (shared_columns[col] == true) then
+                            key = prefixes[2] .. "_" .. col
+                        end
                         joined_row[key] = val
                     end
                 end
@@ -583,7 +606,9 @@ end
 
 
 function innerjoin_multiple(tables, columns, prefixes)
-    prefixes = prefixes or ({})
+    if (prefixes == nil) then
+        prefixes = {}
+    end
     joined_table = {}
     join_columns = {}
     
@@ -643,10 +668,16 @@ function innerjoin_multiple(tables, columns, prefixes)
                 
                 -- dd non-join columns with prefixes if necessary
                 for i, row in ipairs(selected_rows) do
-                    prefix = prefixes[i] or ("tbl" .. i)
+                    prefix = prefixes[i]
+                    if (prefix == nil) then
+                        prefix = "tbl" .. i
+                    end
                     for col, val in pairs(row) do
                         if ((join_columns[col] == nil or join_columns[col] == false)) then
-                            key = shared_columns[col] and (prefix .. "_" .. col) or col
+                            key = col
+                            if (shared_columns[col] == true) then
+                                key = prefix .. "_" .. col
+                            end
                             joined_row[key] = val
                         end
                     end
