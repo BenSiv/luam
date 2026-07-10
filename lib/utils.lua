@@ -308,8 +308,9 @@ end
 
 -- eneric slice function for composable types
 function slice(source, start_index, end_index)
+    result = nil
     if (type(source) == "table") then
-        result = slice_table(source, start_index, end_index)
+      result = slice_table(source, start_index, end_index)
     elseif (type(source) == "string") then
         result = slice_string(source, start_index, end_index)
     else

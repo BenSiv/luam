@@ -8,7 +8,7 @@ tests = {
     "test_bisect.lua", "test_cf.lua", "test_echo.lua", "test_factorial.lua",
     "test_fibfor.lua", "test_hello.lua", "test_printf.lua",
     "test_sieve.lua", "test_sort.lua", "test_trace_calls.lua",
-    "test_xd.lua", "test_local_default.lua", "test_ne.lua",
+    "test_xd.lua", "test_local_default.lua", "test_expired_local.lua", "test_ne.lua",
     "test_verify_multi.lua", "test_no_sugar.lua", "test_load.lua",
     "test_hex.lua",
     -- New/Renamed tests

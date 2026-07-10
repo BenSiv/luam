@@ -168,6 +168,11 @@ static int registerlocalvar(LexState *ls, TString *varname) {
   while (oldsize < f->sizelocvars)
     f->locvars[oldsize++].varname = NULL;
   f->locvars[fs->nlocvars].varname = varname;
+  /* A local is neither active nor expired until 'adjustlocalvars' makes it
+     visible.  This distinction matters for 'local x = x', where the right
+     hand side must still resolve as it did before. */
+  f->locvars[fs->nlocvars].startpc = -1;
+  f->locvars[fs->nlocvars].endpc = -1;
   luaC_objbarrier(ls->L, f, varname);
   return fs->nlocvars++;
 }
@@ -231,6 +236,21 @@ static int searchvar(FuncState *fs, TString *n) {
   return -1; /* not found */
 }
 
+/*
+** Has this function already had a local with this name whose block ended?
+** Locals registered for an initializer but not active yet have endpc == -1,
+** so they are deliberately not reported here.
+*/
+static int hasexpiredvar(FuncState *fs, TString *n) {
+  int i;
+  for (i = fs->nlocvars - 1; i >= 0; i--) {
+    LocVar *var = &fs->f->locvars[i];
+    if (var->varname == n && var->endpc >= 0)
+      return 1;
+  }
+  return 0;
+}
+
 static void markupval(FuncState *fs, int level) {
   BlockCnt *bl = fs->bl;
   while (bl && bl->nactvar > level)
@@ -261,11 +281,30 @@ static int singlevaraux(FuncState *fs, TString *n, expdesc *var, int base) {
   }
 }
 
-static void singlevar(LexState *ls, expdesc *var) {
+/*
+** Resolve one name and return it when it denotes a local that has already
+** left this function's scope.  Callers decide whether this occurrence is a
+** read: a bare assignment target may intentionally start a fresh implicit
+** local, while an expression (or the base of x.field) must not silently fall
+** through to a global lookup.
+*/
+static TString *singlevar(LexState *ls, expdesc *var) {
   TString *varname = str_checkname(ls);
   FuncState *fs = ls->fs;
-  if (singlevaraux(fs, varname, var, 1) == VGLOBAL)
+  if (singlevaraux(fs, varname, var, 1) == VGLOBAL) {
     var->u.s.info = luaK_stringK(fs, varname); /* info points to global name */
+    if (hasexpiredvar(fs, varname))
+      return varname;
+  }
+  return NULL;
+}
+
+static void expiredvarerror(LexState *ls, TString *name) {
+  luaX_syntaxerror(ls,
+                   luaO_pushfstring(ls->L,
+                     "variable " LUA_QS " is no longer in scope; "
+                     "declare it before the block if it is needed afterward",
+                     getstr(name)));
 }
 
 static void adjust_assign(LexState *ls, int nvars, int nexps, expdesc *e) {
@@ -658,7 +697,7 @@ static void funcargs(LexState *ls, expdesc *f) {
 ** =======================================================================
 */
 
-static void prefixexp(LexState *ls, expdesc *v) {
+static TString *prefixexp(LexState *ls, expdesc *v) {
   /* prefixexp -> NAME | '(' expr ')' */
   switch (ls->t.token) {
   case '(': {
@@ -667,32 +706,35 @@ static void prefixexp(LexState *ls, expdesc *v) {
     expr(ls, v);
     check_match(ls, ')', '(', line);
     luaK_dischargevars(ls->fs, v);
-    return;
+    return NULL;
   }
   case TK_NAME: {
-    singlevar(ls, v);
-    return;
+    return singlevar(ls, v);
   }
   default: {
     luaX_syntaxerror(ls, "unexpected symbol");
-    return;
+    return NULL;
   }
   }
 }
 
-static void primaryexp(LexState *ls, expdesc *v) {
+static void primaryexp(LexState *ls, expdesc *v, int allowexpired) {
   /* primaryexp ->
         prefixexp { `.' NAME | `[' exp `]' | funcargs } */
   FuncState *fs = ls->fs;
-  prefixexp(ls, v);
+  TString *expired = prefixexp(ls, v);
   for (;;) {
     switch (ls->t.token) {
     case '.': { /* field */
+      if (expired)
+        expiredvarerror(ls, expired);
       field(ls, v);
       break;
     }
     case '[': { /* `[' exp1 `]' */
       expdesc key;
+      if (expired)
+        expiredvarerror(ls, expired);
       luaK_exp2anyreg(fs, v);
       yindex(ls, &key);
       luaK_indexed(fs, v, &key);
@@ -711,11 +753,15 @@ static void primaryexp(LexState *ls, expdesc *v) {
     case '(':
     case TK_STRING:
     case '{': { /* funcargs */
+      if (expired)
+        expiredvarerror(ls, expired);
       luaK_exp2nextreg(fs, v);
       funcargs(ls, v);
       break;
     }
     default:
+      if (expired && !allowexpired)
+        expiredvarerror(ls, expired);
       return;
     }
   }
@@ -770,7 +816,7 @@ static void simpleexp(LexState *ls, expdesc *v) {
     return;
   }
   default: {
-    primaryexp(ls, v);
+    primaryexp(ls, v, 0);
     return;
   }
   }
@@ -959,7 +1005,7 @@ static void assignment(LexState *ls, struct LHS_assign *lh, int nvars) {
   if (testnext(ls, ',')) { /* assignment -> `,' primaryexp assignment */
     struct LHS_assign nv;
     nv.prev = lh;
-    primaryexp(ls, &nv.v);
+    primaryexp(ls, &nv.v, 1);
     if (nv.v.k == VLOCAL)
       check_conflict(ls, lh, &nv.v);
     luaY_checklimit(ls->fs, nvars, LUAI_MAXCCALLS - ls->L->nCcalls,
@@ -1258,9 +1304,12 @@ static void ifstat(LexState *ls, int line) {
 static int funcname(LexState *ls, expdesc *v) {
   /* funcname -> NAME {field} */
   /* REMOVED: colon method definition syntax disabled in LuaM */
-  singlevar(ls, v);
-  while (ls->t.token == '.')
+  TString *expired = singlevar(ls, v);
+  while (ls->t.token == '.') {
+    if (expired)
+      expiredvarerror(ls, expired);
     field(ls, v);
+  }
   return 0; /* needself is always 0, no method syntax */
 }
 
@@ -1279,7 +1328,7 @@ static void exprstat(LexState *ls) {
   /* stat -> func | assignment */
   FuncState *fs = ls->fs;
   struct LHS_assign v;
-  primaryexp(ls, &v.v);
+  primaryexp(ls, &v.v, 1);
   if (v.v.k == VCALL)               /* stat -> func */
     SETARG_C(getcode(fs, &v.v), 1); /* call statement uses no results */
   else {                            /* stat -> assignment */
