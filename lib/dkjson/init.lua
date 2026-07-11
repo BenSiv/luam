@@ -250,9 +250,9 @@ function addpair (key, value, prev, indent, level, buffer, buflen, tables, globa
     buffer[newbuflen+1] = " "
     newbuflen = newbuflen + 1
   end
-  newbuflen = encode2 (value, indent, level, buffer, newbuflen, tables, globalorder, state)
+  newbuflen, msg = encode2 (value, indent, level, buffer, newbuflen, tables, globalorder, state)
   if newbuflen == nil then
-    return nil
+    return nil, msg
   end
   return newbuflen
 end
@@ -327,7 +327,7 @@ encode2 = function (value, indent, level, buffer, buflen, tables, globalorder, s
         end
         newbuflen = buflen + 1
         buffer[newbuflen] = s
-      elseif valtype == 'boolean' then
+      elseif valtype == 'boolean' or valtype == 'flag' then
           newbuflen = buflen + 1
           if value == true then
             buffer[newbuflen] = "true"
@@ -365,12 +365,13 @@ encode2 = function (value, indent, level, buffer, buflen, tables, globalorder, s
                 prev = false
                 newbuflen = newbuflen + 1
                 buffer[newbuflen] = "{"
+                order = nil
                 if valmeta != nil and valmeta.__jsonorder != nil then
                   order = valmeta.__jsonorder
                 else
                   order = globalorder
                 end
-                
+
                 if order != nil then
                   used = {}
                   n = #order
