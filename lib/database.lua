@@ -34,7 +34,6 @@ function local_query(db_path, query, ...)
     end
     sqlite.exec(db, "PRAGMA busy_timeout = 5000;")
 
-    query = utils.unescape_string(query)
     stmt, err = sqlite.prepare(db, query)
     if (stmt == nil) then
         err_msg = tostring(err)
@@ -118,8 +117,7 @@ function local_update(db_path, statement, ...)
         error("Error opening database: " .. tostring(db_path))
     end
     sqlite.exec(db, "PRAGMA busy_timeout = 5000;")
-    
-    statement = utils.unescape_string(statement)
+
     result = sqlite.exec(db, statement)
     if (result != sqlite.OK) then
         error("Error executing statement: " .. tostring(sqlite.errmsg(db)))
