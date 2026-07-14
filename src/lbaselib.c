@@ -122,6 +122,34 @@ static void getfunc(lua_State *L, int opt) {
   }
 }
 
+static int luaB_getfenv(lua_State *L) {
+  if (lua_isnone(L, 1))
+    lua_pushvalue(L, LUA_GLOBALSINDEX);
+  else {
+    getfunc(L, 1);
+    if (lua_iscfunction(L, -1))
+      lua_pushvalue(L, LUA_GLOBALSINDEX);
+    else
+      lua_getfenv(L, -1);
+  }
+  return 1;
+}
+
+static int luaB_setfenv(lua_State *L) {
+  luaL_checktype(L, 2, LUA_TTABLE);
+  getfunc(L, 1);
+  lua_pushvalue(L, 2);
+  if (lua_isnumber(L, 1) && lua_tonumber(L, 1) == 0) {
+    /* change environment of current thread */
+    lua_pushthread(L);
+    lua_insert(L, -2);
+    lua_setfenv(L, -2);
+    return 0;
+  } else if (lua_iscfunction(L, -2) || lua_setfenv(L, -2) == 0)
+    luaL_error(L, LUA_QL("setfenv") " cannot change environment of given object");
+  return 1;
+}
+
 static int luaB_rawequal(lua_State *L) {
   luaL_checkany(L, 1);
   luaL_checkany(L, 2);
@@ -377,8 +405,8 @@ static const luaL_Reg base_funcs[] = {
     {"collectgarbage", luaB_collectgarbage},
     {"dofile", luaB_dofile},
     {"error", luaB_error},
-    /* {"gcinfo", luaB_gcinfo}, */   /* REMOVED: deprecated */
-    /* {"getfenv", luaB_getfenv}, */ /* REMOVED: deprecated in Lua 5.2+ */
+    /* {"gcinfo", luaB_gcinfo}, */ /* REMOVED: deprecated */
+    {"getfenv", luaB_getfenv},
     {"getmetatable", luaB_getmetatable},
     {"loadfile", luaB_loadfile},
     {"load", luaB_load},
@@ -390,7 +418,7 @@ static const luaL_Reg base_funcs[] = {
     {"rawget", luaB_rawget},
     {"rawset", luaB_rawset},
     {"select", luaB_select},
-    /* {"setfenv", luaB_setfenv}, */ /* REMOVED: deprecated in Lua 5.2+ */
+    {"setfenv", luaB_setfenv},
     {"setmetatable", luaB_setmetatable},
     {"tonumber", luaB_tonumber},
     {"tostring", luaB_tostring},

@@ -718,11 +718,14 @@ void luaK_prefix(FuncState *fs, UnOpr op, expdesc *e) {
 void luaK_infix(FuncState *fs, BinOpr op, expdesc *v) {
   switch (op) {
   case OPR_AND: {
-    luaK_goiftrue(fs, v, 0); /* non-strict for logical operators */
+    /* Strict: 'and'/'or' are logical operators, not a value-selection
+       ternary -- both operands must be actual booleans, same
+       enforcement 'if' conditions already get below. */
+    luaK_goiftrue(fs, v, 1);
     break;
   }
   case OPR_OR: {
-    luaK_goiffalse(fs, v, 0); /* non-strict for logical operators */
+    luaK_goiffalse(fs, v, 1);
     break;
   }
   case OPR_CONCAT: {
