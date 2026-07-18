@@ -84,6 +84,21 @@ else
     echo "Skipping bcrypt (source not found)"
 fi
 
+# 3c. hmac -- a thin binding over OpenSSL libcrypto's HMAC-SHA256, not
+# a vendored/hand-rolled implementation -- see lib/hmac/hmac.c's own
+# header comment.
+if [ -d "lib/hmac" ]; then
+    echo "Compiling hmac.so"
+    run_cmd gcc -O2 -shared -fPIC -Isrc/ -o lib/hmac/hmac.so lib/hmac/hmac.c -lcrypto
+    if [ $? -eq 0 ]; then
+        echo "hmac.so built successfully"
+    else
+        echo "Failed to build hmac.so (-lcrypto missing?)"
+    fi
+else
+    echo "Skipping hmac (source not found)"
+fi
+
 # 4. LuaSocket
 if [ -d "lib/socket/src" ]; then
     echo "Compiling socket.core.so"
