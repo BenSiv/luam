@@ -69,6 +69,21 @@ else
     echo "Skipping sqlite (source not found)"
 fi
 
+# 3b. bcrypt -- a thin binding over the platform's own crypt_gensalt/
+# crypt_r bcrypt support (glibc/libxcrypt), not a vendored bcrypt
+# implementation -- see lib/bcrypt/bcrypt.c's own header comment.
+if [ -d "lib/bcrypt" ]; then
+    echo "Compiling bcrypt.so"
+    run_cmd gcc -O2 -shared -fPIC -Isrc/ -o lib/bcrypt/bcrypt.so lib/bcrypt/bcrypt.c -lcrypt
+    if [ $? -eq 0 ]; then
+        echo "bcrypt.so built successfully"
+    else
+        echo "Failed to build bcrypt.so (-lcrypt missing?)"
+    fi
+else
+    echo "Skipping bcrypt (source not found)"
+fi
+
 # 4. LuaSocket
 if [ -d "lib/socket/src" ]; then
     echo "Compiling socket.core.so"
