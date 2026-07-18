@@ -33,6 +33,15 @@ function local_query(db_path, query, ...)
         error("Error opening database: " .. tostring(db_path))
     end
     sqlite.exec(db, "PRAGMA busy_timeout = 5000;")
+    -- WAL mode is a persistent property of the database file itself, not
+    -- this connection -- re-issuing it on every open (this module opens a
+    -- fresh connection per call, see local_update below) is redundant
+    -- after the first time but harmless, and guarantees it's actually set
+    -- rather than depending on some other code path having done it first.
+    -- Lets readers and a writer proceed concurrently instead of blocking
+    -- each other, which matters once more than one client (e.g. several
+    -- browser tabs against the same store) is hitting the database at once.
+    sqlite.exec(db, "PRAGMA journal_mode = WAL;")
 
     stmt, err = sqlite.prepare(db, query)
     if (stmt == nil) then
@@ -117,6 +126,7 @@ function local_update(db_path, statement, ...)
         error("Error opening database: " .. tostring(db_path))
     end
     sqlite.exec(db, "PRAGMA busy_timeout = 5000;")
+    sqlite.exec(db, "PRAGMA journal_mode = WAL;")
 
     result = sqlite.exec(db, statement)
     if (result != sqlite.OK) then
