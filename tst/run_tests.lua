@@ -29,6 +29,7 @@ tests = {
     "test_socket.lua",
     "test_sqlite.lua",
     "test_struct.lua",
+    "test_string_utils.lua",
 }
 
 failed = 0
