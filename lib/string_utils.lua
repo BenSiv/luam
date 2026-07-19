@@ -68,7 +68,7 @@ function unescape_string(str)
     return new_str
 end
 
--- epeats a string n times into a new concatenated string
+-- Repeats a string n times into a new concatenated string
 function repeat_string(str, n)
     result = ""
     for i = 1, n do

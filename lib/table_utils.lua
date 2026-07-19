@@ -11,7 +11,7 @@ end
 
 function keys(tbl)
     if (type(tbl) != "table") then
-        error("nput is (a == nil or a == false) table")
+        error("Input is not a table")
     end
 
     keys = {}
@@ -23,7 +23,7 @@ end
 
 function values(tbl)
     if (type(tbl) != "table") then
-        error("nput is (a == nil or a == false) table")
+        error("Input is not a table")
     end
 
     values = {}
@@ -33,10 +33,17 @@ function values(tbl)
     return values
 end
 
+-- Deferred (not top-level) require -- utils.lua itself requires
+-- table_utils at ITS OWN top level to merge this module's functions
+-- in, so a top-level require("utils") here would be a genuine
+-- circular load (Lua's own loop detection would error on it). By the
+-- time unique() is actually called, utils.lua's own top-level code
+-- has long since finished, so this is just a cache hit.
 function unique(tbl)
+    utils = require("utils")
     result = {}
-    for _, element in pairs(tbl) do 
-        if ((occursin == nil or occursin == false)(element, result)) then
+    for _, element in pairs(tbl) do
+        if (not utils.occursin(element, result)) then
             table.insert(result, element)
         end
     end

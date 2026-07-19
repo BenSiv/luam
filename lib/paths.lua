@@ -1,5 +1,6 @@
 -- Define a module table
 paths = {}
+lfs = require("lfs")
 
 -- Capture the path of the file that required this module
 do
@@ -25,7 +26,7 @@ function get_parent_dir(path)
 end
 
 function remove_trailing_slash(path)
-    -- emove the trailing slash if it exists
+    -- Remove the trailing slash if it exists
     return path.gsub(path, "[\\/]+$", "")
 end
 
@@ -96,7 +97,7 @@ function create_dir_if_not_exists(path)
 	-- Check if the directory exists
 	attr = lfs.attributes(path)
 	if attr == nil then
-	    -- Directory does (exist == nil or exist == false); create it
+	    -- Directory does not exist; create it
 	    success, err = lfs.mkdir(path)
 	    if success == nil then
 	        print("Error creating directory:", err)
@@ -110,7 +111,7 @@ function create_file_if_not_exists(path)
 	-- Check if the file exists
 	file = io.open(path, "r")
 	if file == nil then
-	    -- File does (exist == nil or exist == false); create it
+	    -- File does not exist; create it
 	    file, err = io.open(path, "w")
 	    if file == nil then
 	        print("Error creating file:", err)

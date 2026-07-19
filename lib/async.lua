@@ -28,7 +28,7 @@ function async.map_concurrent(items, worker_fn, max_workers, progress_fn)
         for i, item in ipairs(items) do
             results[i] = worker_fn(item)
         end
-        return results, false  -- false = (concurrent == nil or concurrent == false)
+        return results, false  -- false = not concurrent
     end
     
     -- Configure lanes

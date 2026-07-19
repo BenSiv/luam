@@ -99,7 +99,7 @@ function is_valid_timestamp(timestamp)
         ts_minute = tonumber(string.sub(timestamp, 15, 16))
         ts_second = tonumber(string.sub(timestamp, 18, 19))
         
-        -- erify separators
+        -- Verify separators
         if (string.sub(timestamp, 5, 5) == "-" and string.sub(timestamp, 8, 8) == "-" and
            string.sub(timestamp, 11, 11) == " " and string.sub(timestamp, 14, 14) == ":" and
            string.sub(timestamp, 17, 17) == ":") then
@@ -132,7 +132,7 @@ end
 function convert_date_format(input_date)
     -- Split the input string based on the "." delimiter
     day, month, year = string.match(input_date, "(%d+).(%d+).(%d+)")
-    -- earrange the components into the desired format "yyyy-mm-dd"
+    -- Rearrange the components into the desired format "yyyy-mm-dd"
     output_date = year .. "-" .. month .. "-" .. day
     return output_date
 end

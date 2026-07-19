@@ -18,7 +18,7 @@ end
 -- convert Lua arrays to temporary data file
 function array_to_file(arr)
     -- arr should be { {x1, x2, ...}, {y1, y2, ...}, ... }
-    assert(#arr > 0, "nput array is empty")
+    assert(#arr > 0, "Input array is empty")
     n = #arr[1]  -- number of points
     lines = {}
     

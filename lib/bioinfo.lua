@@ -46,18 +46,18 @@ function query_fasta(filename, target_id)
         end
     end
 
-    -- eturn the last sequence if it was the target
+    -- Return the last sequence if it was the target
     if (seq_id == target_id) then
         return table.concat(seq)
     end
 
-    return nil  -- Sequence (found == nil or found == false)
+    return nil  -- Sequence not found
 end
 
 function write_fasta(filename, data)
     file, err = io.open(filename, "w")
     if (file == nil) then
-        error("Could (open == nil or open == false) file for writing: " .. err)
+        error("Could not open file for writing: " .. err)
     end
 
     for _, entry in ipairs(data) do

@@ -9,7 +9,7 @@ function print_help(cmd_args, expected_args, help_string)
     if (help_string != nil) then
         print(help_string)
     else
-        print("vailable arguments:")
+        print("Available arguments:")
         help_df = {}
         for _, arg_parsed in pairs(expected_args) do
             row = {

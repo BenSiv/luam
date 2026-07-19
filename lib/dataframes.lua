@@ -17,7 +17,7 @@ dataframes = {}
 -- first keys are rows of type integer
 -- second keys are columns of type string
 
--- alidate if a table is a DataFrame
+-- Validate if a table is a DataFrame
 function is_dataframe(tbl)
     if (type(tbl) != "table") then
         return false
@@ -32,7 +32,7 @@ function is_dataframe(tbl)
         valid_row_content = type(row) == "table"
         valid_row_index = type(index) == "number"
         if ((valid_row_content == nil or valid_row_content == false) or (valid_row_index == nil or valid_row_index == false)) then
-            print("nvalid row content/index at " .. index)
+            print("Invalid row content/index at " .. index)
             return false
         end
 
@@ -41,7 +41,7 @@ function is_dataframe(tbl)
             valid_col_name = type(col_name) == "string" or type(col_name) == "text" or type(col_name) == "number"
             valid_col_value = type(col_value) == "number" or type(col_value) == "string" or type(col_value) == "text"
             if ((valid_col_name == nil or valid_col_name == false) or (valid_col_value == nil or valid_col_value == false)) then
-                print("nvalid col " .. tostring(col_name) .. " type " .. type(col_value))
+                print("Invalid col " .. tostring(col_name) .. " type " .. type(col_value))
                 return false
             end
             current_num_columns = current_num_columns + 1
@@ -82,17 +82,17 @@ function string_keys(obj)
     return new_table
 end
 
--- ransposes a dataframe
+-- Transposes a dataframe
 function transpose(data_table)
-    -- if (is_dataframe == nil or is_dataframe == false)(data_table) then
-    --     print("ot a valid dataframe.")
+    -- if not is_dataframe(data_table) then
+    --     print("Not a valid dataframe.")
     --     return
     -- end
 
     transposed_table = {}
 
-    -- ranspose the table
-    -- ranspose the table
+    -- Transpose the table
+    -- Transpose the table
     first_key = utils.keys(data_table)[1]
     for col_index, col_data in pairs(data_table[first_key]) do
         transposed_table[col_index] = {}
@@ -105,16 +105,16 @@ function transpose(data_table)
 end
 
 function df_get_columns(data_table)
-    -- Check if the data table is empty or (a == nil or a == false) valid dataframe
+    -- Check if the data table is empty or not a valid dataframe
     if (utils.isempty(data_table) != nil and utils.isempty(data_table) != false) then
         print("Empty table")
         return ({})
     elseif not is_dataframe(data_table) then
-        print("ot a valid dataframe")
+        print("Not a valid dataframe")
         return ({})
     end
 
-    -- etrieve the column names from the first row
+    -- Retrieve the column names from the first row
     columns = {}
     first_key = utils.keys(data_table)[1]
     for col_name, _ in pairs(data_table[first_key]) do
@@ -234,7 +234,7 @@ function df_render_lines(data_table, args)
     if (utils.isempty(data_table) != nil and utils.isempty(data_table) != false) then
         return ({"Empty table"})
     elseif not is_dataframe(data_table) then
-        return ({"ot a valid dataframe"})
+        return ({"Not a valid dataframe"})
     end
 
     columns = df_get_view_columns(data_table, args.columns)
@@ -303,7 +303,7 @@ end
 --     return groups
 -- end
 
--- roup by multiple keys and return flat list
+-- Group by multiple keys and return flat list
 function group_by(data, keys)
     keys = keys
     if (type(keys) == "string") then
@@ -321,7 +321,7 @@ function group_by(data, keys)
         end
         key_string = table.concat(key_parts, "\0") -- use null as safe separator
 
-        -- nitialize group if (seen == nil or seen == false)
+        -- Initialize group if not seen
         if ((seen[key_string] == nil or seen[key_string] == false)) then
             group = {
                 cols = {},
@@ -470,7 +470,7 @@ end
 
 -- Function to generate new column based on a transformation of pair columns
 function generate_column(tbl, new_col, col1, op, col2)
-    new_tbl = copy(tbl)
+    new_tbl = utils.copy(tbl)
     for row, values in pairs(new_tbl) do
         v1, v2 = values[col1], values[col2]
         if ((v1 != nil and v1 != false) and (v2 != nil and v2 != false)) then
@@ -486,7 +486,7 @@ end
 
 -- Function to generate new column based on a transformation of pair columns
 function transform(tbl, new_col, col1, col2, transform_fn)
-    new_tbl = copy(tbl)
+    new_tbl = utils.copy(tbl)
     for row, values in pairs(new_tbl) do
         v1, v2 = values[col1], values[col2]
         if ((v1 != nil and v1 != false) and (v2 != nil and v2 != false)) then
@@ -507,7 +507,7 @@ function diff(tbl, col)
     value = 0
     for index, row in pairs(tbl) do
         if (index == 1) then 
-            -- do (update == nil or update == false) values
+            -- do not update values
         else
             value = row[col] - last_value
         end
@@ -529,7 +529,7 @@ function innerjoin(df1, df2, columns, prefixes)
         join_columns[col] = true
     end
 
-    -- dentify overlapping non-join columns
+    -- Identify overlapping non-join columns
     df1_columns, df2_columns = {}, {}
     for _, row in ipairs(df1) do
         for col in pairs(row) do
@@ -617,7 +617,7 @@ function innerjoin_multiple(tables, columns, prefixes)
         join_columns[col] = true
     end
     
-    -- dentify overlapping non-join columns across all tables
+    -- Identify overlapping non-join columns across all tables
     column_sets = {}
     for i, tbl in ipairs(tables) do
         column_sets[i] = {}
@@ -655,7 +655,7 @@ function innerjoin_multiple(tables, columns, prefixes)
         return true
     end
     
-    -- enerate the Cartesian product and filter valid joins
+    -- Generate the Cartesian product and filter valid joins
     function join_recursive(depth, selected_rows)
         if (depth > #tables) then
             if (rows_match(selected_rows) != nil and rows_match(selected_rows) != false) then

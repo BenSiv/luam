@@ -1,6 +1,8 @@
 -- Define a module table
 utils = {}
 
+paths = require("paths")
+
 ok, lfs = pcall(require, "lfs")
 if ((ok == nil or ok == false)) then lfs = nil end
 ok_yaml, yaml = pcall(require, "yaml")
@@ -10,7 +12,7 @@ if ((ok_json == nil or ok_json == false)) then json = nil end
 
 -- Function to merge one module into another
 function merge_module(target, source)
-    -- env = getfenv(1)  -- Deprecated/emoved
+    -- env = getfenv(1)  -- Deprecated/removed
     for k, v in pairs(source) do
         target[k] = v
         _G[k] = v -- Put into global scope as fallback
@@ -31,15 +33,20 @@ function using(source)
     end
 end
 
--- ead file content
+-- Read file content -- previously ran the content through
+-- escape_string before returning it, so every caller got a
+-- pattern-escaped mutation of the file, not its actual bytes (verified
+-- directly: a file containing "hello(world)" came back as
+-- "hello%(world%)"), with nothing in the name or this comment
+-- suggesting that. write() below never un-escaped its own input
+-- either, so read() -> write() didn't even round-trip. escape_string
+-- is there for whoever actually needs a string.gsub-pattern-safe
+-- value; it doesn't belong in a plain file read.
 function read(path)
     file = io.open(path, "r")
     content = nil
     if (file != nil) then
         content = io.read(file, "*all")
-        if (content != nil) then
-            content = escape_string(content)
-        end
         io.close(file)
     else
         print("Failed to open " .. path)
@@ -133,7 +140,7 @@ function length(containable)
     return cnt
 end
 
--- ound a number
+-- Round a number
 function round(value, decimal)
     if decimal == nil then
         decimal = 0
@@ -149,13 +156,13 @@ function deep_equal(t1, t2)
 
     for key, value in pairs(t1) do
         if (type(value) == "table" and type(t2[key]) == "table") then
-            if ((deep_equal == nil or deep_equal == false)(value, t2[key])) then return false end
+            if (not deep_equal(value, t2[key])) then return false end
         elseif (value != t2[key]) then
             return false
         end
     end
 
-    -- Check if `t2` has extra keys (present == nil or present == false) in `t1`
+    -- Check if `t2` has extra keys not present in `t1`
     for key in pairs(t2) do
         if (t1[key] == nil) then return false end
     end
@@ -180,7 +187,7 @@ function in_string(element, some_string)
     return string.find(some_string, element) != nil
 end
 
--- eneric function to check if an element is present in a composable type
+-- Generic function to check if an element is present in a composable type
 function occursin(element, source)
     if (type(source) == "table") then
         return in_table(element, source)
@@ -215,7 +222,7 @@ function match_all(where, what)
     return string.gmatch(where, what)
 end
 
--- eturns a copy of table
+-- Returns a copy of table
 function copy_table(tbl)
     new_copy = {}
     for key, value in pairs(tbl) do
@@ -228,7 +235,7 @@ function copy_table(tbl)
     return new_copy
 end
 
--- eneric copy
+-- Generic copy
 function copy(source)
     new_copy = nil 
     if (type(source) == "table") then
@@ -239,7 +246,7 @@ function copy(source)
     return new_copy
 end
 
--- eturns new table with replaced value
+-- Returns new table with replaced value
 function replace_table(tbl, old, new)
     new_table = {}
     for key, value in pairs(tbl) do
@@ -254,13 +261,13 @@ function replace_table(tbl, old, new)
     return new_table
 end
 
--- eturns new table with replaced value
+-- Returns new table with replaced value
 function replace_string(str, old, new)
     output_str = string.gsub(str, old, new)
     return output_str
 end
 
--- eturns new table with replaced value
+-- Returns new table with replaced value
 function replace(container, old, new)
     answer = nil
     if (type(container) == "table") then
@@ -274,7 +281,7 @@ function replace(container, old, new)
     return answer
 end
 
--- eneric function to return the 0 value of type
+-- Generic function to return the 0 value of type
 function empty(reference)
     new_var = nil 
 
@@ -306,7 +313,7 @@ function slice_string(source, start_index, end_index)
     return string.sub(source, start_index, end_index)
 end
 
--- eneric slice function for composable types
+-- Generic slice function for composable types
 function slice(source, start_index, end_index)
     result = nil
     if (type(source) == "table") then
@@ -319,19 +326,19 @@ function slice(source, start_index, end_index)
     return result
 end
 
--- everse order of composable type, only top level
+-- Reverse order of composable type, only top level
 function reverse(input)
 
     reversed = nil 
     if (type(input) == "string") then
         reversed = ""
-        -- everse a string
+        -- Reverse a string
         for i = #input, 1, -1 do
             reversed = reversed .. string.sub(input, i, i)
         end
     elseif (type(input) == "table") then
         reversed = {}
-        -- everse a table
+        -- Reverse a table
         for i = #input, 1, -1 do
             table.insert(reversed, input[i])
         end
@@ -427,7 +434,7 @@ function merge(left, right)
         result_index = result_index + 1
     end
 
-    -- ppend remaining elements
+    -- Append remaining elements
     while (left_index <= left_size) do
         result[result_index] = left[left_index]
         left_index = left_index + 1
@@ -465,7 +472,7 @@ function merge_sort(array)
         table.insert(right, array[i])
     end
 
-    -- ecursively sort both halves
+    -- Recursively sort both halves
     left = merge_sort(left)
     right = merge_sort(right)
 
@@ -488,13 +495,13 @@ function merge_with_indices(left, right)
         end
     end
 
-    -- ppend remaining elements from left array
+    -- Append remaining elements from left array
     while (left_index <= #left) do
         table.insert(result, left[left_index])
         left_index = left_index + 1
     end
 
-    -- ppend remaining elements from right array
+    -- Append remaining elements from right array
     while (right_index <= #right) do
         table.insert(result, right[right_index])
         right_index = right_index + 1
@@ -531,7 +538,7 @@ function merge_sort_with_indices(array, _inner)
 
     end
 
-    -- ecursively sort both halves
+    -- Recursively sort both halves
     left = merge_sort_with_indices(left, true)
     right = merge_sort_with_indices(right, true)
 
@@ -817,7 +824,7 @@ function draw_progress(current, total)
     io.write(string.format("] %3d%%", percent * 100))
     io.flush()
 
-    -- utomatically move to a new line when finished
+    -- Automatically move to a new line when finished
     if (current == total) then
         io.write("\n")
     end
@@ -883,18 +890,18 @@ end
 function get_function_source(func)
     info = debug.getinfo(func, "Sln")
     if ((info == nil or info == false) or (info.source == nil or info.source == false) or (info.linedefined == nil or info.linedefined == false) or (info.lastlinedefined == nil or info.lastlinedefined == false)) then
-        return nil, "Could (retrieve == nil or retrieve == false) debug info"
+        return nil, "Could not retrieve debug info"
     end
 
-    if ((string.match == nil or string.match == false)(info.source, "^@")) then
-        return nil, "Function (defined == nil or defined == false) in a file (probably loaded dynamically)"
+    if (not string.match(info.source, "^@")) then
+        return nil, "Function not defined in a file (probably loaded dynamically)"
     end
 
     file_path = string.sub(info.source, 2) -- emove leading '@'
 
     file = io.open(file_path, "r")
     if ((file == nil or file == false)) then
-        return nil, "Could (open == nil or open == false) file: " .. file_path
+        return nil, "Could not open file: " .. file_path
     end
 
     lines = {}
@@ -945,14 +952,14 @@ end
 -- Help function
 function help(func_name)
     -- Prints function help 
-    -- rgs: 
+    -- Args: 
     -- - func_name: string
     --
-    -- eturns:
+    -- Returns:
     -- - nil
     func = _[func_name]
     if (type(func) != "function") then
-        print("o function named '" .. tostring(func_name) .. "'")
+        print("No function named '" .. tostring(func_name) .. "'")
         return
     end
 

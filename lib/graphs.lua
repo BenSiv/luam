@@ -62,7 +62,7 @@ function build_reverse_graph(graph)
     return reversed
 end
 
--- eneric DFS traversal
+-- Generic DFS traversal
 function traverse_graph(graph, start_node, reverse)
     g = graph
     if ((reverse != nil and reverse != false)) then g = build_reverse_graph(graph) end

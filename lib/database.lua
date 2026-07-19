@@ -162,7 +162,7 @@ function import_delimited(db_path, file_path, table_name, delimiter)
         error("Error reading delimited file")
     end
     
-    col_names = utils.keys(content[1]) -- problematic if first row does (have == nil or have == false) all the columns
+    col_names = utils.keys(content[1]) -- problematic if first row does not have all the columns
     col_row = table.concat(col_names, "', '")
     insert_statement = string.format("INSERT INTO %s ('%s') VALUES ", table_name, col_row)
 
@@ -202,8 +202,8 @@ end
 
 function load_df_rows(db_path, table_name, dataframe)
     -- Validate dataframe
-    if ((dataframes.is_dataframe == nil or dataframes.is_dataframe == false)(dataframe)) then
-        error("The provided table is (a == nil or a == false) valid dataframe.")
+    if (not dataframes.is_dataframe(dataframe)) then
+        error("The provided table is not a valid dataframe.")
     end
 
     columns = dataframes.get_columns(dataframe)
@@ -250,8 +250,8 @@ end
 
 function load_df(db_path, table_name, dataframe)
     -- Check if the provided dataframe is valid
-    if ((dataframes.is_dataframe == nil or dataframes.is_dataframe == false)(dataframe)) then
-        error("The provided table is (a == nil or a == false) valid dataframe.")
+    if (not dataframes.is_dataframe(dataframe)) then
+        error("The provided table is not a valid dataframe.")
     end
 
     -- Get the columns from the dataframe
@@ -475,7 +475,7 @@ function compare_schemas(old_schema, new_schema, migration_config)
                 end
             end
 
-            -- detect added columns ((from == nil or from == false) rename)
+            -- detect added columns (not from rename)
             for _, newcol in ipairs(new_cols) do
                 if ((old_col_map[newcol.name] == nil or old_col_map[newcol.name] == false)) then
                     is_rename = false
@@ -500,7 +500,7 @@ function compare_schemas(old_schema, new_schema, migration_config)
         end
     end
 
-    -- track tables added ((from == nil or from == false) rename)
+    -- track tables added (not from rename)
     for new_tname, _ in pairs(new_schema) do
         is_rename = false
         for _, mapped in pairs(migration_config.tables) do
