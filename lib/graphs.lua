@@ -151,6 +151,44 @@ function get_all_components(graph, node_map)
     return components
 end
 
+-- Depth of a node from its roots: root = 0, each edge up = +1, cycle
+-- or unknown node = -1.
+function get_node_depth(graph, node_map, node_name)
+    node_idx = get_node_index(node_map, node_name)
+    if ((node_idx == nil or node_idx == false)) then return -1 end
+
+    reversed = build_reverse_graph(graph)
+
+    function depth(curr, visited)
+        if (visited == nil) then
+            visited = {}
+        end
+        if ((visited[curr] != nil and visited[curr] != false)) then return -1 end
+        visited[curr] = true
+
+        parents = reversed[curr]
+        if (parents == nil) then
+            parents = {}
+        end
+        if (#parents == 0) then
+            return 0
+        end
+
+        max_depth = 0
+        for _, p in ipairs(parents) do
+            d = depth(p, visited)
+            if (d == -1) then
+                return -1
+            end
+            if (d > max_depth) then max_depth = d end
+        end
+
+        return max_depth + 1
+    end
+
+    return depth(node_idx)
+end
+
 -- Exports
 graphs.build_graph = build_graph
 graphs.get_all_children = get_all_children
@@ -158,14 +196,7 @@ graphs.get_all_parents = get_all_parents
 graphs.get_leaves = get_leaves
 graphs.get_roots = get_roots
 graphs.get_node_index = get_node_index
--- get_lineage_depth was removed -- "root = 0, subcultures increment"
--- (subculture = cell-culture/microbiology passage terminology) and a
--- sample_name parameter name only make sense for fossci's own planned
--- lineage-tracking feature (see fossci/doc/architecture.md,
--- manifesto.md, project_plan.md), which itself explicitly isn't shaped
--- around any one scientific discipline -- this had drifted a layer
--- more domain-specific than even that. No consumer anywhere on disk
--- called it.
+graphs.get_node_depth = get_node_depth
 graphs.get_all_components = get_all_components
 
 return graphs

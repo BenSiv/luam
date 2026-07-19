@@ -33,12 +33,8 @@ function values(tbl)
     return values
 end
 
--- Deferred (not top-level) require -- utils.lua itself requires
--- table_utils at ITS OWN top level to merge this module's functions
--- in, so a top-level require("utils") here would be a genuine
--- circular load (Lua's own loop detection would error on it). By the
--- time unique() is actually called, utils.lua's own top-level code
--- has long since finished, so this is just a cache hit.
+-- Deferred, not top-level: utils.lua requires table_utils at its own
+-- top level, so requiring utils back here would be a circular load.
 function unique(tbl)
     utils = require("utils")
     result = {}

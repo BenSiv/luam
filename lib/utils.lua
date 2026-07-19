@@ -33,15 +33,7 @@ function using(source)
     end
 end
 
--- Read file content -- previously ran the content through
--- escape_string before returning it, so every caller got a
--- pattern-escaped mutation of the file, not its actual bytes (verified
--- directly: a file containing "hello(world)" came back as
--- "hello%(world%)"), with nothing in the name or this comment
--- suggesting that. write() below never un-escaped its own input
--- either, so read() -> write() didn't even round-trip. escape_string
--- is there for whoever actually needs a string.gsub-pattern-safe
--- value; it doesn't belong in a plain file read.
+-- Read file content
 function read(path)
     file = io.open(path, "r")
     content = nil
@@ -867,7 +859,7 @@ end
 function write_log_file(log_dir, filename, header, entries)
     if ((log_dir == nil or log_dir == false)) then return nil end
 
-    file_path = joinpath(log_dir, filename)
+    file_path = paths.joinpath(log_dir, filename)
     file = io.open(file_path, "w")
     if (file == nil) then
         print("Failed to open " .. file_path)

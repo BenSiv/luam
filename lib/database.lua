@@ -304,20 +304,6 @@ function load_df(db_path, table_name, dataframe)
 end
 
 
--- get_tables/get_columns/get_table_info/get_schema (used sqlite.rows,
--- which returns positionally-indexed rows, not the row.name/row.type
--- field access these relied on -- confirmed via a real compiled test:
--- sqlite.nrows is the named-field variant that would have actually
--- worked) and compare_schemas (125 lines modeling table/column-rename
--- tracking no consumer's own migration approach wants -- see
--- platform-wip/src/schema.lua's own "never drops or renames a column,
--- that's a deliberately manual operation" stance) were both removed
--- rather than fixed in place: both real consumers on disk had already
--- independently reimplemented their own working schema introspection
--- against sqlite.prepare directly instead of ever fixing or using
--- these, so a corrected central version still wouldn't have reduced
--- any duplication -- it would just be a second, unused, working
--- version sitting next to two already-working ones.
 database.local_query = local_query
 database.local_update = local_update
 database.import_delimited = import_delimited
