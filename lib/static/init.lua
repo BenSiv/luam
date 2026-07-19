@@ -197,6 +197,74 @@ usage: static main.lua[1] require.lua[2] liblua.a[3] library.a[4] -I/include/lua
 	os.exit(1)
 end
 
+-- Warn (not fail the build) about a bare function defined in exactly
+-- one bundled file but called, bare, from a different one -- the
+-- pattern that made dkjson's own internal `replace` helper silently
+-- collide with an unrelated same-named global elsewhere in the bundle
+-- before per-module isolation (see lua_loader's own setfenv comment
+-- below) turned that class of bug into a loud runtime error instead of
+-- silent corruption. This is a text-pattern heuristic over a dynamic
+-- language, not a sound analysis -- it can't see a function reached via
+-- _G["name"], stored in a table and called indirectly, or produced by
+-- load() at runtime, and something matching the surface shape here
+-- could still be a legitimate, safe pattern this doesn't understand.
+-- A hard build failure on a heuristic that can be wrong in either
+-- direction would be worse than not checking at all: it would block
+-- real code sometimes and give false confidence ("build passed, so
+-- it's fine") when a case slips past it the rest of the time. Warn,
+-- don't block -- the actual, precise safety net is lua_loader's own
+-- per-module isolation actually crashing (not silently misbehaving) if
+-- a bare cross-file reference is ever really exercised.
+function check_bare_cross_file_calls(files)
+	definers = {}
+	for _, file in ipairs(files) do
+		f = io.open(file.path, "r")
+		if f != nil then
+			content = io.read(f, "*all")
+			io.close(f)
+			for name in string.gmatch(content, "\nfunction ([%a_][%w_]*)%(") do
+				if definers[name] == nil then
+					definers[name] = {}
+				end
+				table.insert(definers[name], file.path)
+			end
+		end
+	end
+
+	sources = {}
+	for _, file in ipairs(files) do
+		f = io.open(file.path, "r")
+		if f != nil then
+			sources[file.path] = io.read(f, "*all")
+			io.close(f)
+		end
+	end
+
+	for name, defining_files in pairs(definers) do
+		if #defining_files == 1 then
+			definer = defining_files[1]
+			module_name = string.match(basename(definer), "(.+)%.")
+			if module_name == nil then
+				module_name = basename(definer)
+			end
+			for path, content in pairs(sources) do
+				if path != definer then
+					-- A bare call: name( not preceded by a letter,
+					-- digit, underscore, or dot (so module.name( and
+					-- somename( don't false-match).
+					if string.find(content, "[^%w_.]" .. name .. "%(") != nil then
+						io.write(io.stderr, string.format(
+							"warning: %s defines '%s' as a bare (unexported) function, but %s calls it directly without going through %s's own module table -- this only worked because both files share one flat global namespace; an unrelated same-named global anywhere else in the bundle could silently break it. Consider exporting it properly instead (e.g. function %s.%s(...)).\n",
+							definer, name, path, definer, module_name, name
+						))
+					end
+				end
+			end
+		end
+	end
+end
+check_bare_cross_file_calls(lua_source_files)
+
 -- The entry point to the Lua program.
 mainlua = lua_source_files[1]
 -- Generate a C program containing the Lua source files that uses the Lua C API to 
@@ -364,6 +432,33 @@ function lua_loader(name)
 		if type(mod) == "string" then
 			chunk, errstr = load_string(mod, name)
 			if chunk != nil then
+				-- Give each module its own private global table
+				-- instead of sharing the real _G directly -- a bare
+				-- (unprefixed) global write inside one bundled file,
+				-- e.g. an internal helper a vendored library never
+				-- meant to export, can otherwise silently clobber an
+				-- identically-named bare global some completely
+				-- unrelated bundled file also happens to define, with
+				-- no error and no warning (confirmed as a real bug:
+				-- dkjson's own internal `replace` helper and this
+				-- project's utils.lua both defined a bare global
+				-- `replace`; whichever loaded last silently won,
+				-- corrupting dkjson's number formatting for the
+				-- other). __index = _G means reads of genuinely
+				-- shared globals (string, pairs, require, and every
+				-- other already-`require`d module table a file
+				-- assigns to its own bare global, e.g. `json =
+				-- require("dkjson")`) still work exactly as before --
+				-- only a *write* to a name that isn't already a real
+				-- global lands in this module's own private table,
+				-- invisible to every other module. setfenv/getfenv are
+				-- Lua 5.1-specific (removed in 5.2+, replaced by the
+				-- _ENV upvalue) -- guarded so this is a no-op instead
+				-- of an error if this ever runs on a newer core.
+				if setfenv != nil then
+					module_env = setmetatable({}, {__index = _G})
+					setfenv(chunk, module_env)
+				end
 				return chunk
 			else
 				error(
