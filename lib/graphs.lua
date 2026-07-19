@@ -151,44 +151,6 @@ function get_all_components(graph, node_map)
     return components
 end
 
--- et lineage depth: root = 0, subcultures increment, invalid = -1
-function get_lineage_depth(graph, node_map, sample_name)
-    node_idx = get_node_index(node_map, sample_name)
-    if ((node_idx == nil or node_idx == false)) then return -1 end  -- invalid node
-
-    reversed = build_reverse_graph(graph)
-
-    function depth(curr, visited)
-        if (visited == nil) then
-            visited = {}
-        end
-        if ((visited[curr] != nil and visited[curr] != false)) then return -1 end  -- cycle detected, treat as invalid
-        visited[curr] = true
-
-        parents = reversed[curr]
-        if (parents == nil) then
-            parents = {}
-        end
-        if (#parents == 0) then
-            return 0  -- root node
-        end
-
-        max_depth = 0
-        for _, p in ipairs(parents) do
-            d = depth(p, visited)
-            if (d == -1) then
-                -- invalid parent, propagate invalid
-                return -1
-            end
-            if (d > max_depth) then max_depth = d end
-        end
-
-        return max_depth + 1
-    end
-
-    return depth(node_idx)
-end
-
 -- Exports
 graphs.build_graph = build_graph
 graphs.get_all_children = get_all_children
@@ -196,7 +158,14 @@ graphs.get_all_parents = get_all_parents
 graphs.get_leaves = get_leaves
 graphs.get_roots = get_roots
 graphs.get_node_index = get_node_index
+-- get_lineage_depth was removed -- "root = 0, subcultures increment"
+-- (subculture = cell-culture/microbiology passage terminology) and a
+-- sample_name parameter name only make sense for fossci's own planned
+-- lineage-tracking feature (see fossci/doc/architecture.md,
+-- manifesto.md, project_plan.md), which itself explicitly isn't shaped
+-- around any one scientific discipline -- this had drifted a layer
+-- more domain-specific than even that. No consumer anywhere on disk
+-- called it.
 graphs.get_all_components = get_all_components
-graphs.get_lineage_depth = get_lineage_depth
 
 return graphs

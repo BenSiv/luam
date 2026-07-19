@@ -303,231 +303,26 @@ function load_df(db_path, table_name, dataframe)
     return true
 end
 
-function get_tables(db_path)
-    db = sqlite.open(db_path)
-    if (db == nil) then
-        print("Error opening database")
-        return nil
-    end
-    
-    table_list = {}
-    -- Fix the query string corruption
-    for row in sqlite.rows(db, "SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%';") do
-        table.insert(table_list, row.name)
-    end
 
-    sqlite.close(db)
-    return table_list
-end
-
-function get_columns(db_path, table_name)
-    db = sqlite.open(db_path)
-    if (db == nil) then
-        error("Failed to open database at " .. db_path)
-    end
-
-    columns = {}
-    -- PRAGMA seems to have been corrupted to PM?
-    query = string.format("PRAGMA table_info(%s);", table_name)
-
-    for row in sqlite.rows(db, query) do
-        table.insert(columns, row.name)
-    end
-
-    sqlite.close(db)
-    return columns
-end
-
-function get_table_info(db_path, table_name)
-    -- Open the database
-    db = sqlite.open(db_path)
-    if (db == nil) then
-        error(string.format("Failed to open database at %s", db_path))
-    end
-
-    -- Collect column info
-    columns = {}
-    sql = string.format("PRAGMA table_info(%s);", table_name)
-
-    for row in sqlite.rows(db, sql) do
-        columns[#columns + 1] = {
-            name = row.name,
-            type = row.type,
-            notnull = row.notnull == 1,
-            default = row.dflt_value,
-            pk = row.pk == 1
-        }
-    end
-
-    sqlite.close(db)
-    return columns
-end
-
-function get_schema(db_path)
-    db = sqlite.open(db_path)
-    if (db == nil) then
-        error(string.format("Failed to open database at %s", db_path))
-    end
-
-    schema = {}
-    -- Get all user tables
-    for row in sqlite.rows(db, "SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%';") do
-        table_name = row.name
-        schema[table_name] = {}
-
-        sql = string.format("PRAGMA table_info(%s);", table_name)
-        for col in sqlite.rows(db, sql) do
-            schema[table_name][#schema[table_name] + 1] = {
-                name = col.name,
-                type = col.type,
-                notnull = col.notnull == 1,
-                default = col.dflt_value,
-                pk = col.pk == 1
-            }
-        end
-    end
-
-    sqlite.close(db)
-    return schema
-end
-
-function compare_schemas(old_schema, new_schema, migration_config)
-    migration_config = migration_config
-    if (migration_config == nil) then
-        migration_config = {}
-    end
-    if (migration_config.tables == nil) then
-        migration_config.tables = {}
-    end
-    if (migration_config.columns == nil) then
-        migration_config.columns = {}
-    end
-
-    changes = {
-        tables_dropped = {},
-        tables_added = {},
-        tables_changed = {},
-        tables_renamed = {},
-        columns_renamed = {}
-    }
-
-    -- track tables dropped, renamed, or changed
-    for old_tname, old_cols in pairs(old_schema) do
-        mapped_new_tname = migration_config.tables[old_tname]
-        new_tname = old_tname
-        if (mapped_new_tname != nil) then
-            new_tname = mapped_new_tname
-        end
-
-        if ((new_schema[new_tname] == nil or new_schema[new_tname] == false)) then
-            table.insert(changes.tables_dropped, old_tname)
-        else
-            if (mapped_new_tname != nil) then
-                changes.tables_renamed[old_tname] = mapped_new_tname
-            end
-
-            new_cols = new_schema[new_tname]
-
-            old_col_map = {}
-            for _, col in ipairs(old_cols) do
-                old_col_map[col.name] = col
-            end
-
-            new_col_map = {}
-            for _, col in ipairs(new_cols) do
-                new_col_map[col.name] = col
-            end
-
-            diff = { 
-                columns_added = {}, 
-                columns_dropped = {}, 
-                columns_changed = {}, 
-                columns_renamed = {} 
-            }
-
-            column_renames = migration_config.columns[old_tname]
-            if (column_renames == nil) then
-                column_renames = {}
-            end
-
-            -- detect dropped, changed, and renamed columns
-            for old_colname, oldcol in pairs(old_col_map) do
-                mapped_new_colname = column_renames[old_colname]
-                newcol = new_col_map[old_colname]
-                if (newcol == nil and mapped_new_colname != nil) then
-                    newcol = new_col_map[mapped_new_colname]
-                end
-
-                if (newcol == nil) then
-                    table.insert(diff.columns_dropped, old_colname)
-                else
-                    if (mapped_new_colname != nil and old_colname != mapped_new_colname) then
-                        diff.columns_renamed[old_colname] = mapped_new_colname
-                        changes.columns_renamed[old_tname .. "." .. old_colname] = mapped_new_colname
-                    end
-
-                    if (oldcol.type != newcol.type or
-                       oldcol.notnull != newcol.notnull or
-                       oldcol.pk != newcol.pk or
-                       oldcol.default != newcol.default) then
-                        diff.columns_changed[old_colname] = { old = oldcol, new = newcol }
-                    end
-                end
-            end
-
-            -- detect added columns (not from rename)
-            for _, newcol in ipairs(new_cols) do
-                if ((old_col_map[newcol.name] == nil or old_col_map[newcol.name] == false)) then
-                    is_rename = false
-                    for _, mapped in pairs(column_renames) do
-                        if (mapped == newcol.name) then
-                            is_rename = true
-                            break
-                        end
-                    end
-                    if ((is_rename == nil or is_rename == false)) then
-                        table.insert(diff.columns_added, newcol.name)
-                    end
-                end
-            end
-
-            if (#diff.columns_added > 0 or
-               #diff.columns_dropped > 0 or
-               next(diff.columns_changed) != nil or
-               next(diff.columns_renamed) != nil) then
-                changes.tables_changed[new_tname] = diff
-            end
-        end
-    end
-
-    -- track tables added (not from rename)
-    for new_tname, _ in pairs(new_schema) do
-        is_rename = false
-        for _, mapped in pairs(migration_config.tables) do
-            if (mapped == new_tname) then
-                is_rename = true
-                break
-            end
-        end
-
-        if ((old_schema[new_tname] == nil or old_schema[new_tname] == false) and (is_rename == nil or is_rename == false)) then
-            table.insert(changes.tables_added, new_tname)
-        end
-    end
-
-    return changes
-end
-
+-- get_tables/get_columns/get_table_info/get_schema (used sqlite.rows,
+-- which returns positionally-indexed rows, not the row.name/row.type
+-- field access these relied on -- confirmed via a real compiled test:
+-- sqlite.nrows is the named-field variant that would have actually
+-- worked) and compare_schemas (125 lines modeling table/column-rename
+-- tracking no consumer's own migration approach wants -- see
+-- platform-wip/src/schema.lua's own "never drops or renames a column,
+-- that's a deliberately manual operation" stance) were both removed
+-- rather than fixed in place: both real consumers on disk had already
+-- independently reimplemented their own working schema introspection
+-- against sqlite.prepare directly instead of ever fixing or using
+-- these, so a corrected central version still wouldn't have reduced
+-- any duplication -- it would just be a second, unused, working
+-- version sitting next to two already-working ones.
 database.local_query = local_query
 database.local_update = local_update
 database.import_delimited = import_delimited
 database.export_delimited = export_delimited
 database.load_df = load_df
-database.get_tables = get_tables
-database.get_columns = get_columns
-database.get_table_info = get_table_info
-database.get_schema = get_schema
-database.compare_schemas = compare_schemas
 database.escape_sqlite = escape_sqlite
 
 -- Export the module
