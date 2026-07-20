@@ -3,7 +3,15 @@
 
 -- Set package path to include libraries
 package.path = "lib/?.lua;lib/socket/src/?.lua;" .. package.path
-package.cpath = "lib/?.so;lib/lfs/?.so;lib/socket/?.so;bld/?.so;" .. package.cpath
+-- bin/?.so added: sqlite3.so is built specially (statically linked
+-- against the vendored amalgamation, via src/Makefile's own linux:
+-- target -- see bld/build_libs.sh's own comment on why sqlite has a
+-- second, "secondary/unused" dynamic-link path there), landing in bin/
+-- not lib/. Without this, require("database") -- which unconditionally
+-- requires sqlite3 at its own top level -- fails outright under this
+-- runner, which is why test_database.lua was never in the tests list
+-- below despite existing in this directory.
+package.cpath = "lib/?.so;lib/?/?.so;lib/lfs/?.so;lib/socket/?.so;bld/?.so;bin/?.so;" .. package.cpath
 tests = {
     "test_bisect.lua", "test_cf.lua", "test_echo.lua", "test_factorial.lua",
     "test_fibfor.lua", "test_hello.lua", "test_printf.lua",
@@ -28,6 +36,9 @@ tests = {
     "test_lfs.lua", 
     "test_socket.lua",
     "test_sqlite.lua",
+    "test_database.lua",
+    "test_mariadb.lua",
+    "test_mariadb_wrapper.lua",
     "test_struct.lua",
     "test_string_utils.lua",
 }
@@ -38,7 +49,15 @@ passed = 0
 print("Running tests")
 
 for _, test in ipairs(tests) do
-    cmd = "LUA_PATH='lib/?.lua;lib/socket/src/?.lua;;' LUA_CPATH='lib/?.so;lib/lfs/?.so;lib/socket/?.so;bld/?.so;;' LU_PH='lib/?.lua;lib/socket/src/?.lua;;' LU_CPH='lib/?.so;lib/lfs/?.so;lib/socket/?.so;bld/?.so;;' bin/luam tst/" .. test
+    -- lib/?/?.so added so subdirectory-packaged bindings (lib/bcrypt/
+    -- bcrypt.so, lib/hmac/hmac.so, lib/mariadb/mariadb.so) resolve via
+    -- require() here regardless of whatever LUA_CPATH this script
+    -- happens to inherit from its own caller's environment. bin/?.so
+    -- added so require("database") (which unconditionally requires
+    -- sqlite3, only ever built to bin/sqlite3.so, not lib/) doesn't
+    -- fail outright under this subprocess's own explicit env either --
+    -- see this file's top-level package.cpath comment for the full story.
+    cmd = "LUA_PATH='lib/?.lua;lib/socket/src/?.lua;;' LUA_CPATH='lib/?.so;lib/?/?.so;lib/lfs/?.so;lib/socket/?.so;bld/?.so;bin/?.so;;' LU_PH='lib/?.lua;lib/socket/src/?.lua;;' LU_CPH='lib/?.so;lib/lfs/?.so;lib/socket/?.so;bld/?.so;;' bin/luam tst/" .. test
     -- Some tests might need input or args, skipping complex ones for now or adding dummy input
     if test == "test_echo.lua" then cmd = cmd .. " arg1 arg2" end
     if test == "test_port_project.lua" then cmd = cmd .. " tst/test_port_project.lua" end

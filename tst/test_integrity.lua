@@ -20,11 +20,11 @@ if not db then
 end
 sqlite.close(db)
 
--- 2. Test local_update (INSERT)
+-- 2. Test sqlite_update (INSERT)
 -- This uses "INSERT INTO..." or similar. If the string is corrupted in the library, this will fail.
-print("Testing local_update...")
+print("Testing sqlite_update...")
 status, err = pcall(function() 
-    return database.local_update(tmp_db, "CREATE TABLE test_table (id INTEGER PRIMARY KEY, content TEXT);") 
+    return database.sqlite_update(tmp_db, "CREATE TABLE test_table (id INTEGER PRIMARY KEY, content TEXT);") 
 end)
 
 if not status then
@@ -32,7 +32,7 @@ if not status then
 end
 
 status, err = pcall(function()
-    return database.local_update(tmp_db, "INSERT INTO test_table (content) VALUES ('hello world');")
+    return database.sqlite_update(tmp_db, "INSERT INTO test_table (content) VALUES ('hello world');")
 end)
 
 if not status then
@@ -40,12 +40,12 @@ if not status then
 end
 
 
--- 3. Test local_query (SELECT)
+-- 3. Test sqlite_query (SELECT)
 -- This uses "SELECT ..." inside. If "SELECT" is corrupted in the library? 
--- Actually local_query takes the query string as arg, but `get_tables` or `get_schema` use internal queries.
+-- Actually sqlite_query takes the query string as arg, but `get_tables` or `get_schema` use internal queries.
 -- Let's test a simple query first.
-print("Testing local_query...")
-rows = database.local_query(tmp_db, "SELECT * FROM test_table;")
+print("Testing sqlite_query...")
+rows = database.sqlite_query(tmp_db, "SELECT * FROM test_table;")
 if rows == nil or #rows != 1 then
     error("Query failed or returned wrong number of rows")
 end
@@ -73,7 +73,7 @@ end
 -- We want to ensure that an invalid query raises a clear error, not a cryptic one or a crash.
 print("Testing error handling...")
 status, err = pcall(function()
-    database.local_query(tmp_db, "SELECT * FROM non_existent_table;")
+    database.sqlite_query(tmp_db, "SELECT * FROM non_existent_table;")
 end)
 
 if status then

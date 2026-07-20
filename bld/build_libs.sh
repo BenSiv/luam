@@ -99,6 +99,25 @@ else
     echo "Skipping hmac (source not found)"
 fi
 
+# 3d. mariadb -- a thin binding over MariaDB Connector/C (libmariadb),
+# not a vendored client implementation -- see lib/mariadb/lmariadb.c's
+# own header comment. Debian/Ubuntu's libmariadb-dev package ships
+# headers under /usr/include/mariadb (not the plain -I/usr/include
+# default), hence the extra -I flags; `mariadb_config --cflags --libs`
+# confirms this layout directly rather than guessing it.
+if [ -d "lib/mariadb" ]; then
+    echo "Compiling mariadb.so"
+    run_cmd gcc -O2 -shared -fPIC -Isrc/ -I/usr/include/mariadb -I/usr/include/mariadb/mysql \
+        -o lib/mariadb/mariadb.so lib/mariadb/lmariadb.c -lmariadb
+    if [ $? -eq 0 ]; then
+        echo "mariadb.so built successfully"
+    else
+        echo "Failed to build mariadb.so (-lmariadb / libmariadb-dev missing?)"
+    fi
+else
+    echo "Skipping mariadb (source not found)"
+fi
+
 # 4. LuaSocket
 if [ -d "lib/socket/src" ]; then
     echo "Compiling socket.core.so"
