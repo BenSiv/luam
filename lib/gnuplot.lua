@@ -1,6 +1,6 @@
 -- mygnuplot_procedural.lua
 
-exec_command = require("utils").exec_command
+utils = require("utils")
 
 gnuplot = {}
 
@@ -154,8 +154,8 @@ function savefig(plot, output_path)
     code = generate_code(plot, "plot", output_path)
     tmp = write_temp_file(code)
     
-    -- Use exec_command instead of os.execute
-    output, ok = exec_command("gnuplot " .. tmp)
+    -- Use utils.exec_command instead of os.execute
+    output, ok = utils.exec_command("gnuplot " .. tmp)
     
     if ((ok == nil or ok == false)) then
         return false, output, tmp  -- Failed: return false + gnuplot output

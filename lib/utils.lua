@@ -71,11 +71,11 @@ function show_table(tbl, indent_level, limit)
     if limit == nil then
         limit = math.huge  -- if limit not provided, show all
     end
-    indent = repeat_string(" ", 4)
-    current_indent = repeat_string(indent, indent_level)
+    indent = string_utils.repeat_string(" ", 4)
+    current_indent = string_utils.repeat_string(indent, indent_level)
     print(current_indent .. "{")
     indent_level = indent_level + 1
-    current_indent = repeat_string(indent, indent_level)
+    current_indent = string_utils.repeat_string(indent, indent_level)
 
     count = 0
     for key, value in pairs(tbl) do
@@ -98,7 +98,7 @@ function show_table(tbl, indent_level, limit)
     end
 
     indent_level = indent_level - 1
-    current_indent = repeat_string(indent, indent_level)
+    current_indent = string_utils.repeat_string(indent, indent_level)
     print(current_indent .. "}")
 end
 

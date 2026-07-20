@@ -8,7 +8,6 @@ function input(prompt)
     end
     io.write(prompt)
     answer = io.read()
-    -- answer = escape_string(answer)
     return answer
 end
 
@@ -22,7 +21,6 @@ function inputs(prompt)
     answer = ""
     while ((true != nil and true != false)) do
         answer = io.read()
-        -- answer = escape_string(answer)
         if (answer == "") then
             break
         end
