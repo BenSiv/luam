@@ -133,8 +133,20 @@ function sqlite_update(db_path, statement, ...)
         error("Error executing statement: " .. tostring(sqlite.errmsg(db)))
     end
 
+    -- Read while still on the same connection that just did the insert --
+    -- sqlite3_last_insert_rowid is connection-scoped (a value read after
+    -- this db handle closes, or on a different one entirely, would be
+    -- meaningless), which is exactly why this is safe under concurrent
+    -- writers where SELECT MAX(id) is not: each caller's own db-per-call
+    -- connection here only ever sees its own most recent insert,
+    -- regardless of what other connections have inserted concurrently.
+    -- 0 if `statement` didn't insert an AUTOINCREMENT row -- matches
+    -- sqlite3_last_insert_rowid's own convention (mirrors
+    -- mariadb_update's insert_id return for the same reason).
+    insert_id = sqlite.last_insert_rowid(db)
+
     sqlite.close(db)
-    return true
+    return true, insert_id
 end
 
 -- ---------------------------------------------------------------------
@@ -258,10 +270,8 @@ function mariadb_query(descriptor, query, ...)
 end
 
 -- database.mariadb_update(descriptor, statement, ...) -> affected_rows, insert_id
--- Returns affected_rows/insert_id (matching native.exec) rather than a
--- boolean the way sqlite_update above does -- sqlite_update's sqlite path
--- has no AUTO_INCREMENT insert-id equivalent to preserve parity with,
--- so this isn't a narrowing, it's new information callers didn't have.
+-- Returns affected_rows/insert_id (matching native.exec), same shape as
+-- sqlite_update's own true/insert_id pair above.
 function mariadb_update(descriptor, statement, ...)
     native = get_mariadb_native()
     local_args = {...}
