@@ -78,8 +78,19 @@ static int l_mariadb_connect(lua_State *L) {
         return 2;
     }
 
+    /* CLIENT_MULTI_STATEMENTS: without this, a semicolon-separated batch
+    ** (this codebase's own SCHEMA constants are exactly that -- several
+    ** CREATE TABLE statements in one string, the same shape sqlite.exec
+    ** already handles natively) fails past its first statement with a
+    ** syntax error, since a plain connection parses only a single
+    ** statement per query. Confirmed live: platform's own multi-CREATE-
+    ** TABLE init scripts failed this way before adding this flag. See
+    ** query()/exec() below for the matching mysql_next_result() drain
+    ** loop this requires -- without draining every result set a batch
+    ** produces, the next query on this same connection fails with
+    ** "Commands out of sync". */
     if (mysql_real_connect(raw, host, user, password, database,
-                            (unsigned int)port, NULL, 0) == NULL) {
+                            (unsigned int)port, NULL, CLIENT_MULTI_STATEMENTS) == NULL) {
         lua_pushnil(L);
         lua_pushstring(L, mysql_error(raw));
         mysql_close(raw);
@@ -128,7 +139,15 @@ static void push_result_rows(lua_State *L, MYSQL_RES *res) {
 ** For a statement with no result set (e.g. called with an INSERT by
 ** mistake), returns an empty table rather than erroring -- callers
 ** wanting affected-rows/insert-id should use exec() instead, mirroring
-** local_query/local_update's own query-vs-statement split. */
+** local_query/local_update's own query-vs-statement split.
+**
+** Returns the FIRST statement's rows if `sql` is actually a
+** semicolon-separated batch (query() is normally called with one
+** SELECT, but nothing stops a caller from passing more) -- draining
+** every remaining result set via mysql_next_result() regardless,
+** since CLIENT_MULTI_STATEMENTS (see connect()) requires the whole
+** batch fully consumed before this connection is safe to reuse for
+** the next call, not just the part the caller cared about. */
 static int l_mariadb_query(lua_State *L) {
     lmdb_conn *c = check_open_conn(L, 1);
     size_t len;
@@ -140,25 +159,55 @@ static int l_mariadb_query(lua_State *L) {
         return 2;
     }
 
-    MYSQL_RES *res = mysql_store_result(c->conn);
-    if (res == NULL) {
-        if (mysql_field_count(c->conn) == 0) {
-            lua_newtable(L);
-            return 1;
-        }
-        lua_pushnil(L);
-        lua_pushstring(L, mysql_error(c->conn));
-        return 2;
+    MYSQL_RES *first_res = mysql_store_result(c->conn);
+    int first_had_error = (first_res == NULL && mysql_field_count(c->conn) != 0);
+    char errbuf[MYSQL_ERRMSG_SIZE];
+    if (first_had_error) {
+        /* Captured now, before any further call has a chance to reset
+        ** the connection's own error-message buffer. */
+        snprintf(errbuf, sizeof(errbuf), "%s", mysql_error(c->conn));
     }
 
-    push_result_rows(L, res);
+    for (;;) {
+        int more = mysql_next_result(c->conn);
+        if (more != 0) {
+            break; /* 0 would mean another result is available; <0/>0 means done/error -- either way, stop */
+        }
+        MYSQL_RES *res = mysql_store_result(c->conn);
+        if (res != NULL) {
+            mysql_free_result(res);
+        }
+    }
+
+    if (first_had_error) {
+        lua_pushnil(L);
+        lua_pushstring(L, errbuf);
+        return 2;
+    }
+    if (first_res == NULL) {
+        lua_newtable(L);
+        return 1;
+    }
+
+    push_result_rows(L, first_res);
     return 1;
 }
 
 /* conn:exec(sql) -> affected_rows, insert_id | nil, err_string
 ** insert_id is 0 for a statement that didn't insert an AUTO_INCREMENT
 ** row (matches mysql_insert_id's own convention) -- callers only read
-** it after an INSERT they know has one. */
+** it after an INSERT they know has one.
+**
+** `sql` is very often a semicolon-separated batch here (this codebase's
+** own SCHEMA constants are exactly that -- several CREATE TABLE
+** statements in one string, matching sqlite.exec's own established
+** multi-statement convention), enabled by CLIENT_MULTI_STATEMENTS at
+** connect() time -- every result set the batch produces must be
+** drained via mysql_next_result() before this connection is safe to
+** reuse, not just the first one. Returns the LAST statement's
+** affected_rows/insert_id, which is what every real caller of a batch
+** exec (schema init) actually wants -- e.g. a table's own row-insert
+** landing before an index-creation statement that follows it. */
 static int l_mariadb_exec(lua_State *L) {
     lmdb_conn *c = check_open_conn(L, 1);
     size_t len;
@@ -170,16 +219,34 @@ static int l_mariadb_exec(lua_State *L) {
         return 2;
     }
 
-    /* A caller could still pass exec() a SELECT by mistake -- drain and
-    ** discard any result set rather than leaving it unread, which would
-    ** desync whatever the next call on this same connection tries to do. */
-    MYSQL_RES *res = mysql_store_result(c->conn);
-    if (res != NULL) {
-        mysql_free_result(res);
+    lua_Integer affected = 0;
+    lua_Integer insert_id = 0;
+
+    for (;;) {
+        MYSQL_RES *res = mysql_store_result(c->conn);
+        if (res != NULL) {
+            mysql_free_result(res);
+        } else if (mysql_field_count(c->conn) != 0) {
+            lua_pushnil(L);
+            lua_pushstring(L, mysql_error(c->conn));
+            return 2;
+        }
+        affected = (lua_Integer)mysql_affected_rows(c->conn);
+        insert_id = (lua_Integer)mysql_insert_id(c->conn);
+
+        int more = mysql_next_result(c->conn);
+        if (more > 0) {
+            lua_pushnil(L);
+            lua_pushstring(L, mysql_error(c->conn));
+            return 2;
+        } else if (more < 0) {
+            break; /* no more results in the batch */
+        }
+        /* more == 0: another statement's result is available, loop */
     }
 
-    lua_pushinteger(L, (lua_Integer)mysql_affected_rows(c->conn));
-    lua_pushinteger(L, (lua_Integer)mysql_insert_id(c->conn));
+    lua_pushinteger(L, affected);
+    lua_pushinteger(L, insert_id);
     return 2;
 }
 

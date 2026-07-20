@@ -82,6 +82,30 @@ assert(tonumber(rows[1].n) == 4, "expected the table to still exist with 4 rows 
 
 assert(mariadb.ping(conn) == true, "ping should report true on a live connection")
 
+-- Multi-statement batch (CLIENT_MULTI_STATEMENTS) -- platform-wip's own
+-- SCHEMA constants are exactly this shape (several CREATE TABLE
+-- statements in one string, matching sqlite.exec's own established
+-- convention) -- confirmed live this failed past the first statement
+-- before connect() requested this client flag.
+mariadb.exec(conn, "DROP TABLE IF EXISTS luam_mariadb_batch_a; DROP TABLE IF EXISTS luam_mariadb_batch_b;")
+affected, insert_id = mariadb.exec(conn,
+    "CREATE TABLE luam_mariadb_batch_a (id INT PRIMARY KEY AUTO_INCREMENT, val TEXT); " ..
+    "CREATE TABLE luam_mariadb_batch_b (id INT PRIMARY KEY AUTO_INCREMENT, val TEXT); " ..
+    "INSERT INTO luam_mariadb_batch_b (val) VALUES ('batch-ok');"
+)
+assert(affected == 1, "expected the batch's LAST statement's affected_rows (the INSERT), got " .. tostring(affected))
+assert(insert_id > 0, "expected the batch's LAST statement's insert_id")
+
+rows, err = mariadb.query(conn, "SELECT * FROM luam_mariadb_batch_b;")
+assert(rows != nil and #rows == 1 and rows[1].val == "batch-ok", "batch statements didn't all take effect")
+
+-- Connection must be clean after the batch -- a real, subsequent query
+-- must work normally, not fail with "Commands out of sync".
+rows, err = mariadb.query(conn, "SELECT 1 AS one;")
+assert(rows != nil and tonumber(rows[1].one) == 1, "connection left desynced after a multi-statement batch: " .. tostring(err))
+
+mariadb.exec(conn, "DROP TABLE luam_mariadb_batch_a; DROP TABLE luam_mariadb_batch_b;")
+
 -- error paths: bad SQL returns nil+err (not a thrown error), a closed
 -- connection errors loudly on further use (not a silent no-op)
 rows, err = mariadb.query(conn, "SELECT * FROM a_table_that_does_not_exist;")
