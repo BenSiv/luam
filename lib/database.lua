@@ -215,6 +215,23 @@ function get_mariadb_connection(descriptor)
     if conn == nil then
         return nil, err
     end
+
+    -- MariaDB's default sql_mode treats backslash as a string-literal
+    -- escape character (\n -> newline, \\ -> \, etc.), independent of
+    -- whichever quote-escaping convention (doubling vs backslash) a
+    -- caller uses -- a value containing a literal backslash-letter
+    -- sequence (a Windows path, a regex, LaTeX) would silently come
+    -- back transformed on read otherwise, even though the string
+    -- boundary itself was never at risk. NO_BACKSLASH_ESCAPES (a real,
+    -- standard MariaDB/MySQL SQL mode flag) turns backslash back into
+    -- an ordinary character in string literals, matching SQL-standard/
+    -- SQLite behavior exactly -- appended via CONCAT, not a flat SET,
+    -- so this doesn't clobber whatever other sql_mode flags the server
+    -- defaults to (e.g. STRICT_TRANS_TABLES). This is what lets
+    -- platform-wip's db.quote/db.literal use the exact same
+    -- quote-doubling logic for both backends with no per-engine branch.
+    native.exec(conn, "SET SESSION sql_mode = CONCAT(@@sql_mode, ',NO_BACKSLASH_ESCAPES');")
+
     _mariadb_connections[key] = conn
     return conn, nil
 end
