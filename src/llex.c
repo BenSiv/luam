@@ -341,7 +341,8 @@ static int llex(LexState *ls, SemInfo *seminfo) {
         return '-';
       /* else is a comment */
       next(ls);
-      /* [ANTIGRAVITY] Removed long comment support */
+      /* no --[[ long comment ]] form: [[ ]] itself was repurposed for
+         triple-quoted strings, so -- is always a single-line comment */
       while (!currIsNewline(ls) && ls->current != EOZ)
         next(ls);
       continue;

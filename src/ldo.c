@@ -328,8 +328,6 @@ int luaD_poscall(lua_State *L, StkId firstResult) {
   L->savedpc = (ci - 1)->savedpc; /* restore savedpc */
   /* move results to correct place */
   for (i = wanted; i != 0 && firstResult < L->top; i--) {
-    /* [ANTIGRAVITY] DEBUG */
-    /* DEBUG prints removed */
     setobjs2s(L, res++, firstResult++);
   }
   while (i-- > 0)

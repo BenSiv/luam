@@ -585,7 +585,10 @@ reentry: /* entry point */
       continue;
     }
     case OP_TEST: {
-      /* [ANTIGRAVITY] Strict conditionals: encoded in C operand */
+      /* strict-conditional flag packed into the C operand's bit 1 (bit 0 is
+         the jump condition); set by the compiler only when it can't already
+         prove ra/rb is boolean -- see the type-inference notes in
+         lparser.c/singlevaraux */
       int c_op = GETARG_C(i);
       int strict = c_op & 2; /* Bit 1 is strict flag */
       int cond = c_op & 1;   /* Bit 0 is condition */
@@ -601,7 +604,10 @@ reentry: /* entry point */
     }
     case OP_TESTSET: {
       TValue *rb = RB(i);
-      /* [ANTIGRAVITY] Strict conditionals: encoded in C operand */
+      /* strict-conditional flag packed into the C operand's bit 1 (bit 0 is
+         the jump condition); set by the compiler only when it can't already
+         prove ra/rb is boolean -- see the type-inference notes in
+         lparser.c/singlevaraux */
       int c_op = GETARG_C(i);
       int strict = c_op & 2; /* Bit 1 is strict flag */
       int cond = c_op & 1;   /* Bit 0 is condition */

@@ -112,6 +112,8 @@ struct lua_State {
   unsigned short baseCcalls; /* nested C calls when resuming coroutine */
   lu_byte hookmask;
   lu_byte allowhook;
+  lu_byte replmode; /* 1 once the REPL (dotty()) has started; bare assignment
+                        targets a real global instead of an implicit local */
   int basehookcount;
   int hookcount;
   lua_Hook hook;
@@ -161,5 +163,6 @@ union GCObject {
 
 LUAI_FUNC lua_State *luaE_newthread(lua_State *L);
 LUAI_FUNC void luaE_freethread(lua_State *L, lua_State *L1);
+LUAI_FUNC void luaE_setreplmode(lua_State *L, int onoff);
 
 #endif

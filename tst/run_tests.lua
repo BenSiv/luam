@@ -17,7 +17,8 @@ tests = {
     "test_fibfor.lua", "test_hello.lua", "test_printf.lua",
     "test_sieve.lua", "test_sort.lua", "test_trace_calls.lua",
     "test_xd.lua", "test_local_default.lua", "test_expired_local.lua", "test_ne.lua",
-    "test_verify_multi.lua", "test_no_sugar.lua", "test_load.lua",
+    "test_verify_multi.lua", "test_multiassign_register.lua",
+    "test_no_sugar.lua", "test_load.lua",
     "test_hex.lua",
     -- New/Renamed tests
     "test_bit.lua", "test_comment.lua", "test_env.lua",
@@ -89,6 +90,27 @@ for _, test in ipairs(tests) do
         failed = failed + 1
     end
 
+end
+
+-- REPL-mode regression check: bare assignment must persist as a real
+-- global across separate lines fed to dotty() (the REPL), not as an
+-- implicit local scoped to a single chunk. This can't be run the same way
+-- as the tests above -- passing a script filename always takes the
+-- non-interactive (implicit-local) path; dotty() only starts when luam
+-- gets no script argument at all. So this pipes input directly into luam
+-- with no script argument via a heredoc, instead of appending to `tests`.
+repl_cmd = """bin/luam > /dev/null 2>&1 <<'REPLEOF'
+x = 5
+if x != 5 then os.exit(1) end
+os.exit(0)
+REPLEOF
+"""
+if os.execute(repl_cmd) == 0 then
+    print("PASS test_repl_persistence")
+    passed = passed + 1
+else
+    print("FAIL test_repl_persistence")
+    failed = failed + 1
 end
 
 print(string.format("\nPassed: %d, Failed: %d", passed, failed))

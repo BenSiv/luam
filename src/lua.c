@@ -15,6 +15,9 @@
 
 #include "lauxlib.h"
 #include "lualib.h"
+#include "lstate.h" /* luaE_setreplmode: marks chunks compiled from here on as
+                        REPL input, so bare assignment writes real globals
+                        instead of implicit locals (see dotty() below) */
 
 static lua_State *globalL = NULL;
 
@@ -234,6 +237,7 @@ static void dotty(lua_State *L) {
   int status;
   const char *oldprogname = progname;
   progname = NULL;
+  luaE_setreplmode(L, 1); /* stays on for the rest of the process's life */
   while ((status = loadline(L)) != -1) {
     if (status == 0)
       status = docall(L, 0, 0);

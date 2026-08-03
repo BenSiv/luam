@@ -1016,12 +1016,13 @@ static void assignment(LexState *ls, struct LHS_assign *lh, int nvars) {
     int nexps;
     struct LHS_assign *p;
 
-    /* [ANTIGRAVITY] Count new locals (implicit declaration) */
-    /* do not create implicit locals in interactive mode (stdin) */
-    TString *src = ls->source;
-    int is_interactive = (src && src->tsv.len > 0 &&
-                          (strcmp(getstr(src), "=stdin") == 0 ||
-                           strncmp(getstr(src), "=return", 7) == 0));
+    /* Count new locals (implicit declaration). Skipped in REPL mode: bare
+       assignment there must write a real global, since each line typed at
+       the prompt is a separate chunk whose own locals die when it returns -
+       there'd be no way for one line to see another's implicit locals
+       otherwise. ls->L->replmode is set once by dotty() (lua.c) and never
+       unset for the rest of the process. */
+    int is_interactive = ls->L->replmode;
 
     if (!is_interactive) {
       for (p = lh; p; p = p->prev) {

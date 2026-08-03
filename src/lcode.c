@@ -489,12 +489,15 @@ static int jumponcond(FuncState *fs, expdesc *e, int cond, int strict) {
   if (e->k == VRELOCABLE) {
     Instruction ie = getcode(fs, e);
     if (GET_OPCODE(ie) == OP_NOT) {
-      /* [ANTIGRAVITY] Strict Check: Do not optimize away OP_NOT.
-         We need OP_NOT to execute so it can perform runtime type checking.
-      fs->pc--;
-      return condjump(fs, OP_TEST, GETARG_B(ie), NO_REG, (!cond) + (strict ? 2 :
-      0));
-      */
+      /* Deliberately NOT applying stock Lua's peephole optimization here
+         (deleting the OP_NOT and inverting the following jump condition).
+         OP_NOT is where the strict-not runtime check lives (lvm.c) -- for
+         `if not x then`, x need not be provably boolean at compile time, so
+         OP_NOT must actually execute or that check silently never runs.
+         Verified: `x = 5; if not x then end` raises "'not' operator
+         requires a boolean value" today; re-enabling this optimization
+         would make that conditional a silent no-op instead. Do not
+         re-enable without also proving the type check some other way. */
     }
     /* else go through */
   }

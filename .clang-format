@@ -2,55 +2,55 @@
 # Luam C Code Style - Conservative (Lua 5.1 Compatible)
 # Preserves original Lua coding style with minimal changes
 
-BasedOnStyle: LLM
+BasedOnStyle: LLVM
 Language: Cpp
 
-# ndentation
-ndentWidth: 2
-Useab: ever
-ContinuationndentWidth: 4
+# Indentation
+IndentWidth: 2
+UseTab: Never
+ContinuationIndentWidth: 4
 
 # Line length
 ColumnLimit: 80
 
-# Bracing (K& style - opening brace on same line)
-BreakBeforeBraces: ttach
+# Bracing (K&R style - opening brace on same line)
+BreakBeforeBraces: Attach
 
 # Function formatting
-llowShortFunctionsOnSingleLine: Empty
-llowShortfStatementsOnSingleLine: ever
-llowShortLoopsOnSingleLine: false
-llowShortBlocksOnSingleLine: ever
-llowShortCaseLabelsOnSingleLine: false
+AllowShortFunctionsOnSingleLine: Empty
+AllowShortIfStatementsOnSingleLine: Never
+AllowShortLoopsOnSingleLine: false
+AllowShortBlocksOnSingleLine: Never
+AllowShortCaseLabelsOnSingleLine: false
 
 # Spacing
-SpacefterCStyleCast: false
+SpaceAfterCStyleCast: false
 SpaceBeforeParens: ControlStatements
-SpacesnParentheses: false
-SpacesnSquareBrackets: false
-SpaceBeforessignmentOperators: true
+SpacesInParentheses: false
+SpacesInSquareBrackets: false
+SpaceBeforeAssignmentOperators: true
 
-# lignment
-lignfterOpenBracket: lign
-lignConsecutivessignments: false
-lignConsecutiveMacros: false
-lignrailingComments: true
+# Alignment
+AlignAfterOpenBracket: Align
+AlignConsecutiveAssignments: false
+AlignConsecutiveMacros: false
+AlignTrailingComments: true
 
 # Pointer and reference alignment
-Pointerlignment: ight
-DerivePointerlignment: false
+PointerAlignment: Right
+DerivePointerAlignment: false
 
-# nclude sorting
-Sortncludes: false
+# Include sorting
+SortIncludes: false
 
 # Whitespace
-MaxEmptyLinesoKeep: 2
-KeepEmptyLinestheStartOfBlocks: false
+MaxEmptyLinesToKeep: 2
+KeepEmptyLinesAtTheStartOfBlocks: false
 
 # Breaking
-BinPackrguments: true
+BinPackArguments: true
 BinPackParameters: true
-llowllParametersOfDeclarationOnextLine: true
+AllowAllParametersOfDeclarationOnNextLine: true
 
 # Other
-ndentCaseLabels: false
+IndentCaseLabels: false

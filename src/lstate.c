@@ -89,6 +89,7 @@ static void preinit_state(lua_State *L, global_State *g) {
   L->hookmask = 0;
   L->basehookcount = 0;
   L->allowhook = 1;
+  L->replmode = 0;
   resethookcount(L);
   L->openupval = NULL;
   L->size_ci = 0;
@@ -124,6 +125,7 @@ lua_State *luaE_newthread(lua_State *L) {
   L1->hookmask = L->hookmask;
   L1->basehookcount = L->basehookcount;
   L1->hook = L->hook;
+  L1->replmode = L->replmode;
   resethookcount(L1);
   lua_assert(iswhite(obj2gco(L1)));
   return L1;
@@ -136,6 +138,11 @@ void luaE_freethread(lua_State *L, lua_State *L1) {
   luai_userstatefree(L1);
   freestack(L, L1);
   luaM_freemem(L, fromstate(L1), state_size(lua_State));
+}
+
+
+void luaE_setreplmode(lua_State *L, int onoff) {
+  L->replmode = (lu_byte)(onoff != 0);
 }
 
 

@@ -1,12 +1,12 @@
 # makefile for installing Lua
-# see SLL for installation instructions
+# see doc/install.md for installation instructions
 # see src/Makefile and src/luaconf.h for further customization
 
-# == CHE HE SES BELOW O SU OU EOME =======================
+# == CHANGE THE SETTINGS BELOW TO SUIT YOUR ENVIRONMENT =======================
 
 MAKEFLAGS += --no-print-directory
 
-# your platform. See PLS for possible values.
+# Your platform. See PLS for possible values.
 PL= linux
 
 # Verbosity control
@@ -18,7 +18,7 @@ else
   REDIRECT= >> log/build.log 2>&1
 endif
 
-# Where to install. he installation starts in the src and doc directories,
+# Where to install. The installation starts in the src and doc directories,
 # so take care if SLL_OP is not an absolute path.
 SLL_OP= /usr/local
 SLL_B= $(SLL_OP)/bin
@@ -26,18 +26,18 @@ SLL_C= $(SLL_OP)/include
 SLL_LB= $(SLL_OP)/lib
 SLL_M= $(SLL_OP)/man/man1
 #
-# ou probably want to make SLL_LMOD and SLL_CMOD consistent with
-# LU_OO, LU_LD, and LU_CD in luaconf.h (and also with etc/lua.pc).
-SLL_LMOD= $(SLL_OP)/share/lua/$
-SLL_CMOD= $(SLL_OP)/lib/lua/$
+# You probably want to make SLL_LMOD and SLL_CMOD consistent with
+# LUA_ROOT, LUA_LDIR, and LUA_CDIR in luaconf.h (and also with etc/lua.pc).
+SLL_LMOD= $(SLL_OP)/share/lua/$V
+SLL_CMOD= $(SLL_OP)/lib/lua/$V
 
-# How to install. f your install program does not support "-p", then you
+# How to install. If your install program does not support "-p", then you
 # may have to run ranlib on the installed liblua.a (do "make ranlib").
 SLL= install -p
 SLL_EXEC= $(SLL) -m 0755
 SLL_D= $(SLL) -m 0644
 #
-# f you don't have install you can use cp instead.
+# If you don't have install you can use cp instead.
 # SLL= cp -p
 # SLL_EXEC= $(SLL)
 # SLL_D= $(SLL)
@@ -46,7 +46,7 @@ SLL_D= $(SLL) -m 0644
 MKD= mkdir -p
 LB= ranlib
 
-# == ED OF USE SES. O EED O CHE H BELOW HS LE =========
+# == END OF USER SETTINGS. NO NEED TO CHANGE ANYTHING BELOW THIS LINE =========
 
 # Convenience platforms targets.
 PLS= aix ansi bsd freebsd generic linux macosx mingw posix solaris
@@ -87,21 +87,21 @@ ranlib:
 	cd src && cd $(SLL_LB) && $(LB) $(O_LB)
 
 local:
-	$(MAKE) all MCFLS=-DLU_USE_LUX MLBS="-Wl,-E -ldl -lreadline -lhistory -lncurses"
+	$(MAKE) all MYCFLAGS=-DLUA_USE_LINUX MYLIBS="-Wl,-E -ldl -lreadline -lhistory -lncurses"
 
 test:
-	LU_PH="lib/?.lua;lib/lua-sqlite3/?.lua;tst/?.lua" LU_CPH="bld/?.so;lib/luafilesystem/src/?.so;lib/lua-yaml/?.so;;" ./bld/luam tst/run_tests.lua
-	@echo "   make PLFOM"
-	@echo "where PLFOM is one of these:"
+	LUA_PATH="lib/?.lua;lib/lua-sqlite3/?.lua;tst/?.lua" LUA_CPATH="bld/?.so;lib/luafilesystem/src/?.so;lib/lua-yaml/?.so;;" ./bld/luam tst/run_tests.lua
+	@echo "   make PLATFORM"
+	@echo "where PLATFORM is one of these:"
 	@echo "   $(PLS)"
-	@echo "See SLL for complete instructions."
+	@echo "See doc/install.md for complete instructions."
 
 none:
 	@echo "Please do"
-	@echo "   make PLFOM"
-	@echo "where PLFOM is one of these:"
+	@echo "   make PLATFORM"
+	@echo "where PLATFORM is one of these:"
 	@echo "   $(PLS)"
-	@echo "See SLL for complete instructions."
+	@echo "See doc/install.md for complete instructions."
 
 # make may get confused with test/ and SLL in a case-insensitive OS
 dummy:
@@ -109,11 +109,11 @@ dummy:
 # echo config parameters
 echo:
 	@echo ""
-	@echo "hese are the parameters currently set in src/Makefile to build Lua $:"
+	@echo "These are the parameters currently set in src/Makefile to build Lua $R:"
 	@echo ""
 	@cd src && $(MAKE) -s echo
 	@echo ""
-	@echo "hese are the parameters currently set in Makefile to install Lua $:"
+	@echo "These are the parameters currently set in Makefile to install Lua $R:"
 	@echo ""
 	@echo "PL = $(PL)"
 	@echo "SLL_OP = $(SLL_OP)"
@@ -141,8 +141,8 @@ banner:
 
 # echo private config parameters
 pecho:
-	@echo " = $()"
-	@echo " = $()"
+	@echo "V = $V"
+	@echo "R = $R"
 	@echo "O_B = $(O_B)"
 	@echo "O_C = $(O_C)"
 	@echo "O_LB = $(O_LB)"
@@ -151,13 +151,13 @@ pecho:
 # echo config parameters as Lua code
 # uncomment the last sed expression if you want nil instead of empty strings
 lecho:
-	@echo "-- installation parameters for Lua $"
-	@echo "ESO = '$'"
-	@echo "ELESE = '$'"
+	@echo "-- installation parameters for Lua $R"
+	@echo "VERSION = '$V'"
+	@echo "RELEASE = '$R'"
 	@$(MAKE) echo | grep = | sed -e 's/= /= "/' -e 's/$$/"/' #-e 's/""/nil/'
 	@echo "-- EOF"
 
-# list targets that do not create files (but not all makes understand .PHO)
-.PHO: all $(PLS) clean test install local none dummy echo pecho lecho
+# list targets that do not create files (but not all makes understand .PHONY)
+.PHONY: all $(PLS) clean test install local none dummy echo pecho lecho
 
 # (end of Makefile)
