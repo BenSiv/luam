@@ -1,37 +1,43 @@
-INSTALL for LuaM
+INSTALL for Luam
 
-* Building LuaM
+* Building Luam
+  -------------
+  Luam builds with a standard Lua-5.1-style `make`, wrapped by a helper
+  script. There is no xmake dependency — the `bin/luam` you get is a plain
+  `make linux` build.
+
+    ./bld/build_lang.sh          # make clean && make linux
+    ./bld/build_lang.sh -v       # same, verbose (make ... V=1)
+
+  Build artifacts (interpreter, compiler, sqlite3 module) are placed in
+  `bin/`:
+
+    bin/luam        interactive interpreter
+    bin/luamc       bytecode compiler
+    bin/sqlite3.so  sqlite3 module
+
+  Other C libraries under `lib/` are built separately with:
+
+    ./bld/build_libs.sh
+
+  To target a platform other than Linux, call `make` directly from the repo
+  root with one of the supported `PLATS` targets (see `Makefile`):
+
+    make aix | ansi | bsd | freebsd | generic | linux | macosx | mingw | posix | solaris
+
+* Testing Luam
   ------------
-  LuaM uses xmake (https://xmake.io) for building.
+  There is no `xmake test`. The regression suite is a plain Lua test runner:
 
-  To build LuaM, run:
-  
-    xmake f -o bld -y
-    xmake
+    ./bin/luam tst/run_tests.lua
 
-  This will compile the core library, the interpreter (luam), the compiler (luamc), 
-  and the sqlite3 module. All build artifacts, including intermediate files, 
-  will be placed in the `bld/` directory.
+  See `tst/README` for details on individual test files.
 
-  If you want to build for a specific platform or architecture, you can use:
-
-    xmake config -p [iphoneos|android|macosx|linux|mingw|...] -a [armv7|arm64|i386|x86_64|...]
-    xmake
-
-* Testing LuaM
-  ------------
-  To verify that LuaM has been built correctly, run:
-
-    xmake test
-
-  This will execute the regression test suite.
-
-* Installing LuaM
-  --------------
-  To install LuaM to your system, run:
-
-    xmake install -o /usr/local
-
-  You can change the installation prefix using the -o option.
+* Installing Luam
+  ----------------
+  There is no separate install step / installer target in this repo today.
+  Copy `bin/luam`, `bin/luamc`, and whichever `lib/*.so` modules you need to
+  wherever your `$PATH` / `LUA_CPATH` expects them, the same way you would
+  with a stock Lua 5.1 build.
 
 (end of INSTALL)

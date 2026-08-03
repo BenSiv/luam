@@ -1,12 +1,14 @@
 # Luam Error Handling Strategy
 
-## Error Handling with Explicit il Checks
+## Error Handling with Explicit Nil Checks
 
-Luam requires explicit nil checks using `!= nil` for clear, maintainable code.
+Luam requires explicit nil checks using `!= nil` — strict conditionals mean
+you can't rely on truthy/falsy coercion (see
+[strict_not_operator.md](strict_not_operator.md)).
 
-## ecommended Error Handling Patterns
+## Recommended Error Handling Patterns
 
-### 1. **Checking for Presence**
+### 1. Checking for Presence
 
 ```lua
 -- Check if optional value exists before using
@@ -17,20 +19,20 @@ if result != nil then
 end
 ```
 
-### 2. **Early eturn Pattern**
+### 2. Early Return Pattern
 
 ```lua
 function process_data(input)
   if input == nil then
     return nil, "input required"
   end
-  
+
   -- Process input...
   return computed_value
 end
 ```
 
-### 3. **Multiple il Checks**
+### 3. Multiple Nil Checks
 
 ```lua
 -- Check multiple optional values
@@ -44,9 +46,9 @@ else
 end
 ```
 
-### 4. **eturn alue Patterns**
+### 4. Return Value Patterns
 
-#### il-or-alue Pattern
+#### Nil-or-Value Pattern
 ```lua
 function find_item(list, predicate)
   for i = 1, #list do
@@ -54,7 +56,7 @@ function find_item(list, predicate)
       return list[i]  -- Found
     end
   end
-  return nil  -- ot found
+  return nil  -- Not found
 end
 
 -- Usage
@@ -66,18 +68,18 @@ else
 end
 ```
 
-#### Boolean-esult Pattern (for Ps)
+#### Boolean-Result Pattern (for APIs)
 ```lua
 function api_operation(params)
   if validate(params) != true then
     return false, "validation failed"
   end
-  
+
   result = perform_operation(params)
   if result == nil then
     return false, "operation failed"
   end
-  
+
   return true, result
 end
 
@@ -90,23 +92,23 @@ else
 end
 ```
 
-#### il-with-Error Pattern
+#### Nil-with-Error Pattern
 ```lua
 function parse_data(raw)
   if raw == nil then
     return nil, "no data provided"
   end
-  
+
   parsed = try_parse(raw)
   if parsed == nil then
     return nil, "parse error: invalid format"
   end
-  
+
   return parsed
 end
 ```
 
-### 5. **Default alue Pattern**
+### 5. Default Value Pattern
 
 ```lua
 -- Provide default when value might be nil
@@ -125,7 +127,7 @@ function get_config_short(key)
 end
 ```
 
-### 6. **Chained Operations**
+### 6. Chained Operations
 
 ```lua
 function process_pipeline(input)
@@ -133,46 +135,46 @@ function process_pipeline(input)
   if stage1 == nil then
     return nil, "validation failed"
   end
-  
+
   stage2 = transform(stage1)
   if stage2 == nil then
     return nil, "transformation failed"
   end
-  
+
   stage3 = finalize(stage2)
   if stage3 == nil then
     return nil, "finalization failed"
   end
-  
+
   return stage3
 end
 ```
 
-## Pattern Selection uide
+## Pattern Selection Guide
 
 | Context | Pattern | Example |
-|---------|---------|---------|
-| **eneral code** | eturn nil or value | `find_user(id)` → `user` or `nil` |
-| **Ps** | eturn `true, result` / `false, err` | `api_call()` → `true, data` or `false, "error"` |
-| **Error-sensitive** | eturn `nil, err` | `parse_json(str)` → `obj` or `nil, "parse error"` |
+|---|---|---|
+| General code | Return nil or value | `find_user(id)` → `user` or `nil` |
+| APIs | Return `true, result` / `false, err` | `api_call()` → `true, data` or `false, "error"` |
+| Error-sensitive | Return `nil, err` | `parse_json(str)` → `obj` or `nil, "parse error"` |
 
-## nti-Patterns to void
+## Anti-Patterns to Avoid
 
-### ❌ Don't use truthy/falsy in conditionals
+### Don't use truthy/falsy in conditionals
 ```lua
-if value then  -- EO: conditional requires boolean
+if value then  -- error: conditional requires a boolean value
   use(value)
 end
 ```
 
-### ✅ Do use explicit nil checks
+### Do use explicit nil checks
 ```lua
 if value != nil then
   use(value)
 end
 ```
 
-### ✅ Do use comparisons that return boolean
+### Do use comparisons that return boolean
 ```lua
 if x > 0 then      -- OK: comparison returns boolean
 if x == true then  -- OK: comparison returns boolean
@@ -180,7 +182,7 @@ if x == true then  -- OK: comparison returns boolean
 
 ## Summary
 
-- Use `!= nil` for explicit nil checks
-- Use `== nil` for checking absence
-- Choose return patterns based on context
-- Conditionals require boolean values (comparisons, true/false)
+- Use `!= nil` for explicit nil checks.
+- Use `== nil` for checking absence.
+- Choose return patterns based on context.
+- Conditionals require boolean values (comparisons, `true`/`false`).

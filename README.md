@@ -9,13 +9,35 @@
 ### 1. Safer Syntax
 
 #### Implicit Locals
-Variables are `local` by default, preventing accidental pollution of the global namespace. There is no need to explicitly write `local`.
+The `local` keyword has been removed. A bare assignment to a name that isn't
+already a local or upvalue declares a new local in the current block instead
+of writing a global — this is true for any loaded chunk (a file, `load`,
+`loadstring`, `dofile`, ...). The one exception is the interactive prompt
+(`luam -e`, the REPL), where bare assignment still writes a real global so
+that variables persist across separate lines typed at the prompt.
 
 ```lua
-x = 10        -- Local variable
-function f()  -- Local function
+x = 10        -- local to this chunk/block
+function f()  -- local function
 end
 ```
+
+Because of this, the common Lua idiom of loading a script and then reading
+back whatever globals it set (`lua_getglobal` from C, or `dofile(...); print(x)`
+from Lua) no longer works by default — `x` above never becomes visible outside
+the chunk that created it.
+
+#### Real Globals
+`_G` is still the same global table as in Lua 5.1, and reading an undeclared
+name still resolves to a global. To deliberately create or modify a real
+global from a script, assign through `_G` explicitly:
+
+```lua
+_G.config = { debug = true }  -- visible to the host / other chunks
+```
+
+`getfenv`/`setfenv` are also still present, so a chunk's environment can be
+swapped out the same way it can in Lua 5.1 (e.g. to sandbox untrusted code).
 
 #### Constants
 Use the `const` keyword to define immutable variables. Reassigning a `const` variable results in a compile-time error.
@@ -49,6 +71,27 @@ have been removed.
 
 All iterative logic is expressed using `while` loops.
 
+#### Strict Conditionals
+`if`, `while`, and `not` require an actual boolean (`true`/`false`). There is
+no truthy/falsy coercion, and a literal `nil` in a conditional is a
+compile-time error:
+
+```lua
+if 0 then ... end          -- error: conditional requires a boolean value
+if nil then ... end        -- error: nil is not a conditional value
+if not nil then ... end    -- error: 'not' requires a boolean value, got nil
+
+value = get_value()
+if value != nil then ... end   -- OK: comparison produces a boolean
+```
+
+When the compiler can already prove an expression is a boolean (e.g. the
+result of a comparison held in a local), the runtime check is skipped
+entirely — the check only costs anything for values it can't already prove
+safe. See [doc/strict_not_operator.md](doc/strict_not_operator.md) and
+[doc/error_handling.md](doc/error_handling.md) for the full rules and
+migration patterns.
+
 ---
 
 ### 3. Enhanced String & Data Support
@@ -72,6 +115,12 @@ Strings support hexadecimal escapes using `\xXX`.
 
 #### `__len` Metamethod
 Tables support the `__len` metamethod (backported from Lua 5.2), enabling custom length semantics.
+
+#### Metatables
+Metatables and tag methods (`setmetatable`, `getmetatable`, `__index`,
+`__newindex`, `__call`, ...) are unchanged from Lua 5.1. They're how the
+bundled `lib/` bindings (sqlite, socket, mariadb, ...) implement their
+object-style APIs.
 
 ---
 
@@ -123,6 +172,13 @@ Manual pages are provided in the `doc/` directory:
 
 - `doc/lua.1`
 - `doc/luac.1`
+
+Design notes on specific language changes:
+
+- [doc/error_handling.md](doc/error_handling.md) — nil-check patterns under strict conditionals
+- [doc/strict_not_operator.md](doc/strict_not_operator.md) — the strict `not` operator and literal-`nil` restrictions
+- [doc/changelog.md](doc/changelog.md) — full list of differences from Lua 5.1, with measured (not estimated) size numbers
+- [doc/install.md](doc/install.md) — build targets and platform options
 
 ---
 

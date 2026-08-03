@@ -1,61 +1,20 @@
-# clang-format Style Options for Luam
+# Code Style
 
-## Current Lua/Luam Style
-- **ndent**: 2 spaces
-- **Braces**: K& (same line)
-- **Line length**: ~80 chars
+Luam uses the Conservative / Lua-5.1-compatible clang-format style: 2-space
+indent, K&R braces (attached), 80-column limit. The decision this file used
+to debate between three options has already been made and is encoded in
+`.clang-format` at the repo root — that file is the source of truth, not this
+doc.
 
-## Option 1: Conservative (ecommended) ⭐
-
-Preserves Lua's original style, minimal changes.
-
-```yaml
----
-BasedOnStyle: LLM
-ndentWidth: 2
-Useab: ever
-ColumnLimit: 80
-BreakBeforeBraces: ttach
-llowShortFunctionsOnSingleLine: Empty
-llowShortfStatementsOnSingleLine: ever
-Pointerlignment: ight
-Sortncludes: false
-```
-
-**mpact:** ~5% of lines changed (whitespace only)
-
-## Option 2: Linux Kernel
-
-Uses tabs, brace-on-newline for functions.
-
-```yaml
----
-BasedOnStyle: LLM  
-ndentWidth: 8
-Useab: lways
-BreakBeforeBraces: Linux
-```
-
-**mpact:** ~40% of lines changed
-
-## Option 3: oogle Style
-
-Modern, opinionated, very readable.
-
-```yaml
----
-BasedOnStyle: oogle
-ndentWidth: 2
-ColumnLimit: 80
-```
-
-**mpact:** ~30% of lines changed
-
-## ecommendation
-
-**Use Option 1** - respects legacy Lua code style while enforcing consistency.
-
-est first:
 ```bash
 clang-format -style=file src/lbaselib.c | diff src/lbaselib.c -
 ```
+
+**Known issue:** `.clang-format`'s `BasedOnStyle: LLM` is not a valid
+clang-format base style (valid values are `LLVM`, `Google`, `Chromium`,
+`Mozilla`, `WebKit`, `Microsoft`, `GNU`) — it should be `LLVM`. This repo's
+`.clang-format` and the top-level `Makefile` comments both show the same
+pattern of missing letters (`A`, `N`, `T`, `I`, `G`, `R`, `V`, `Y` dropped
+throughout prose), which is why this file is being left as a pointer rather
+than fully rewritten here — the fix belongs in `.clang-format` itself, not in
+this doc.

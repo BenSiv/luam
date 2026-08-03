@@ -1,188 +1,141 @@
-# Luam:  Safer Lua
+# Differences from Lua 5.1
 
-Luam is a fork of Lua 5.1 that introduces **strict type safety** while maintaining near-identical performance. t's designed for developers who want Lua's simplicity with stronger guarantees.
+Luam is a fork of Lua 5.1. This document lists what actually changed, checked
+against the current `src/` and the built interpreter — not aspirational. (An
+earlier version of this file had several claims that didn't match the code;
+see the notes inline below.)
 
-## Key Differences from Lua 5.1
+## Language
 
 | Feature | Lua 5.1 | Luam |
-|---------|---------|------|
-| Conditionals | ruthy/falsy (any value) | **Strict boolean required** |
-| ariable declaration | mplicit global | **mplicit local** |
-| Constants | one | **`const` keyword** |
-| nequality operator | `~=` | **`!=`** |
-| ype inference | one | **Compile-time inference** |
+|---|---|---|
+| Conditionals | truthy/falsy (any value) | strict boolean required (`if`/`while`/`not`) |
+| Variable declaration | explicit `local`, implicit global | `local` removed; bare assignment is implicit-local (see below) |
+| Constants | none | `const` keyword, compile-time enforced |
+| Inequality operator | `~=` | `!=` (`~=` removed) |
+| `repeat`/`until` | present | removed (use `while`) |
+| Multiline strings | `[[ ... ]]` | `""" ... """` |
+| String escapes | — | `\xXX` hex escapes added |
+| `__len` metamethod | not in 5.1 | backported from 5.2 |
 
----
+### Strict conditionals
 
-## Strict Conditionals
+`if`, `while`, and `not` require an actual `true`/`false` value:
 
-Luam requires boolean values in conditionals, preventing subtle bugs from truthy/falsy coercion.
-
-### Lua 5.1 (ruthy/Falsy)
-```lua
-local x = nil
-if x then print("runs") end  -- Works, treated as false
-
-local y = 0
-if y then print("runs") end  -- Works, 0 is truthy!
-```
-
-### Luam (Strict Boolean)
 ```lua
 x = nil
-if x then print("runs") end  -- EO: conditional requires boolean
+if x then print("runs") end   -- error: conditional requires a boolean value
 
 y = 0
-if y then print("runs") end  -- EO: conditional requires boolean
+if y then print("runs") end   -- error: conditional requires a boolean value
 
--- Correct approach:
-if y != nil then print("runs") end  -- OK: explicit nil-check
-if y != 0 then print("runs") end  -- OK: comparison returns boolean
+-- correct:
+if y != nil then print("runs") end   -- comparison returns a boolean
 ```
 
----
+A literal `nil` in a conditional position, or `not` applied to anything but a
+boolean, is rejected — with the same underlying check in both cases (there is
+no separate "not nil" special case):
 
-## mplicit Locals
+```
+$ luam -e 'if nil then print(1) end'
+nil is not a conditional value near 'then'
 
-ariables are local by default in Luam, eliminating accidental global pollution.
-
-### Lua 5.1
-```lua
-function foo()
-  x = 5  -- Oops! Creates global 'x'
-end
+$ luam -e 'x = not nil; print(x)'
+'not' requires a boolean value, got nil near ';'
 ```
 
-### Luam
-```lua
-function foo()
-  x = 5  -- Creates local 'x' (safe)
-end
-```
-
----
-
-## Constants
-
-Luam introduces the `const` keyword for immutable bindings.
+The check is a single bit in the `OP_TEST`/`OP_TESTSET` instruction's C
+operand (`lvm.c`), set by the compiler only when it can't already prove the
+value is boolean. When it can prove it — e.g. a local holding the result of a
+comparison — the bit is unset and the runtime check is skipped entirely. This
+*is* real, verified by disassembling both cases with `luamc -l`:
 
 ```lua
-const P = 3.14159
-P = 3.0  -- EO: cannot assign to constant
+x = (1 > 0); if x then end   --  TEST 0 0 0   (strict bit unset — proven boolean)
+x = foo();   if x then end   --  TEST 0 0 2   (strict bit set — unproven)
 ```
 
----
+See [strict_not_operator.md](strict_not_operator.md) and
+[error_handling.md](error_handling.md) for the full rules and migration
+patterns.
 
-## Compile-ime ype nference
+### Implicit locals, and how to still create a real global
 
-Luam infers types at compile time to eliminate unnecessary runtime checks.
+`local` is removed. Bare assignment (`x = 5`) to a name that isn't already a
+local or upvalue declares a new local in the current block — for any loaded
+chunk (a file, `load`, `loadstring`, `dofile`). The one exception is the
+interactive prompt: bare assignment there still writes a real global, so
+variables persist across separate lines typed at the REPL.
+
+Confirmed by running it:
+
+```
+$ echo 'x = 5' > /tmp/f.lua
+$ luam -e 'dofile("/tmp/f.lua"); print(x)'
+nil                          -- x never left the chunk
+```
+
+This means the common Lua pattern of running a script and reading back the
+globals it set no longer works unless the script writes through `_G`
+explicitly:
 
 ```lua
-result = (x > 0)  -- Compiler knows: result is boolean
-if result then    -- o runtime type check needed!
-  print("positive")
-end
+_G.result = compute()   -- real global, visible to the host afterward
 ```
 
-his inference system tracks types through:
-- **Literals:** `true`, `false`, `123`, `"string"`, `{}`, `function`
-- **Comparisons:** `==`, `!=`, `<`, `>`, `<=`, `>=`
-- **Local variable assignments:** ypes flow through variables
+`_G`, `getfenv`, and `setfenv` all still work exactly as in Lua 5.1.
 
----
+### Removed from the standard language
 
-## Performance Benchmarks
+- `module()` and `newproxy()` — confirmed removed (`type(module) == nil`).
+- **Not removed:** `getfenv`/`setfenv`. An earlier version of this doc listed
+  them as removed; they were removed early in development and later restored,
+  and this doc wasn't updated. They're in `lbaselib.c` and work.
 
-Luam matches or exceeds Lua 5.1 performance thanks to type inference optimization.
+## Standard library
 
-### est Environment
-- CPU: (system dependent)
-- Lua 5.1: `/usr/bin/lua5.1`
-- Luam: Built with `-O2` optimization
+All spot-checked against the built interpreter:
 
-### esults
+- `xpcall(func, handler, arg1, ...)` — extra arguments forwarded to `func` (backported from 5.2).
+- `load(chunk)` — accepts both a function and a string, replacing `loadstring`.
+- `math.log(x, base)` — optional base argument.
+- `table.pack(...)` / `table.unpack(t)` — as in 5.2.
+- `os.exit(true|false)` — boolean accepted alongside the integer status code.
+- `package.searchers` — alias for `package.loaders`.
 
-| Benchmark | Lua 5.1 | Luam | Difference |
-|-----------|---------|------|------------|
-| Fibonacci(35) | 2.43s | 2.40s | **1% faster** ✅ |
-| Loop (10M iterations) | 0.29s | 0.28s | **3% faster** ✅ |
-| Closure (1M calls) | 0.068s | 0.075s | 11% slower |
-| String concat (100K) | 1.10s | 0.80s | **27% faster** ✅ |
+## Size, measured
 
-### Benchmark Code
+Earlier drafts of this doc, and a separate `codebase_size_comparison.md` (now
+removed — its numbers are superseded by this section), quoted size numbers
+that didn't match each other or the actual binaries. Real numbers, same
+machine, same `-O2`, both built with their own `make linux`:
 
-**Fibonacci (recursive)**
-```lua
-function fib(n)
-  if n < 2 then
-    return n
-  end
-  return fib(n - 1) + fib(n - 2)
-end
+| Metric | Lua 5.1 | Luam | Diff |
+|---|---|---|---|
+| Source lines (`src/*.c` + `*.h`) | 16,963 | 16,914 | -49 (-0.3%) |
+| Interpreter binary, stripped | 207,072 B | 215,264 B | **+8,192 B (+4.0%, larger)** |
 
-start = os.clock()
-result = fib(35)
-print("ime: " .. (os.clock() - start) .. " seconds")
+Luam is *not* smaller than Lua 5.1 — this doc previously claimed the
+opposite. Source size is close (clang-format reformatting offset most of the
+added logic), but the binary is measurably bigger, consistent with a compiler
+front end that does more work (implicit-local resolution, the strict-boolean
+type inference above, `const` tracking).
+
+No wall-clock timing benchmark in this repo should be trusted as-is — none of
+the numbers previously here were reproducible from a described methodology.
+If you need real timing numbers, run a benchmark suite with multiple trials
+yourself; the only performance claim that's actually verified is the
+bytecode-level one above.
+
+## Building
+
+```sh
+./bld/build_lang.sh     # wraps `make clean && make linux`
 ```
 
-**Loop (numeric)**
-```lua
-sum = 0
-i = 0
-while i < 10000000 do
-  sum = sum + i
-  i = i + 1
-end
-print("Sum: " .. sum)
-```
-
----
-
-## Migration from Lua 5.1
-
-### Quick Fixes
-
-| Lua 5.1 Pattern | Luam Equivalent |
-|-----------------|-----------------|
-| `if x then` | `if x != nil then` (nil-check) |
-| `if x then` | `if x == true then` (boolean check) |
-| `x ~= y` | `x != y` |
-| `local x = 5` | `x = 5` (implicit local) |
-| `x = 5` (global) | Use module system |
-
-### emoved Features
-
-he following legacy features are not available in Luam:
-- `getfenv` / `setfenv`
-- `module()` function
-- `newproxy()`
-
----
-
-## Codebase Size
-
-Luam remains compact despite adding significant features.
-
-| Metric | Lua 5.1 | Luam | Difference |
-|--------|---------|------|------------|
-| **Source Lines (Core)** | 16,963 | 18,811 | +1,848 (+11%) |
-| **Binary Size** | 231 KB | 224 KB | **-7 KB (-3%)** |
-
-he +11% source increase covers type inference, strict conditionals, and the `const` keyword. he binary is actually 3% smaller due to removal of legacy features (`getfenv`, `setfenv`, `module`, `newproxy`).
-
----
-
-## Building Luam
-
-```bash
-git clone https://github.com/bensiv/luam
-cd luam
-make linux  # or: make macosx, make mingw
-./bld/luam  # un the interpreter
-```
-
----
+See [install.md](install.md) for other platform targets (macosx, mingw, ...).
 
 ## License
 
-Luam is distributed under the same M license as Lua 5.1.
+Luam is distributed under the same MIT license as Lua 5.1.
