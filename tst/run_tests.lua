@@ -20,6 +20,10 @@ tests = {
     "test_verify_multi.lua", "test_multiassign_register.lua",
     "test_no_sugar.lua", "test_load.lua",
     "test_hex.lua",
+    "test_const.lua", "test_repeat_removed.lua",
+    "test_module_newproxy_removed.lua", "test_os_exit_boolean.lua",
+    "test_global_escape_hatch.lua", "test_strict_conditionals.lua",
+    "test_getfenv_setfenv.lua",
     -- New/Renamed tests
     "test_bit.lua", "test_comment.lua", "test_env.lua",
     "test_feature_check.lua", "test_fix_strings.lua",

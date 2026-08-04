@@ -123,15 +123,16 @@ static void getfunc(lua_State *L, int opt) {
 }
 
 static int luaB_getfenv(lua_State *L) {
-  if (lua_isnone(L, 1))
+  /* getfunc(L, 1) already defaults the level to 1 (the calling function)
+     when no argument is given -- no special-casing needed here. A prior
+     `if (lua_isnone(L,1)) return LUA_GLOBALSINDEX` shortcut bypassed that,
+     so bare getfenv() always returned the raw global table instead of
+     reflecting a previous setfenv(1, ...) on the caller. */
+  getfunc(L, 1);
+  if (lua_iscfunction(L, -1))
     lua_pushvalue(L, LUA_GLOBALSINDEX);
-  else {
-    getfunc(L, 1);
-    if (lua_iscfunction(L, -1))
-      lua_pushvalue(L, LUA_GLOBALSINDEX);
-    else
-      lua_getfenv(L, -1);
-  }
+  else
+    lua_getfenv(L, -1);
   return 1;
 }
 

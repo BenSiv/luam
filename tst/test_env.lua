@@ -5,7 +5,7 @@ f=function (t,i) return os.getenv(i) end
 setmetatable(getfenv(),{__index=f})
 
 -- an example
-print(a,USE,PH)
+print(a,USER,PATH)
 else
     print("Skipping test_env.lua: getfenv not supported")
 end

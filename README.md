@@ -118,9 +118,17 @@ Tables support the `__len` metamethod (backported from Lua 5.2), enabling custom
 
 #### Metatables
 Metatables and tag methods (`setmetatable`, `getmetatable`, `__index`,
-`__newindex`, `__call`, ...) are unchanged from Lua 5.1. They're how the
-bundled `lib/` bindings (sqlite, socket, mariadb, ...) implement their
-object-style APIs.
+`__newindex`, `__call`, ...) work the same as Lua 5.1's. This is a deliberate
+tradeoff, not an oversight: Luam discourages OOP-style programming at the
+*syntax* layer — colon method-call and method-definition sugar
+(`obj:method()`, `function obj:method() ... end`) are removed, so any
+metatable-based object still has to be called and defined the long way
+(`obj.method(obj, ...)`). The underlying `setmetatable`/`__index` mechanism
+itself stays fully enabled, because vendored libraries under `lib/`
+(LuaSocket, the sqlite test framework, ...) are ordinary upstream Lua code
+that relies on it — disabling it at the primitive level would mean rewriting
+every vendored library rather than just declining to add ergonomic sugar for
+new code.
 
 ---
 

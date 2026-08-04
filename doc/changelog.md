@@ -17,6 +17,7 @@ see the notes inline below.)
 | Multiline strings | `[[ ... ]]` | `""" ... """` |
 | String escapes | — | `\xXX` hex escapes added |
 | `__len` metamethod | not in 5.1 | backported from 5.2 |
+| Colon method syntax | `obj:m()`, `function obj:m()` | removed (use `obj.m(obj, ...)`) |
 
 ### Strict conditionals
 
