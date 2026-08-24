@@ -21,66 +21,27 @@ prompt.
 x = 10   -- local to this chunk/block
 ```
 
-A bare **function statement** (`function f() ... end`) is not the same
-thing, even though it looks like it should be: `f` is not a local. It's an
-ordinary write into whatever environment is currently in effect, exactly
-like unmodified Lua 5.1 — an earlier version of Luam did make it a genuine
-local, matching plain assignment exactly, but that broke any file where one
-function calls another defined later in the same file (routine in Lua-family
-code; a real global tolerates it because both the write and the read
-resolve at *call* time, while a lexical local can't, because the reference
-is resolved once, at *parse* time, before a later declaration exists) — see
-[doc/changelog.md](doc/changelog.md) for that history. What actually keeps
-`f` from leaking today is module isolation, next.
+A bare **function statement** (`function f() ... end`) gets exactly the
+same implicit-local treatment as `f = function() ... end` — both create a
+genuine local, and the two forms are interchangeable for this rule despite
+looking like two different things. Activation happens *before* the
+function's own body is compiled, so a function can always call itself by
+its own bare name and recurse correctly. Calling a *different* function
+defined later in the same file is the one case that doesn't work for
+free: that name doesn't exist yet at the point the earlier code compiles,
+so the reference falls through to an unresolved global — `nil` at call
+time, a loud crash at the exact call site, not silent misbehavior. See
+[doc/forward_references.md](doc/forward_references.md) for the full rules
+and the pre-declaration idiom for when a forward reference (including
+genuine mutual recursion) is really needed. An earlier version of Luam
+tried a different fix for the underlying collision bug this closes — see
+[doc/changelog.md](doc/changelog.md) for that history.
 
-This is a deliberate divergence, not an inconsistency left unnoticed: in
-ordinary Lua, `function f() ... end` is sugar for `f = function() ... end`
--- both mean "store a closure wherever `f` denotes" -- so it would be
-reasonable to expect Luam's implicit-locals rule to treat them identically.
-It doesn't, on purpose. `f = function() ... end` gets the same treatment as
-any other bare assignment (a real local, confirmed above); a bare
-`function f() ... end` statement never does, because real code relies on it
-*not* behaving like one -- calling a function from another defined later in
-the same file is routine, and only works because the name resolves fresh at
-call time, not once at parse time the way a lexical local would. Extending
-full local treatment to the statement form was tried and reverted for
-exactly this reason (see changelog). The two forms look interchangeable;
-for this specific rule, they aren't.
-
-Because bare assignment really is local, the common Lua idiom of loading a
-script and then reading back whatever globals it set (`lua_getglobal` from
-C, or `dofile(...); print(x)` from Lua) no longer works by default for a
-plain variable — `x` above never becomes visible outside the chunk that
-created it.
-
-#### Module Isolation
-Every module loaded via `require()` gets its own private global table
-instead of sharing the real `_G` directly. Reads still fall through to the
-real globals (`string`, `pairs`, `require`, any already-`require`d module a
-file binds to its own bare name, ...); only a *write* to a name that isn't
-already a local, upvalue, or otherwise-resolvable global is affected —
-exactly the bare-function-statement case above, plus the rare case a plain
-assignment doesn't already cover on its own. This closes a real bug: two
-unrelated required files each defining the same private, never-exported
-bare helper function used to silently clobber each other's real global,
-with no error at all.
-
-Deliberately scoped to `require()` itself — not to `load`/`loadstring`/
-`dofile()`, and not to the top-level script or the REPL, all of which keep
-sharing whatever environment the calling code already has, exactly as in
-stock Lua. A required module is this language's actual unit of isolation;
-a directly-run script or an explicit `dofile()` is ordinary inline
-execution, sharing the caller's scope by design.
-
-**Known limitation:** this isolation always falls back to the real `_G`,
-not to whatever environment the code that *called* `require()` happens to
-be restricted to. A module loaded via `require()` from inside a sandboxed
-environment still gets full read access to the real globals through that
-fallback — so `require` itself should never be exposed to sandboxed code
-that's meant to be denied that access. A sandbox that wants to let
-untrusted code load a restricted set of modules needs to resolve and hand
-over the *values* those modules export, never the `require` function
-itself.
+Because bare assignment and a bare function statement are both really
+local, the common Lua idiom of loading a script and then reading back
+whatever globals it set (`lua_getglobal` from C, or `dofile(...);
+print(x)` from Lua) no longer works by default for a plain variable or a
+bare function — neither becomes visible outside the chunk that created it.
 
 #### Real Globals
 `_G` is still the same global table as in Lua 5.1, and reading an undeclared

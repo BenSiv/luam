@@ -200,21 +200,26 @@ end
 -- Warn (not fail the build) about a bare function defined in exactly
 -- one bundled file but called, bare, from a different one -- the
 -- pattern that made dkjson's own internal `replace` helper silently
--- collide with an unrelated same-named global elsewhere in the bundle
--- before per-module isolation (see lua_loader's own setfenv comment
--- below) turned that class of bug into a loud runtime error instead of
--- silent corruption. This is a text-pattern heuristic over a dynamic
--- language, not a sound analysis -- it can't see a function reached via
--- _G["name"], stored in a table and called indirectly, or produced by
--- load() at runtime, and something matching the surface shape here
--- could still be a legitimate, safe pattern this doesn't understand.
--- A hard build failure on a heuristic that can be wrong in either
--- direction would be worse than not checking at all: it would block
--- real code sometimes and give false confidence ("build passed, so
--- it's fine") when a case slips past it the rest of the time. Warn,
--- don't block -- the actual, precise safety net is lua_loader's own
--- per-module isolation actually crashing (not silently misbehaving) if
--- a bare cross-file reference is ever really exercised.
+-- collide with an unrelated same-named global elsewhere in the bundle,
+-- back when a bare function statement wrote a real global instead of a
+-- local (see luam/doc/changelog.md). Now that the parser gives a bare
+-- `function name()` the same genuine-local treatment as `name = value`,
+-- this class of bug can't happen silently any more -- the bare name in
+-- the defining file is never visible to a different file at all, so a
+-- cross-file reference like this fails loudly (an unresolved global,
+-- `nil` at call time) instead of silently clobbering something. This
+-- is a text-pattern heuristic over a dynamic language, not a sound
+-- analysis -- it can't see a function reached via _G["name"], stored
+-- in a table and called indirectly, or produced by load() at runtime,
+-- and something matching the surface shape here could still be a
+-- legitimate, safe pattern this doesn't understand. A hard build
+-- failure on a heuristic that can be wrong in either direction would
+-- be worse than not checking at all: it would block real code
+-- sometimes and give false confidence ("build passed, so it's fine")
+-- when a case slips past it the rest of the time. Warn, don't block --
+-- the actual, precise safety net is the loud "attempt to call a nil
+-- value" crash if a bare cross-file reference is ever really
+-- exercised.
 function check_bare_cross_file_calls(files)
 	definers = {}
 	for _, file in ipairs(files) do
