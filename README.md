@@ -9,23 +9,64 @@
 ### 1. Safer Syntax
 
 #### Implicit Locals
-The `local` keyword has been removed. A bare assignment to a name that isn't
-already a local or upvalue declares a new local in the current block instead
-of writing a global — this is true for any loaded chunk (a file, `load`,
-`loadstring`, `dofile`, ...). The one exception is the interactive prompt
-(`luam -e`, the REPL), where bare assignment still writes a real global so
-that variables persist across separate lines typed at the prompt.
+The `local` keyword has been removed. A bare *assignment* to a name that
+isn't already a local or upvalue declares a new local in the current block
+instead of writing a global — this is true for any loaded chunk (a file,
+`load`, `loadstring`, `dofile`, `require`, ...). The one exception is the
+interactive prompt (`luam -e`, the REPL), where bare assignment still writes
+a real global so that variables persist across separate lines typed at the
+prompt.
 
 ```lua
-x = 10        -- local to this chunk/block
-function f()  -- local function
-end
+x = 10   -- local to this chunk/block
 ```
 
-Because of this, the common Lua idiom of loading a script and then reading
-back whatever globals it set (`lua_getglobal` from C, or `dofile(...); print(x)`
-from Lua) no longer works by default — `x` above never becomes visible outside
-the chunk that created it.
+A bare **function statement** (`function f() ... end`) is not the same
+thing, even though it looks like it should be: `f` is not a local. It's an
+ordinary write into whatever environment is currently in effect, exactly
+like unmodified Lua 5.1 — an earlier version of Luam did make it a genuine
+local, matching plain assignment exactly, but that broke any file where one
+function calls another defined later in the same file (routine in Lua-family
+code; a real global tolerates it because both the write and the read
+resolve at *call* time, while a lexical local can't, because the reference
+is resolved once, at *parse* time, before a later declaration exists) — see
+[doc/changelog.md](doc/changelog.md) for that history. What actually keeps
+`f` from leaking today is module isolation, next.
+
+Because bare assignment really is local, the common Lua idiom of loading a
+script and then reading back whatever globals it set (`lua_getglobal` from
+C, or `dofile(...); print(x)` from Lua) no longer works by default for a
+plain variable — `x` above never becomes visible outside the chunk that
+created it.
+
+#### Module Isolation
+Every module loaded via `require()` gets its own private global table
+instead of sharing the real `_G` directly. Reads still fall through to the
+real globals (`string`, `pairs`, `require`, any already-`require`d module a
+file binds to its own bare name, ...); only a *write* to a name that isn't
+already a local, upvalue, or otherwise-resolvable global is affected —
+exactly the bare-function-statement case above, plus the rare case a plain
+assignment doesn't already cover on its own. This closes a real bug: two
+unrelated required files each defining the same private, never-exported
+bare helper function used to silently clobber each other's real global,
+with no error at all.
+
+Deliberately scoped to `require()` itself — not to `load`/`loadstring`/
+`dofile()`, and not to the top-level script or the REPL, all of which keep
+sharing whatever environment the calling code already has, exactly as in
+stock Lua. A required module is this language's actual unit of isolation;
+a directly-run script or an explicit `dofile()` is ordinary inline
+execution, sharing the caller's scope by design.
+
+**Known limitation:** this isolation always falls back to the real `_G`,
+not to whatever environment the code that *called* `require()` happens to
+be restricted to. A module loaded via `require()` from inside a sandboxed
+environment still gets full read access to the real globals through that
+fallback — so `require` itself should never be exposed to sandboxed code
+that's meant to be denied that access. A sandbox that wants to let
+untrusted code load a restricted set of modules needs to resolve and hand
+over the *values* those modules export, never the `require` function
+itself.
 
 #### Real Globals
 `_G` is still the same global table as in Lua 5.1, and reading an undeclared
