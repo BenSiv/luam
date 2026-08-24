@@ -227,6 +227,26 @@ Build artifacts are placed in the `bin/` directory:
 - `bin/luamc` — Bytecode compiler
 - `bin/sqlite3.so` — SQLite3 module
 
+### Building a static binary for a downstream project
+
+`bld/build_lang.sh` above builds Luam itself. A separate project written
+*in* Luam that wants to ship as one standalone native executable (no
+Luam installation required on the target machine) uses
+`lib/static/build.lua` instead:
+
+```sh
+luam lib/static/build.lua --entry main.lua --bin myproject --with sqlite3,lfs
+```
+
+It flattens the project's own source together with Luam's stdlib and
+any vendored modules it needs, compiles and preload-registers whatever
+C extensions are requested (see `MODULES` in that file for the full
+list), and links everything into one binary in `./bin/`. Run it with
+`--help` for the full option list. This replaces hand-rolling the same
+temp-dir/flatten/compile/link logic in a project's own `bld/build.sh`
+independently each time -- see `daat`'s and `brain-ex`'s own
+`bld/build.sh` for the (now very thin) delegation this leaves behind.
+
 ---
 
 ## Documentation
