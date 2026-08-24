@@ -33,6 +33,20 @@ is resolved once, at *parse* time, before a later declaration exists) — see
 [doc/changelog.md](doc/changelog.md) for that history. What actually keeps
 `f` from leaking today is module isolation, next.
 
+This is a deliberate divergence, not an inconsistency left unnoticed: in
+ordinary Lua, `function f() ... end` is sugar for `f = function() ... end`
+-- both mean "store a closure wherever `f` denotes" -- so it would be
+reasonable to expect Luam's implicit-locals rule to treat them identically.
+It doesn't, on purpose. `f = function() ... end` gets the same treatment as
+any other bare assignment (a real local, confirmed above); a bare
+`function f() ... end` statement never does, because real code relies on it
+*not* behaving like one -- calling a function from another defined later in
+the same file is routine, and only works because the name resolves fresh at
+call time, not once at parse time the way a lexical local would. Extending
+full local treatment to the statement form was tried and reverted for
+exactly this reason (see changelog). The two forms look interchangeable;
+for this specific rule, they aren't.
+
 Because bare assignment really is local, the common Lua idiom of loading a
 script and then reading back whatever globals it set (`lua_getglobal` from
 C, or `dofile(...); print(x)` from Lua) no longer works by default for a
