@@ -117,6 +117,10 @@ end
 
 
 
+-- do_assert/check_msg/stats_inc/run_testcase used before their own
+-- definitions below -- pre-declared, see ../../doc/forward_references.md
+do_assert, check_msg, stats_inc, run_testcase = nil, nil, nil, nil
+
 ----------------------
 -- Assert functions --
 ----------------------

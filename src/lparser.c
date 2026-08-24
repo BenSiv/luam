@@ -1317,12 +1317,54 @@ static int funcname(LexState *ls, expdesc *v) {
 static void funcstat(LexState *ls, int line) {
   /* funcstat -> FUNCTION funcname body */
   int needself;
+  int new_local = 0;
   expdesc v, b;
   luaX_next(ls); /* skip FUNCTION */
   needself = funcname(ls, &v);
+  if (v.k == VGLOBAL && !ls->L->replmode) {
+    /* Bare `function name() ... end` (no `.` field -- a dotted
+       funcname already came back VINDEXED from funcname() above --
+       and not already a local/upvalue) gets the same implicit-local
+       treatment `name = value` gets in assignment(), except the local
+       is activated *before* compiling the body, matching stock Lua's
+       `local function name()` rather than plain `local name =
+       function() end`. That ordering is why this exists: it lets a
+       function call itself by its own bare name and still recurse
+       correctly, via a genuine upvalue, instead of the real-global
+       write this statement used to fall through to when the name
+       wasn't already a local -- confirmed as a real bug, not a
+       theoretical one: two independently-loaded chunks each defining
+       a same-named bare top-level function (e.g. two bundled library
+       files both defining `function replace(...)`) silently clobbered
+       each other's global, with no error, because this statement
+       never went through assignment()'s implicit-local path at all.
+       REPL mode is excluded for the same reason assignment() excludes
+       it there: a line typed at the prompt is its own chunk whose
+       locals can't outlive it.
+
+       Deliberately does NOT hoist a sibling name declared later in
+       the same chunk -- only this statement's own name, activated
+       before its own body. Calling another bare function defined
+       later in the same file is a real ordering violation now (fix by
+       moving the definition earlier); genuinely mutual recursion
+       between two top-level names has a real, zero-new-syntax escape
+       hatch: pre-declare both first with an ordinary assignment --
+       `f, g = nil, nil` -- before defining either, exactly like stock
+       Lua's `local f, g` would. See README.md. */
+    TString *name = rawtsvalue(&ls->fs->f->k[v.u.s.info]);
+    new_localvar(ls, name, 0, 0); /* implicit local is mutable */
+    init_exp(&v, VLOCAL, ls->fs->freereg);
+    luaK_reserveregs(ls->fs, 1);
+    adjustlocalvars(ls, 1);
+    new_local = 1;
+  }
   body(ls, &b, needself, line);
   luaK_storevar(ls->fs, &v, &b);
   luaK_fixline(ls->fs, line); /* definition `happens' in the first line */
+  if (new_local)
+    /* debug information will only see the variable after this point,
+       matching stock Lua's own local-function convention */
+    getlocvar(ls->fs, ls->fs->nactvar - 1).startpc = ls->fs->pc;
 }
 
 static void exprstat(LexState *ls) {

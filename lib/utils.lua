@@ -238,6 +238,10 @@ function copy(source)
     return new_copy
 end
 
+-- replace_table/replace call each other -- pre-declared, see
+-- ../doc/forward_references.md
+replace_table, replace = nil, nil
+
 -- Returns new table with replaced value
 function replace_table(tbl, old, new)
     new_table = {}

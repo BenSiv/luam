@@ -240,6 +240,7 @@ Design notes on specific language changes:
 
 - [doc/manifesto.md](doc/manifesto.md) — the design tenets behind Luam, and how each one continues a goal Lua's own creators stated for Lua itself
 - [doc/error_handling.md](doc/error_handling.md) — nil-check patterns under strict conditionals
+- [doc/forward_references.md](doc/forward_references.md) — why calling a same-file function defined later doesn't work by default, and the zero-new-syntax pre-declaration idiom for when it's genuinely needed
 - [doc/strict_not_operator.md](doc/strict_not_operator.md) — the strict `not` operator and literal-`nil` restrictions
 - [doc/changelog.md](doc/changelog.md) — full list of differences from Lua 5.1, with measured (not estimated) size numbers
 - [doc/install.md](doc/install.md) — build targets and platform options

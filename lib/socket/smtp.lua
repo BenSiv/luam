@@ -175,6 +175,10 @@ function send_headers(tosend)
     coroutine.yield(h)
 end
 
+-- send_multipart/send_message call each other -- pre-declared, see
+-- ../../doc/forward_references.md
+send_multipart, send_message = nil, nil
+
 -- yield multipart message body from a multipart message table
 function send_multipart(mesgt)
     -- make sure we have our boundary and send headers

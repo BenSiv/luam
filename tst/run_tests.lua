@@ -24,7 +24,6 @@ tests = {
     "test_module_newproxy_removed.lua", "test_os_exit_boolean.lua",
     "test_global_escape_hatch.lua", "test_strict_conditionals.lua",
     "test_getfenv_setfenv.lua",
-    "test_require_isolation.lua",
     -- New/Renamed tests
     "test_bit.lua", "test_comment.lua", "test_env.lua",
     "test_feature_check.lua", "test_fix_strings.lua",

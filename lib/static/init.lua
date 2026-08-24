@@ -432,39 +432,6 @@ function lua_loader(name)
 		if type(mod) == "string" then
 			chunk, errstr = load_string(mod, name)
 			if chunk != nil then
-				-- The same guarantee src/loadlib.c's loader_Lua gives
-				-- every module loaded via a real, on-disk require()
-				-- -- necessarily reimplemented here rather than
-				-- shared, since this loader serves modules from
-				-- embedded C-string literals baked into the built
-				-- binary, never from files loadfile() could find.
-				-- Give each module its own private global table
-				-- instead of sharing the real _G directly -- a bare
-				-- (unprefixed) global write inside one bundled file,
-				-- e.g. an internal helper a vendored library never
-				-- meant to export, can otherwise silently clobber an
-				-- identically-named bare global some completely
-				-- unrelated bundled file also happens to define, with
-				-- no error and no warning (confirmed as a real bug:
-				-- dkjson's own internal `replace` helper and this
-				-- project's utils.lua both defined a bare global
-				-- `replace`; whichever loaded last silently won,
-				-- corrupting dkjson's number formatting for the
-				-- other). __index = _G means reads of genuinely
-				-- shared globals (string, pairs, require, and every
-				-- other already-`require`d module table a file
-				-- assigns to its own bare global, e.g. `json =
-				-- require("dkjson")`) still work exactly as before --
-				-- only a *write* to a name that isn't already a real
-				-- global lands in this module's own private table,
-				-- invisible to every other module. setfenv/getfenv are
-				-- Lua 5.1-specific (removed in 5.2+, replaced by the
-				-- _ENV upvalue) -- guarded so this is a no-op instead
-				-- of an error if this ever runs on a newer core.
-				if setfenv != nil then
-					module_env = setmetatable({}, {__index = _G})
-					setfenv(chunk, module_env)
-				end
 				return chunk
 			else
 				error(

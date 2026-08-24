@@ -355,35 +355,6 @@ static int loader_Lua(lua_State *L) {
     return 1; /* library not found in this path */
   if (luaL_loadfile(L, filename) != 0)
     loaderror(L, filename);
-  /* Give this module its own private global table instead of the
-     real one -- a bare (unprefixed) global write in one required
-     file must never silently clobber an identically-named bare
-     global some completely unrelated required file also happens to
-     define (confirmed as a real bug, not hypothetical: two files
-     each defining their own internal, never-exported `function
-     replace(...)` helper for unrelated purposes). __index = the real
-     globals table means reads of genuinely shared globals (string,
-     pairs, require, and any already-required module table a file
-     assigns to its own bare global via `x = require("x")`) still
-     work exactly as before; only a *write* to a name that isn't
-     already a real global lands in this module's own private table,
-     invisible to every other module. The explicit `_G.name = ...`
-     escape hatch is unaffected: that's a field write into whatever
-     `_G` resolves to, which falls through __index to the one real
-     table regardless -- never a bare-name write.
-
-     Deliberately scoped to require()'s own Lua-file loader, not to
-     dofile()/loadfile() generally or to the top-level script: a
-     required module is the thing this language treats as a unit of
-     isolation; a directly-run script or an explicit dofile() is
-     ordinary inline execution, sharing the caller's own scope by
-     design, same as it always has. */
-  lua_newtable(L);            /* private env table */
-  lua_newtable(L);            /* its metatable */
-  lua_pushvalue(L, LUA_GLOBALSINDEX);
-  lua_setfield(L, -2, "__index");
-  lua_setmetatable(L, -2);
-  lua_setfenv(L, -2);
   return 1; /* library loaded successfully */
 }
 
