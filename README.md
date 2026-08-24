@@ -183,6 +183,7 @@ Manual pages are provided in the `doc/` directory:
 
 Design notes on specific language changes:
 
+- [doc/manifesto.md](doc/manifesto.md) — the design tenets behind Luam, and how each one continues a goal Lua's own creators stated for Lua itself
 - [doc/error_handling.md](doc/error_handling.md) — nil-check patterns under strict conditionals
 - [doc/strict_not_operator.md](doc/strict_not_operator.md) — the strict `not` operator and literal-`nil` restrictions
 - [doc/changelog.md](doc/changelog.md) — full list of differences from Lua 5.1, with measured (not estimated) size numbers
