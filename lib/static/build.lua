@@ -15,6 +15,31 @@
 --
 -- See HELP below for the full option list.
 
+-- Self-bootstrap: this script has to resolve argparse/paths/lfs
+-- regardless of whatever LUA_PATH/LUA_CPATH the caller's shell happens
+-- to have exported (or hasn't) -- the whole point is being a
+-- self-sufficient orchestrator a downstream project's bld/build.sh can
+-- invoke directly (see bld/build.sh's own exec line: no LUA_PATH setup
+-- of its own), not something that silently depends on the caller
+-- already having the right environment configured. A bare `require`
+-- here previously relied on that unstated assumption -- confirmed as a
+-- real, reproducible failure (not theoretical): the exact same
+-- "module 'argparse' not found" error a bare Docker RUN step hits,
+-- reproduced locally in a clean environment with LUA_PATH/LUA_CPATH
+-- unset.
+--
+-- arg[0] is this script's own invoked path -- always
+-- $LUAM_DIR/lib/static/build.lua, per bld/build.sh's own invocation --
+-- so lib/ (one level up from lib/static/) is derived from it directly
+-- rather than trusted to already be on the search path.
+script_dir = string.match(arg[0], "^(.*/)")
+if script_dir == nil then
+    script_dir = "./"
+end
+lib_dir = script_dir .. "../"
+package.path = lib_dir .. "?.lua;" .. lib_dir .. "?/init.lua;" .. package.path
+package.cpath = lib_dir .. "?.so;" .. lib_dir .. "lfs/?.so;" .. package.cpath
+
 argparse = require("argparse")
 paths = require("paths")
 lfs = require("lfs")
