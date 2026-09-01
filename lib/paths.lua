@@ -92,6 +92,17 @@ function file_exists(path)
 	return answer
 end
 
+-- Reads a whole file into a string, or nil if it can't be opened.
+function read_file(path)
+	file = io.open(path, "r")
+	if file == nil then
+		return nil
+	end
+	source = io.read(file, "*all")
+	io.close(file)
+	return source
+end
+
 function create_dir_if_not_exists(path)
 	dir_path = joinpath(path)
 	-- Check if the directory exists
@@ -131,6 +142,7 @@ paths.get_script_dir = get_script_dir
 paths.joinpath = joinpath
 paths.add_to_path = add_to_path
 paths.file_exists = file_exists
+paths.read_file = read_file
 paths.create_dir_if_not_exists = create_dir_if_not_exists
 paths.create_file_if_not_exists = create_file_if_not_exists
 
