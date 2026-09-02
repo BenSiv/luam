@@ -127,6 +127,16 @@ Usage: luam lib/static/build.lua --entry <file> --bin <name> [options]
   --luamdir <dir>   Path to a built luam checkout (default: the
                     LUAM_DIR environment variable, or ../luam relative
                     to the current directory)
+  --always_include <dirs>
+                    Comma-separated directories (relative to the
+                    flattened build tree -- in practice, almost always
+                    a subdirectory of this project's own --src), whose
+                    files are force-included in full regardless of
+                    static require() reachability -- for a module
+                    loaded by a computed require() a static source
+                    scan can't see (e.g. a provider facade picking its
+                    real implementation by name from a config value at
+                    runtime).
   --verbose         Print full build command output instead of just a
                     log tail on failure
 """
@@ -137,6 +147,7 @@ expected_args = argparse.def_args("""
     -w --with arg string false
     -s --src arg string false
     -l --luamdir arg string false
+    -a --always_include arg string false
     -v --verbose flag string false
 """)
 opts = argparse.parse_args(arg, expected_args, HELP)
@@ -151,6 +162,13 @@ if SRC_DIR == nil then
 end
 ENTRY = opts["entry"]
 BIN_NAME = opts["bin"]
+
+ALWAYS_INCLUDE_DIRS = {}
+if opts["always_include"] != nil then
+    for dir in string.gmatch(opts["always_include"], "[^,]+") do
+        table.insert(ALWAYS_INCLUDE_DIRS, dir)
+    end
+end
 
 LUAM_DIR = opts["luamdir"]
 if LUAM_DIR == nil then
@@ -331,14 +349,82 @@ function list_lua_tree(dir, prefix, out)
     end
 end
 
-FILES = {ENTRY}
-REST_OF_FILES = {}
-list_lua_tree(TMPDIR, "", REST_OF_FILES)
-for _, path in ipairs(REST_OF_FILES) do
-    if path != ENTRY then
-        table.insert(FILES, path)
+-- FILES is what actually gets bundled: ENTRY plus everything reachable
+-- from it via a literal require(), not every .lua file that happens to
+-- be sitting in TMPDIR (daat's own build once carried 7 of ~16 plain
+-- Lua stdlib modules -- bioinfo, graphs, dataframes, and friends --
+-- into its binary for zero benefit, never required anywhere). A
+-- computed require() (a provider facade picking its implementation by
+-- name from a config value at runtime) can't be seen by this kind of
+-- static scan -- see --always_include above for the explicit escape
+-- hatch that covers it instead of trying to be clever about parsing
+-- what a runtime expression might evaluate to.
+
+-- Every literal require("name")/require('name') call's module name in
+-- `source` -- deliberately only a literal string argument; a computed
+-- one (string concatenation, a variable) is invisible here on purpose,
+-- not a parsing gap to close.
+function extract_requires(source)
+    names = {}
+    for quote, name in string.gmatch(source, "require%s*%(%s*([\"'])([%w_./]+)%1%s*%)") do
+        table.insert(names, name)
+    end
+    return names
+end
+
+-- "agent_tools.bridge" -> "agent_tools/bridge.lua"; "sandbox" -> "sandbox.lua".
+function module_name_to_relpath(name)
+    return (string.gsub(name, "%.", "/")) .. ".lua"
+end
+
+VISITED = {}
+FILES = {}
+
+-- Depth-first from `relpath`. If it resolves to a real .lua file in
+-- TMPDIR, add it (before recursing, so ENTRY always lands first in
+-- FILES) and walk whatever it requires in turn. If it doesn't resolve
+-- to a real file -- a C-extension module like sqlite3/lfs, preloaded a
+-- completely different way via --with -- there's nothing to add or
+-- recurse into, and that's expected, not an error.
+function visit(relpath)
+    if VISITED[relpath] == true then
+        return
+    end
+    VISITED[relpath] = true
+    full_path = paths.joinpath(TMPDIR, relpath)
+    if not paths.file_exists(full_path) then
+        return
+    end
+    table.insert(FILES, relpath)
+    source_file = io.open(full_path, "r")
+    source = io.read(source_file, "*all")
+    io.close(source_file)
+    for _, name in ipairs(extract_requires(source)) do
+        visit(module_name_to_relpath(name))
     end
 end
+
+visit(ENTRY)
+
+-- Force-include every real need a static scan can't see (see
+-- --always_include's own help text above) -- a whole directory, not
+-- one named file, since the point is every implementation a runtime
+-- config value could pick, not just whichever happens to be today's
+-- default.
+for _, dir in ipairs(ALWAYS_INCLUDE_DIRS) do
+    dir_path = paths.joinpath(TMPDIR, dir)
+    if paths.file_exists(dir_path) then
+        dir_files = {}
+        list_lua_tree(dir_path, dir, dir_files)
+        for _, relpath in ipairs(dir_files) do
+            if VISITED[relpath] != true then
+                VISITED[relpath] = true
+                table.insert(FILES, relpath)
+            end
+        end
+    end
+end
+
 print("Files to bundle: " .. table.concat(FILES, " "))
 
 -- ---- Generate the C source (via init.lua, CC="" so it only writes

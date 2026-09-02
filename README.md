@@ -199,14 +199,21 @@ Luam installation required on the target machine) uses
 luam lib/static/build.lua --entry main.lua --bin myproject --with sqlite3,lfs
 ```
 
-It flattens the project's own source together with Luam's stdlib and
-any vendored modules it needs, compiles and preload-registers whatever
-C extensions are requested (see `MODULES` in that file for the full
-list), and links everything into one binary in `./bin/`. Run it with
-`--help` for the full option list. This replaces hand-rolling the same
-temp-dir/flatten/compile/link logic in a project's own `bld/build.sh`
-independently each time -- see `daat`'s and `brain-ex`'s own
-`bld/build.sh` for the (now very thin) delegation this leaves behind.
+It flattens the project's own source together with Luam's stdlib, then
+bundles only what's actually reachable by a real `require()` from
+`--entry` -- not every file that happens to be present -- so an unused
+stdlib module never ends up compiled into the binary for no reason. A
+module loaded by a *computed* `require()` (a provider facade picking
+its real implementation by name from a config value at runtime, say)
+can't be seen by that kind of static scan; `--always_include` names a
+directory to bundle in full regardless, for exactly that case. It also
+compiles and preload-registers whatever C extensions are requested
+(see `MODULES` in that file for the full list), and links everything
+into one binary in `./bin/`. Run it with `--help` for the full option
+list. This replaces hand-rolling the same temp-dir/flatten/compile/link
+logic in a project's own `bld/build.sh` independently each time -- see
+`daat`'s and `brain-ex`'s own `bld/build.sh` for the (now very thin)
+delegation this leaves behind.
 
 ---
 
