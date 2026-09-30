@@ -242,10 +242,14 @@ function addpair (key, value, prev, indent, level, buffer, buflen, tables, globa
   if indent != nil then
     newbuflen = addnewline2 (level, buffer, newbuflen)
   end
-  buffer[newbuflen+1] = "\""
-  buffer[newbuflen+2] = tostring (key)
-  buffer[newbuflen+3] = "\":"
-  newbuflen = newbuflen + 3
+  -- Keys go through quotestring like any string value (upstream dkjson
+  -- does the same). A raw tostring(key) between literal quotes emitted
+  -- invalid JSON for any key containing `"`, `\` or a control character --
+  -- hit live by daat's `entity field-map reference title`, where paper
+  -- titles are the keys.
+  buffer[newbuflen+1] = quotestring (tostring (key))
+  buffer[newbuflen+2] = ":"
+  newbuflen = newbuflen + 2
   if indent != nil then
     buffer[newbuflen+1] = " "
     newbuflen = newbuflen + 1
