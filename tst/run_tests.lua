@@ -41,7 +41,7 @@ tests = {
     "test_lfs.lua", 
     "test_socket.lua",
     "test_sqlite.lua",
-    "test_database.lua",
+    "test_database.lua", "test_database_keep_open.lua",
     "test_mariadb.lua",
     "test_mariadb_wrapper.lua",
     "test_struct.lua",

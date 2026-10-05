@@ -17,6 +17,84 @@ function escape_sqlite(value)
     return string.gsub(tostring(value), "'", "''")
 end
 
+-- Opt-in connection reuse for SQLite, mirroring the MariaDB cache below.
+-- Off by default: each sqlite_query/sqlite_update opens and closes its own
+-- connection, which costs nothing on a local disk. A caller whose database
+-- sits on a slow filesystem (e.g. a 9p/drvfs mount, where one open costs
+-- seconds) turns it on with sqlite_keep_open(true) and calls
+-- sqlite_close_all() before exiting. Statements still autocommit, so a
+-- kept-open connection holds no lock between calls.
+_sqlite_keep_open = false
+_sqlite_connections = {}
+
+function sqlite_close_all()
+    for path, conn in pairs(_sqlite_connections) do
+        if sqlite.isopen(conn) then
+            sqlite.close(conn)
+        end
+        _sqlite_connections[path] = nil
+    end
+end
+
+function sqlite_keep_open(enabled)
+    _sqlite_keep_open = (enabled == true)
+    if _sqlite_keep_open == false then
+        sqlite_close_all()
+    end
+end
+
+function open_sqlite_connection(db_path)
+    db = sqlite.open(db_path)
+    if (db == nil) then
+        error("Error opening database: " .. tostring(db_path))
+    end
+    sqlite.exec(db, "PRAGMA busy_timeout = 5000;")
+    -- WAL mode is a persistent property of the database file itself, not
+    -- this connection -- re-issuing it on every open is redundant after
+    -- the first time but harmless, and guarantees it's actually set
+    -- rather than depending on some other code path having done it first.
+    -- Lets readers and a writer proceed concurrently instead of blocking
+    -- each other, which matters once more than one client (e.g. several
+    -- browser tabs against the same store) is hitting the database at once.
+    sqlite.exec(db, "PRAGMA journal_mode = WAL;")
+    return db
+end
+
+-- Returns db, owned: owned is true when the caller must close it (no cache).
+function acquire_sqlite_connection(db_path)
+    if _sqlite_keep_open == false then
+        return open_sqlite_connection(db_path), true
+    end
+    cached = _sqlite_connections[db_path]
+    if cached != nil and sqlite.isopen(cached) then
+        return cached, false
+    end
+    cached = open_sqlite_connection(db_path)
+    _sqlite_connections[db_path] = cached
+    return cached, false
+end
+
+-- After a failed statement a multi-statement script may have left a
+-- transaction open (BEGIN ran, COMMIT never did). A per-call connection
+-- rolls it back by closing; a kept-open one must roll back explicitly or
+-- every later write in this process would silently join that transaction.
+-- ROLLBACK with no transaction active just returns an error, ignored here.
+function release_sqlite_connection(db, owned, failed)
+    if owned then
+        sqlite.close(db)
+    elseif failed then
+        sqlite.exec(db, "ROLLBACK;")
+    end
+end
+
+function sqlite_connection_count()
+    count = 0
+    for _ in pairs(_sqlite_connections) do
+        count = count + 1
+    end
+    return count
+end
+
 function sqlite_query(db_path, query, ...)
     local_args = {...}
     if #local_args > 0 then
@@ -28,20 +106,7 @@ function sqlite_query(db_path, query, ...)
         query = string.format(query, unpack(local_args))
     end
     query = query
-    db = sqlite.open(db_path)
-    if (db == nil) then
-        error("Error opening database: " .. tostring(db_path))
-    end
-    sqlite.exec(db, "PRAGMA busy_timeout = 5000;")
-    -- WAL mode is a persistent property of the database file itself, not
-    -- this connection -- re-issuing it on every open (this module opens a
-    -- fresh connection per call, see sqlite_update below) is redundant
-    -- after the first time but harmless, and guarantees it's actually set
-    -- rather than depending on some other code path having done it first.
-    -- Lets readers and a writer proceed concurrently instead of blocking
-    -- each other, which matters once more than one client (e.g. several
-    -- browser tabs against the same store) is hitting the database at once.
-    sqlite.exec(db, "PRAGMA journal_mode = WAL;")
+    db, owned = acquire_sqlite_connection(db_path)
 
     stmt, err = sqlite.prepare(db, query)
     if (stmt == nil) then
@@ -53,7 +118,7 @@ function sqlite_query(db_path, query, ...)
                 err_msg = err_msg .. " (" .. db_err .. ")"
             end
         end
-        sqlite.close(db)
+        release_sqlite_connection(db, owned, true)
         error("Invalid query on " .. tostring(db_path) .. ": " .. err_msg .. "\nQuery: " .. query)
     end
 
@@ -90,7 +155,11 @@ function sqlite_query(db_path, query, ...)
         end
     end
 
-    sqlite.close(db)
+    -- Finalize explicitly: closing a per-call connection used to clean the
+    -- statement up implicitly, but on a kept-open connection a leftover
+    -- statement outlives its query and crashed in the sqlite binding.
+    sqlite.stmt.finalize(stmt)
+    release_sqlite_connection(db, owned, false)
 
     if (#result_rows == 0) then
         -- print("Query executed successfully, but no rows were returned.")
@@ -120,17 +189,13 @@ function sqlite_update(db_path, statement, ...)
         statement = string.format(statement, unpack(local_args))
     end
     statement = statement
-    db = sqlite.open(db_path)
-
-    if (db == nil) then
-        error("Error opening database: " .. tostring(db_path))
-    end
-    sqlite.exec(db, "PRAGMA busy_timeout = 5000;")
-    sqlite.exec(db, "PRAGMA journal_mode = WAL;")
+    db, owned = acquire_sqlite_connection(db_path)
 
     result = sqlite.exec(db, statement)
     if (result != sqlite.OK) then
-        error("Error executing statement: " .. tostring(sqlite.errmsg(db)))
+        err_msg = tostring(sqlite.errmsg(db))
+        release_sqlite_connection(db, owned, true)
+        error("Error executing statement: " .. err_msg)
     end
 
     -- Read while still on the same connection that just did the insert --
@@ -145,7 +210,7 @@ function sqlite_update(db_path, statement, ...)
     -- mariadb_update's insert_id return for the same reason).
     insert_id = sqlite.last_insert_rowid(db)
 
-    sqlite.close(db)
+    release_sqlite_connection(db, owned, false)
     return true, insert_id
 end
 
@@ -509,6 +574,9 @@ end
 
 database_adapter.sqlite_query = sqlite_query
 database_adapter.sqlite_update = sqlite_update
+database_adapter.sqlite_keep_open = sqlite_keep_open
+database_adapter.sqlite_close_all = sqlite_close_all
+database_adapter.sqlite_connection_count = sqlite_connection_count
 database_adapter.import_delimited = import_delimited
 database_adapter.export_delimited = export_delimited
 database_adapter.load_df = load_df
