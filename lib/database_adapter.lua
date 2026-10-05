@@ -151,7 +151,7 @@ end
 
 -- ---------------------------------------------------------------------
 -- MariaDB support (lib/mariadb/lmariadb.c) -- see doc/mariadb-
--- migration.md in the platform-wip repo for why this exists and how it
+-- migration.md in the daat repo for why this exists and how it
 -- fits into that migration's phases. Lives in this same file (not a
 -- separate lib/mariadb.lua) specifically to avoid a real naming
 -- collision: a Lua module file named "mariadb.lua" and the native

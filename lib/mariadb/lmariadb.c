@@ -5,8 +5,8 @@
 ** lib/hmac/hmac.c, just with a persistent connection object instead of
 ** a pure function, since a network database connection is real state
 ** a caller needs to hold onto and reuse (unlike bcrypt/hmac, which are
-** stateless per call). See doc/mariadb-migration.md (platform-wip repo)
-** for why this exists: platform-wip's own lib/database.lua opens a
+** stateless per call). See doc/mariadb-migration.md (daat repo)
+** for why this exists: daat's own lib/database.lua opens a
 ** fresh SQLite connection per call, which is free for a local file but
 ** would be a severe latency regression per network round-trip for a
 ** real client/server database -- so unlike lsqlite3.c's db-per-call

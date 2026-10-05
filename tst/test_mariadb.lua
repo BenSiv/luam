@@ -13,7 +13,7 @@ print("Testing mariadb...")
 -- Connection details come from env vars with locally-sensible
 -- defaults, not hardcoded production-shaped credentials -- set
 -- MARIADB_TEST_HOST/PORT/USER/PASSWORD/DATABASE to point this at a
--- real test server (see doc/mariadb-migration.md in platform-wip for
+-- real test server (see doc/mariadb-migration.md in daat for
 -- the schema/dialect work this binding unblocks).
 ok, mariadb = pcall(require, "mariadb")
 if not ok then
@@ -82,7 +82,7 @@ assert(tonumber(rows[1].n) == 4, "expected the table to still exist with 4 rows 
 
 assert(mariadb.ping(conn) == true, "ping should report true on a live connection")
 
--- Multi-statement batch (CLIENT_MULTI_STATEMENTS) -- platform-wip's own
+-- Multi-statement batch (CLIENT_MULTI_STATEMENTS) -- daat's own
 -- SCHEMA constants are exactly this shape (several CREATE TABLE
 -- statements in one string, matching sqlite.exec's own established
 -- convention) -- confirmed live this failed past the first statement
