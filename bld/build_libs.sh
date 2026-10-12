@@ -211,14 +211,4 @@ else
     echo "Skipping ssl (source not found)"
 fi
 
-# 6. Static ool
-if [ -d "lib/static" ]; then
-    echo "nstalling static tool"
-    run_cmd cp lib/static/static.lua lib/static/init.lua
-    run_cmd chmod +x lib/static/init.lua
-    echo "static tool installed to lib/static/init.lua"
-else
-    echo "Skipping static tool (source not found)"
-fi
-
 echo "Build complete"
