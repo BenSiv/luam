@@ -176,7 +176,7 @@ function send_headers(tosend)
 end
 
 -- send_multipart/send_message call each other -- pre-declared, see
--- ../../doc/forward_references.md
+-- doc/forward_references.md in the luam repo root
 send_multipart, send_message = nil, nil
 
 -- yield multipart message body from a multipart message table

@@ -121,11 +121,13 @@ fi
 # 4. LuaSocket
 if [ -d "lib/socket/src" ]; then
     echo "Compiling socket.core.so"
-    # Copy Lua files to lib/ structure
-    run_cmd cp lib/socket/src/socket.lua lib/socket/init.lua
-    run_cmd cp lib/socket/src/mime.lua lib/mime/init.lua
-    run_cmd cp lib/socket/src/ltn12.lua lib/ltn12/init.lua
-    run_cmd cp lib/socket/src/{ftp,http,smtp,tp,url,headers,mbox}.lua lib/socket/
+    # Copy Lua files to lib/ structure. The copies are tracked too, so -p
+    # keeps an unchanged copy's mtime: a build must not make tracked files
+    # look edited (downstream rebuild checks, e.g. seder's, compare them).
+    run_cmd cp -p lib/socket/src/socket.lua lib/socket/init.lua
+    run_cmd cp -p lib/socket/src/mime.lua lib/mime/init.lua
+    run_cmd cp -p lib/socket/src/ltn12.lua lib/ltn12/init.lua
+    run_cmd cp -p lib/socket/src/{ftp,http,smtp,tp,url,headers,mbox}.lua lib/socket/
 
     # Compile Socket Core (Linux files)
     run_cmd gcc -O2 -shared -fPIC -Isrc/ -Ilib/socket/src \
@@ -183,8 +185,8 @@ if [ -d "lib/ssl/src" ]; then
     fi
 
     # Copy Lua files
-    run_cmd cp lib/ssl/src/ssl.lua lib/ssl/init.lua
-    run_cmd cp lib/ssl/src/https.lua lib/ssl/
+    run_cmd cp -p lib/ssl/src/ssl.lua lib/ssl/init.lua
+    run_cmd cp -p lib/ssl/src/https.lua lib/ssl/
 
     # Compile SSL Core
     # Link against local OpenSSL static libs
