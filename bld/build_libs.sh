@@ -6,6 +6,15 @@ mkdir -p log
 LOG_FILE="$(pwd)/log/libs.log"
 : > "$LOG_FILE"
 
+# Modules that failed to build. Any failure makes the script exit 1, and
+# only a complete build writes obj/libs.built, so callers (seder's
+# "luam libs" step) never take a partial build for a finished one.
+FAILED=()
+fail() {
+    echo "Failed to build $1"
+    FAILED+=("$1")
+}
+
 VERBOSE=0
 for arg in "$@"; do
     case $arg in
@@ -37,7 +46,7 @@ if [ -d "lib/lfs/src" ]; then
     if [ $? -eq 0 ]; then
         echo "lfs.so built successfully"
     else
-        echo "Failed to build lfs.so"
+        fail "lfs.so"
     fi
 else
     echo "Skipping lfs (source not found)"
@@ -50,7 +59,7 @@ if [ -d "lib/yaml" ]; then
     if [ $? -eq 0 ]; then
         echo "yaml.so built successfully"
     else
-        echo "Failed to build yaml.so"
+        fail "yaml.so"
     fi
 else
     echo "Skipping yaml (source not found)"
@@ -63,7 +72,7 @@ if [ -d "lib/sqlite" ]; then
     if [ $? -eq 0 ]; then
         echo "lsqlite3.so built successfully"
     else
-        echo "Failed to build lsqlite3.so (-lsqlite3 missing?)"
+        fail "lsqlite3.so (-lsqlite3 missing?)"
     fi
 else
     echo "Skipping sqlite (source not found)"
@@ -78,7 +87,7 @@ if [ -d "lib/bcrypt" ]; then
     if [ $? -eq 0 ]; then
         echo "bcrypt.so built successfully"
     else
-        echo "Failed to build bcrypt.so (-lcrypt missing?)"
+        fail "bcrypt.so (-lcrypt missing?)"
     fi
 else
     echo "Skipping bcrypt (source not found)"
@@ -93,7 +102,7 @@ if [ -d "lib/hmac" ]; then
     if [ $? -eq 0 ]; then
         echo "hmac.so built successfully"
     else
-        echo "Failed to build hmac.so (-lcrypto missing?)"
+        fail "hmac.so (-lcrypto missing?)"
     fi
 else
     echo "Skipping hmac (source not found)"
@@ -112,7 +121,7 @@ if [ -d "lib/mariadb" ]; then
     if [ $? -eq 0 ]; then
         echo "mariadb.so built successfully"
     else
-        echo "Failed to build mariadb.so (-lmariadb / libmariadb-dev missing?)"
+        fail "mariadb.so (-lmariadb / libmariadb-dev missing?)"
     fi
 else
     echo "Skipping mariadb (source not found)"
@@ -138,7 +147,7 @@ if [ -d "lib/socket/src" ]; then
     if [ $? -eq 0 ]; then
         echo "socket.core.so built successfully"
     else
-        echo "Failed to build socket.core.so"
+        fail "socket.core.so"
     fi
 
     echo "Compiling mime.core.so"
@@ -150,7 +159,7 @@ if [ -d "lib/socket/src" ]; then
     if [ $? -eq 0 ]; then
         echo "mime.core.so built successfully"
     else
-        echo "Failed to build mime.core.so"
+        fail "mime.core.so"
     fi
 else
     echo "Skipping socket (source not found)"
@@ -207,10 +216,17 @@ if [ -d "lib/ssl/src" ]; then
         cd ../..
         echo "Symlinks created for ssl modules"
     else
-        echo "Failed to build ssl.core.so (openssl dev libs missing?)"
+        fail "ssl.core.so (openssl dev libs missing?)"
     fi
 else
     echo "Skipping ssl (source not found)"
 fi
 
+if [ "${#FAILED[@]}" -gt 0 ]; then
+    echo "Build incomplete, failed: ${FAILED[*]} (details in $LOG_FILE)" >&2
+    exit 1
+fi
+
+mkdir -p obj
+touch obj/libs.built
 echo "Build complete"
