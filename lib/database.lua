@@ -136,15 +136,14 @@ function database.index_exists(db_path, table_name, index_name)
 end
 
 -- Quotes a value as a safe SQL string literal: plain quote-doubling, no
--- db_path/backend parameter needed here. Correct for MariaDB too as
--- long as the connection sets NO_BACKSLASH_ESCAPES (see database_adapter's
--- get_mariadb_connection) -- without that, a value containing a
--- literal backslash-letter sequence (a Windows path, a regex) would
--- silently come back transformed on read, even though quote-doubling
--- alone already safely closes the string boundary either way. Keeping
--- this a pure, backend-agnostic function (rather than threading
--- db_path through it) avoids a ripple through every quote/literal
--- call site, none of which need to change.
+-- db_path/backend parameter needed here. On MariaDB/MySQL this is only
+-- safe because every connection runs with NO_BACKSLASH_ESCAPES: under
+-- the default mode a trailing backslash would escape the doubled quote
+-- and end the literal early. database_adapter's get_mariadb_connection
+-- refuses any connection where that flag didn't take, so this function
+-- never runs against a session where it would be injectable. Keeping
+-- it a pure, backend-agnostic function (rather than threading db_path
+-- through it) avoids a ripple through every quote/literal call site.
 function database.quote(value)
     return "'" .. string.gsub(tostring(value), "'", "''") .. "'"
 end

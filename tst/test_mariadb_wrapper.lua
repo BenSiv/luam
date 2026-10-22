@@ -60,6 +60,18 @@ assert(count_after == 1, "expected connection count to stay at 1 after repeated 
 ok3 = pcall(function() return database.mariadb_query(descriptor, "SELECT * FROM a_table_that_does_not_exist;") end)
 assert(ok3 == false, "expected an error for a query against a nonexistent table")
 
+-- database.quote only doubles single quotes; that is injection-safe
+-- only because get_mariadb_connection forces NO_BACKSLASH_ESCAPES. A
+-- value ending in a backslash would otherwise escape the doubled quote
+-- and end the literal early. Round-trip one and check it comes back
+-- byte for byte, and that the session really has the flag.
+mode_rows = database.mariadb_query(descriptor, "SELECT @@SESSION.sql_mode AS sql_mode;")
+assert(require("database_adapter").sql_mode_disables_backslash_escapes(mode_rows[1].sql_mode), "expected NO_BACKSLASH_ESCAPES in the session sql_mode")
+tricky = "x\\' OR '1'='1"
+database.mariadb_update(descriptor, "INSERT INTO luam_mariadb_wrapper_test (val) VALUES (" .. database.quote(tricky) .. ");")
+back = database.mariadb_query(descriptor, "SELECT val FROM luam_mariadb_wrapper_test WHERE val = " .. database.quote(tricky) .. ";")
+assert(back != nil and #back == 1 and back[1].val == tricky, "expected a backslash-quote value to round-trip unchanged")
+
 database.mariadb_update(descriptor, "DROP TABLE luam_mariadb_wrapper_test;")
 database.mariadb_close_all()
 
