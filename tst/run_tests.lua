@@ -44,6 +44,7 @@ tests = {
     "test_database.lua", "test_database_keep_open.lua",
     "test_mariadb.lua",
     "test_mariadb_wrapper.lua",
+    "test_sql_mode_check.lua",
     "test_struct.lua",
     "test_string_utils.lua",
 }

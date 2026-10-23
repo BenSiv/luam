@@ -260,6 +260,20 @@ function mariadb_connection_key(descriptor)
         ":" .. tostring(descriptor.user) .. ":" .. tostring(descriptor.database)
 end
 
+-- True when a sql_mode string (as read back from @@SESSION.sql_mode,
+-- comma-separated flags) contains NO_BACKSLASH_ESCAPES as a whole flag.
+function sql_mode_disables_backslash_escapes(mode)
+    if mode == nil then
+        return false
+    end
+    for flag in string.gmatch(string.upper(tostring(mode)), "[^,%s]+") do
+        if flag == "NO_BACKSLASH_ESCAPES" then
+            return true
+        end
+    end
+    return false
+end
+
 -- Returns a live, cached connection for this descriptor -- opens one if
 -- none is cached yet, or replaces one that's gone stale (detected via
 -- mariadb.ping rather than waiting for the next real query to fail on it).
@@ -282,21 +296,34 @@ function get_mariadb_connection(descriptor)
         return nil, err
     end
 
-    -- MariaDB's default sql_mode treats backslash as a string-literal
-    -- escape character (\n -> newline, \\ -> \, etc.), independent of
-    -- whichever quote-escaping convention (doubling vs backslash) a
-    -- caller uses -- a value containing a literal backslash-letter
-    -- sequence (a Windows path, a regex, LaTeX) would silently come
-    -- back transformed on read otherwise, even though the string
-    -- boundary itself was never at risk. NO_BACKSLASH_ESCAPES (a real,
-    -- standard MariaDB/MySQL SQL mode flag) turns backslash back into
-    -- an ordinary character in string literals, matching SQL-standard/
-    -- SQLite behavior exactly -- appended via CONCAT, not a flat SET,
-    -- so this doesn't clobber whatever other sql_mode flags the server
-    -- defaults to (e.g. STRICT_TRANS_TABLES). This is what lets
-    -- database.quote/database.literal (one layer up) use the exact same
-    -- quote-doubling logic for both backends with no per-engine branch.
-    native.exec(conn, "SET SESSION sql_mode = CONCAT(@@sql_mode, ',NO_BACKSLASH_ESCAPES');")
+    -- MariaDB/MySQL's default sql_mode treats backslash as an escape
+    -- character inside string literals. database.quote only doubles
+    -- single quotes, so under the default mode a value ending in a
+    -- backslash (e.g. `\'`) escapes the doubled quote and closes the
+    -- literal early: SQL injection, not just a display problem.
+    -- NO_BACKSLASH_ESCAPES makes backslash an ordinary character, as
+    -- in SQLite and standard SQL, which is what makes quote-doubling
+    -- correct on this backend. Appended via CONCAT rather than a flat
+    -- SET so the server's other flags (e.g. STRICT_TRANS_TABLES) stay.
+    --
+    -- Every quoted value in every query depends on this one statement,
+    -- so it fails closed: the mode is read back and the connection is
+    -- refused unless the flag is really set. A request then errors
+    -- instead of running with injectable quoting. A reconnect always
+    -- comes back through here (a dead cached connection is replaced
+    -- above, never silently reconnected by the client library), so a
+    -- new session can't skip the check either.
+    native.exec(conn, "SET SESSION sql_mode = CONCAT(@@SESSION.sql_mode, ',NO_BACKSLASH_ESCAPES');")
+    mode_rows, mode_err = native.query(conn, "SELECT @@SESSION.sql_mode AS sql_mode;")
+    mode = nil
+    if mode_rows != nil and mode_rows[1] != nil then
+        mode = mode_rows[1].sql_mode
+    end
+    if not sql_mode_disables_backslash_escapes(mode) then
+        native.close(conn)
+        return nil, "refusing MariaDB connection: could not enable NO_BACKSLASH_ESCAPES (sql_mode = " ..
+            tostring(mode) .. ", " .. tostring(mode_err) .. ")"
+    end
 
     _mariadb_connections[key] = conn
     return conn, nil
@@ -581,6 +608,7 @@ database_adapter.import_delimited = import_delimited
 database_adapter.export_delimited = export_delimited
 database_adapter.load_df = load_df
 database_adapter.escape_sqlite = escape_sqlite
+database_adapter.sql_mode_disables_backslash_escapes = sql_mode_disables_backslash_escapes
 
 database_adapter.mariadb_query = mariadb_query
 database_adapter.mariadb_update = mariadb_update
