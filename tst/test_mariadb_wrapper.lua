@@ -5,7 +5,12 @@ print("Testing database.lua's mariadb_* wrapper (persistent connections)...")
 -- own header comment for why. database module itself always loads
 -- (mariadb_native is lazy inside it, see database.lua's own comment),
 -- so this only needs to pcall-gate the actual mariadb_update call.
-database = require("database")
+-- The mariadb_* wrapper lives in database_adapter (database.lua's
+-- query/exec dispatch to it). This test used to call it through
+-- database.lua, where those names no longer exist, so the pcall guard
+-- below read the missing function as "no server" and skipped silently.
+database = require("database_adapter")
+quote = require("database").quote
 
 host = os.getenv("MARIADB_TEST_HOST")
 if host == nil then host = "127.0.0.1" end
@@ -66,10 +71,10 @@ assert(ok3 == false, "expected an error for a query against a nonexistent table"
 -- and end the literal early. Round-trip one and check it comes back
 -- byte for byte, and that the session really has the flag.
 mode_rows = database.mariadb_query(descriptor, "SELECT @@SESSION.sql_mode AS sql_mode;")
-assert(require("database_adapter").sql_mode_disables_backslash_escapes(mode_rows[1].sql_mode), "expected NO_BACKSLASH_ESCAPES in the session sql_mode")
+assert(database.sql_mode_disables_backslash_escapes(mode_rows[1].sql_mode), "expected NO_BACKSLASH_ESCAPES in the session sql_mode")
 tricky = "x\\' OR '1'='1"
-database.mariadb_update(descriptor, "INSERT INTO luam_mariadb_wrapper_test (val) VALUES (" .. database.quote(tricky) .. ");")
-back = database.mariadb_query(descriptor, "SELECT val FROM luam_mariadb_wrapper_test WHERE val = " .. database.quote(tricky) .. ";")
+database.mariadb_update(descriptor, "INSERT INTO luam_mariadb_wrapper_test (val) VALUES (" .. quote(tricky) .. ");")
+back = database.mariadb_query(descriptor, "SELECT val FROM luam_mariadb_wrapper_test WHERE val = " .. quote(tricky) .. ";")
 assert(back != nil and #back == 1 and back[1].val == tricky, "expected a backslash-quote value to round-trip unchanged")
 
 database.mariadb_update(descriptor, "DROP TABLE luam_mariadb_wrapper_test;")
