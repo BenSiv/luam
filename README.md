@@ -108,6 +108,11 @@ safe. See [doc/strict_not_operator.md](doc/strict_not_operator.md) and
 [doc/error_handling.md](doc/error_handling.md) for the full rules and
 migration patterns.
 
+#### Defined Table Order
+`pairs` and `next` visit integer keys in ascending order, then every other
+key in the order it was added, so records, JSON output and declarations come
+out the way they were written. See [doc/table_order.md](doc/table_order.md).
+
 ---
 
 ### 3. Enhanced String & Data Support
@@ -230,6 +235,7 @@ Design notes on specific language changes:
 - [doc/error_handling.md](doc/error_handling.md) — nil-check patterns under strict conditionals
 - [doc/forward_references.md](doc/forward_references.md) — why calling a same-file function defined later doesn't work by default, and the zero-new-syntax pre-declaration idiom for when it's genuinely needed
 - [doc/strict_not_operator.md](doc/strict_not_operator.md) — the strict `not` operator and literal-`nil` restrictions
+- [doc/table_order.md](doc/table_order.md) — `pairs` order: integer keys ascending, then every other key in the order it was added
 - [doc/changelog.md](doc/changelog.md) — full list of differences from Lua 5.1, with measured (not estimated) size numbers
 - [doc/install.md](doc/install.md) — build targets and platform options
 
