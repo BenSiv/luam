@@ -476,16 +476,25 @@ static void resize (lua_State *L, Table *t, int nasize, int nhsize) {
   int oldasize = t->sizearray;
   int oldhsize = t->lsizenode;
   int oldcap = ordercap(t);
+  int oldnint = t->nint;
+  int oldnother = t->nother;
   int nint = 0;
   int nother = 0;
   lu_byte intdirty = t->intdirty;
   Node *nold = t->node;  /* save old hash ... */
   int *oldorder = gorder(t);  /* ... and its order (unused if oldcap is 0) */
+  if (nasize > oldasize)  /* array part must grow? */
+    setarrayvector(L, t, nasize);
+  /* create new hash part with appropriate size */
+  setnodevector(L, t, nhsize);
+  if (nasize < oldasize)  /* array part must shrink? */
+    t->sizearray = nasize;
   /* Rank the keys that stay in the hash part, in their current order:
      oldorder[s] becomes the new rank of the key in slot s, or -1. Placing
      each key at its rank while reading the old nodes in memory order is
-     faster than re-inserting them in traversal order. */
-  for (i = 0; i < t->nint; i++) {
+     faster than re-inserting them in traversal order. (Done only now that
+     no allocation can fail and leave the old order overwritten.) */
+  for (i = 0; i < oldnint; i++) {
     int s = oldcap - 1 - i;
     int idx = oldorder[s];
     if (idx >= 0 && !ttisnil(gval(nold + idx)) &&
@@ -494,16 +503,10 @@ static void resize (lua_State *L, Table *t, int nasize, int nhsize) {
     else
       oldorder[s] = -1;
   }
-  for (i = 0; i < t->nother; i++) {
+  for (i = 0; i < oldnother; i++) {
     int idx = oldorder[i];
     oldorder[i] = (idx >= 0 && !ttisnil(gval(nold + idx))) ? nother++ : -1;
   }
-  if (nasize > oldasize)  /* array part must grow? */
-    setarrayvector(L, t, nasize);
-  /* create new hash part with appropriate size */
-  setnodevector(L, t, nhsize);
-  if (nasize < oldasize)  /* array part must shrink? */
-    t->sizearray = nasize;
   /* re-insert elements from hash part, each into its ranked slot */
   t->nint = nint;
   t->nother = nother;
