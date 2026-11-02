@@ -16,6 +16,17 @@
 ** in its main position (i.e. the `original' position that its hash gives
 ** to it), then the colliding element is in its own main position.
 ** Hence even when the load factor reaches 100%, performance remains good.
+**
+** Luam: traversal order is defined -- integer keys in ascending order,
+** then every other key in the order it was added (doc/table_order.md).
+** The hash part's node block is followed by an `int' order array with one
+** slot per node. Non-integer keys take slots from the front as they are
+** added; integer keys take slots from the back and are sorted lazily,
+** before a traversal, so that walking them from the back gives ascending
+** keys. Each node records its slot in `ord'; a slot of -1 is a tombstone
+** (its node was given to another key, or its key moved to the end).
+** Integer keys in the array part need no slots: they are 1..sizearray,
+** and every integer key in the hash part is below 1 or above sizearray.
 */
 
 #include <math.h>
@@ -74,8 +85,102 @@
 
 static const Node dummynode_ = {
   {{NULL}, LUA_TNIL},  /* value */
-  {{{NULL}, LUA_TNIL, NULL}}  /* key */
+  {{{NULL}, LUA_TNIL, -1, NULL}}  /* key */
 };
+
+
+#define gord(n)		((n)->i_key.nk.ord)
+#define gorder(t)	(cast(int *, (t)->node + sizenode(t)))
+#define ordercap(t)	(((t)->node == dummynode) ? 0 : sizenode(t))
+#define orderfull(t)	((t)->nint + (t)->nother >= ordercap(t))
+#define nodeindex(t,n)	(cast_int((n) - gnode(t, 0)))
+
+/* slot of the j-th integer key (j = 0 is the smallest once sorted) */
+#define intslot(t,j)	(sizenode(t) - 1 - (j))
+
+/* the key of node `idx', known to be an integer key */
+#define intkeyof(t,idx)	(nvalue(key2tval(gnode(t, idx))))
+
+/* bytes in a node block: the nodes, then their order array */
+#define nodeblocksize(size)	(cast(size_t, size) * (sizeof(Node) + sizeof(int)))
+
+
+/* a number with no fractional part (and not an infinity) */
+static int isintkey (const TValue *key) {
+  lua_Number n;
+  if (!ttisnumber(key)) return 0;
+  n = nvalue(key);
+  return luai_numeq(floor(n), n) && luai_numeq(n - n, 0);
+}
+
+
+/* give node `n' (which has no slot) the next slot for its kind of key */
+static void appendslot (Table *t, Node *n) {
+  int *order = gorder(t);
+  int s;
+  lua_assert(!orderfull(t) && gord(n) == -1);
+  if (isintkey(key2tval(n))) {
+    s = intslot(t, t->nint);
+    if (t->nint > 0 && !t->intdirty) {  /* still ascending? */
+      int prev = order[s + 1];
+      if (prev < 0 || intkeyof(t, prev) > nvalue(key2tval(n)))
+        t->intdirty = 1;
+    }
+    t->nint++;
+  }
+  else
+    s = t->nother++;
+  order[s] = nodeindex(t, n);
+  gord(n) = s;
+}
+
+
+static void dropslot (Table *t, Node *n) {
+  if (gord(n) >= 0) {
+    gorder(t)[gord(n)] = -1;
+    gord(n) = -1;
+  }
+}
+
+
+/* heap sort helper: integer slots end up with keys descending, so that
+** reading them from the back of the order array gives ascending keys */
+#define intbefore(t,a,b)	(intkeyof(t, a) > intkeyof(t, b))
+
+static void siftdown (Table *t, int *a, int root, int m) {
+  for (;;) {
+    int child = 2 * root + 1;
+    int tmp;
+    if (child >= m) return;
+    if (child + 1 < m && intbefore(t, a[child], a[child + 1])) child++;
+    if (!intbefore(t, a[root], a[child])) return;
+    tmp = a[root]; a[root] = a[child]; a[child] = tmp;
+    root = child;
+  }
+}
+
+
+/* drop tombstones from the integer slots and sort them */
+static void sortints (Table *t) {
+  int cap = sizenode(t);
+  int *order = gorder(t);
+  int w = cap - 1;
+  int r, m;
+  int *a;
+  for (r = cap - 1; r >= cap - t->nint; r--) {
+    if (order[r] >= 0) order[w--] = order[r];
+  }
+  t->nint = cap - 1 - w;
+  m = t->nint;
+  a = order + cap - m;
+  for (r = m / 2 - 1; r >= 0; r--) siftdown(t, a, r, m);
+  for (r = m - 1; r > 0; r--) {
+    int tmp = a[0]; a[0] = a[r]; a[r] = tmp;
+    siftdown(t, a, 0, r);
+  }
+  for (r = 0; r < m; r++) gord(gnode(t, a[r])) = cast_int(a + r - order);
+  t->intdirty = 0;
+}
 
 
 /*
@@ -130,50 +235,109 @@ static int arrayindex (const TValue *key) {
 
 
 /*
-** returns the index of a `key' for table traversals. First goes all
-** elements in the array part, then elements in the hash part. The
-** beginning of a traversal is signalled by -1.
+** returns the hash node holding `key', for table traversals
 */
-static int findindex (lua_State *L, Table *t, StkId key) {
-  int i;
-  if (ttisnil(key)) return -1;  /* first iteration */
-  i = arrayindex(key);
-  if (0 < i && i <= t->sizearray)  /* is `key' inside array part? */
-    return i-1;  /* yes; that's the index (corrected to C) */
-  else {
-    Node *n = mainposition(t, key);
-    do {  /* check whether `key' is somewhere in the chain */
-      /* key may be dead already, but it is ok to use it in `next' */
-      if (luaO_rawequalObj(key2tval(n), key) ||
-            (ttype(gkey(n)) == LUA_TDEADKEY && iscollectable(key) &&
-             gcvalue(gkey(n)) == gcvalue(key))) {
-        i = cast_int(n - gnode(t, 0));  /* key index in hash table */
-        /* hash elements are numbered after array ones */
-        return i + t->sizearray;
-      }
-      else n = gnext(n);
-    } while (n);
-    luaG_runerror(L, "invalid key to " LUA_QL("next"));  /* key not found */
-    return 0;  /* to avoid warnings */
-  }
+static Node *findnode (lua_State *L, Table *t, StkId key) {
+  Node *n = mainposition(t, key);
+  do {  /* check whether `key' is somewhere in the chain */
+    /* key may be dead already, but it is ok to use it in `next' */
+    if (luaO_rawequalObj(key2tval(n), key) ||
+          (ttype(gkey(n)) == LUA_TDEADKEY && iscollectable(key) &&
+           gcvalue(gkey(n)) == gcvalue(key))) {
+      if (gord(n) >= 0) return n;
+      break;
+    }
+    else n = gnext(n);
+  } while (n);
+  luaG_runerror(L, "invalid key to " LUA_QL("next"));  /* key not found */
+  return NULL;  /* to avoid warnings */
 }
 
 
+static int pushnode (lua_State *L, Table *t, int idx, StkId key) {
+  setobj2s(L, key, key2tval(gnode(t, idx)));
+  setobj2s(L, key+1, gval(gnode(t, idx)));
+  return 1;
+}
+
+
+/*
+** Traversal goes through four phases: integer keys below 1 (hash part),
+** the array part, integer keys above it (hash part), and then every other
+** key in the order it was added.
+*/
+#define PH_LOWINT	0
+#define PH_ARRAY	1
+#define PH_HIGHINT	2
+#define PH_OTHER	3
+
 int luaH_next (lua_State *L, Table *t, StkId key) {
-  int i = findindex(L, t, key);  /* find original element */
-  for (i++; i < t->sizearray; i++) {  /* try first array part */
-    if (!ttisnil(&t->array[i])) {  /* a non-nil value? */
-      setnvalue(key, cast_num(i+1));
-      setobj2s(L, key+1, &t->array[i]);
-      return 1;
+  int *order = gorder(t);
+  int phase;
+  int i = 0;  /* next array index to try */
+  int j = 0;  /* next integer slot (PH_LOWINT, PH_HIGHINT) or other slot */
+  int highfound = 0;  /* j already is the first integer slot above 0 */
+  if (t->intdirty) sortints(t);
+  if (ttisnil(key))  /* first iteration */
+    phase = PH_LOWINT;
+  else {
+    int k = arrayindex(key);
+    if (0 < k && k <= t->sizearray) {  /* is `key' inside array part? */
+      phase = PH_ARRAY;
+      i = k;
+    }
+    else {
+      Node *n = findnode(L, t, key);
+      int s = gord(n);
+      if (s < t->nother) {
+        phase = PH_OTHER;
+        j = s + 1;
+      }
+      else {
+        phase = (nvalue(key2tval(n)) <= 0) ? PH_LOWINT : PH_HIGHINT;
+        j = intslot(t, s) + 1;  /* intslot is its own inverse */
+        highfound = 1;
+      }
     }
   }
-  for (i -= t->sizearray; i < sizenode(t); i++) {  /* then hash part */
-    if (!ttisnil(gval(gnode(t, i)))) {  /* a non-nil value? */
-      setobj2s(L, key, key2tval(gnode(t, i)));
-      setobj2s(L, key+1, gval(gnode(t, i)));
-      return 1;
+  if (phase == PH_LOWINT) {
+    for (; j < t->nint; j++) {
+      int idx = order[intslot(t, j)];
+      if (idx < 0) continue;
+      if (intkeyof(t, idx) > 0) break;
+      if (!ttisnil(gval(gnode(t, idx)))) return pushnode(L, t, idx, key);
     }
+    highfound = 1;
+    phase = PH_ARRAY;
+  }
+  if (phase == PH_ARRAY) {
+    for (; i < t->sizearray; i++) {
+      if (!ttisnil(&t->array[i])) {  /* a non-nil value? */
+        setnvalue(key, cast_num(i+1));
+        setobj2s(L, key+1, &t->array[i]);
+        return 1;
+      }
+    }
+    if (!highfound) {  /* skip the integer keys below 1 */
+      for (j = 0; j < t->nint; j++) {
+        int idx = order[intslot(t, j)];
+        if (idx >= 0 && intkeyof(t, idx) > 0) break;
+      }
+    }
+    phase = PH_HIGHINT;
+  }
+  if (phase == PH_HIGHINT) {
+    for (; j < t->nint; j++) {
+      int idx = order[intslot(t, j)];
+      if (idx >= 0 && !ttisnil(gval(gnode(t, idx))))
+        return pushnode(L, t, idx, key);
+    }
+    j = 0;
+  }
+  for (; j < t->nother; j++) {
+    int idx = order[j];
+    if (idx >= 0 && !ttisnil(gval(gnode(t, idx))))
+      return pushnode(L, t, idx, key);
   }
   return 0;  /* no more elements */
 }
@@ -281,16 +445,29 @@ static void setnodevector (lua_State *L, Table *t, int size) {
     if (lsize > MAXBITS)
       luaG_runerror(L, "table overflow");
     size = twoto(lsize);
-    t->node = luaM_newvector(L, size, Node);
+    if (cast(size_t, size) + 1 > MAX_SIZET / (sizeof(Node) + sizeof(int)))
+      luaM_toobig(L);
+    t->node = cast(Node *, luaM_malloc(L, nodeblocksize(size)));
     for (i=0; i<size; i++) {
       Node *n = gnode(t, i);
       gnext(n) = NULL;
       setnilvalue(gkey(n));
       setnilvalue(gval(n));
+      gord(n) = -1;
     }
   }
   t->lsizenode = cast_byte(lsize);
   t->lastfree = gnode(t, size);  /* all positions are free */
+  t->nint = 0;
+  t->nother = 0;
+  t->intdirty = 0;
+}
+
+
+/* will this hash key live in an array part of size `nasize'? */
+static int goestoarray (const TValue *key, int nasize) {
+  int k = arrayindex(key);
+  return 0 < k && k <= nasize;
 }
 
 
@@ -298,13 +475,58 @@ static void resize (lua_State *L, Table *t, int nasize, int nhsize) {
   int i;
   int oldasize = t->sizearray;
   int oldhsize = t->lsizenode;
+  int oldcap = ordercap(t);
+  int nint = 0;
+  int nother = 0;
+  lu_byte intdirty = t->intdirty;
   Node *nold = t->node;  /* save old hash ... */
+  int *oldorder = gorder(t);  /* ... and its order (unused if oldcap is 0) */
+  /* Rank the keys that stay in the hash part, in their current order:
+     oldorder[s] becomes the new rank of the key in slot s, or -1. Placing
+     each key at its rank while reading the old nodes in memory order is
+     faster than re-inserting them in traversal order. */
+  for (i = 0; i < t->nint; i++) {
+    int s = oldcap - 1 - i;
+    int idx = oldorder[s];
+    if (idx >= 0 && !ttisnil(gval(nold + idx)) &&
+        !goestoarray(key2tval(nold + idx), nasize))
+      oldorder[s] = nint++;
+    else
+      oldorder[s] = -1;
+  }
+  for (i = 0; i < t->nother; i++) {
+    int idx = oldorder[i];
+    oldorder[i] = (idx >= 0 && !ttisnil(gval(nold + idx))) ? nother++ : -1;
+  }
   if (nasize > oldasize)  /* array part must grow? */
     setarrayvector(L, t, nasize);
   /* create new hash part with appropriate size */
-  setnodevector(L, t, nhsize);  
-  if (nasize < oldasize) {  /* array part must shrink? */
+  setnodevector(L, t, nhsize);
+  if (nasize < oldasize)  /* array part must shrink? */
     t->sizearray = nasize;
+  /* re-insert elements from hash part, each into its ranked slot */
+  t->nint = nint;
+  t->nother = nother;
+  t->intdirty = intdirty;
+  t->placing = 1;
+  for (i = twoto(oldhsize) - 1; i >= 0; i--) {
+    Node *old = nold+i;
+    if (!ttisnil(gval(old))) {
+      TValue *p = luaH_set(L, t, key2tval(old));
+      int rank;
+      lua_assert(gord(old) >= 0);  /* every live key has a slot */
+      rank = oldorder[gord(old)];
+      setobjt2t(L, p, gval(old));
+      if (rank >= 0) {  /* stays in the hash part (else: went to the array) */
+        Node *n = cast(Node *, p);
+        int s = isintkey(key2tval(old)) ? intslot(t, rank) : rank;
+        gorder(t)[s] = nodeindex(t, n);
+        gord(n) = s;
+      }
+    }
+  }
+  t->placing = 0;
+  if (nasize < oldasize) {
     /* re-insert elements from vanishing slice */
     for (i=nasize; i<oldasize; i++) {
       if (!ttisnil(&t->array[i]))
@@ -313,14 +535,8 @@ static void resize (lua_State *L, Table *t, int nasize, int nhsize) {
     /* shrink array */
     luaM_reallocvector(L, t->array, oldasize, nasize, TValue);
   }
-  /* re-insert elements from hash part */
-  for (i = twoto(oldhsize) - 1; i >= 0; i--) {
-    Node *old = nold+i;
-    if (!ttisnil(gval(old)))
-      setobjt2t(L, luaH_set(L, t, key2tval(old)), gval(old));
-  }
   if (nold != dummynode)
-    luaM_freearray(L, nold, twoto(oldhsize), Node);  /* free old array */
+    luaM_freemem(L, nold, nodeblocksize(twoto(oldhsize)));  /* free old block */
 }
 
 
@@ -330,8 +546,15 @@ void luaH_resizearray (lua_State *L, Table *t, int nasize) {
 }
 
 
-static void rehash (lua_State *L, Table *t, const TValue *ek) {
-  int nasize, na;
+/*
+** `compact' is set when the order array ran out of slots. If that is
+** because of tombstones, not because every slot holds a live key, the new
+** hash part gets room for twice the live keys: a table that keeps deleting
+** and re-adding keys then compacts at most once per as many insertions as
+** it has keys.
+*/
+static void rehash (lua_State *L, Table *t, const TValue *ek, int compact) {
+  int nasize, na, nh;
   int nums[MAXBITS+1];  /* nums[i] = number of keys between 2^(i-1) and 2^i */
   int i;
   int totaluse;
@@ -344,8 +567,11 @@ static void rehash (lua_State *L, Table *t, const TValue *ek) {
   totaluse++;
   /* compute new size for array part */
   na = computesizes(nums, &nasize);
+  nh = totaluse - na;
+  if (compact && nh <= ordercap(t))
+    nh *= 2;
   /* resize the table to new computed sizes */
-  resize(L, t, nasize, totaluse - na);
+  resize(L, t, nasize, nh);
 }
 
 
@@ -365,6 +591,10 @@ Table *luaH_new (lua_State *L, int narray, int nhash) {
   t->sizearray = 0;
   t->lsizenode = 0;
   t->node = cast(Node *, dummynode);
+  t->nint = 0;
+  t->nother = 0;
+  t->intdirty = 0;
+  t->placing = 0;
   setarrayvector(L, t, narray);
   setnodevector(L, t, nhash);
   return t;
@@ -373,7 +603,7 @@ Table *luaH_new (lua_State *L, int narray, int nhash) {
 
 void luaH_free (lua_State *L, Table *t) {
   if (t->node != dummynode)
-    luaM_freearray(L, t->node, sizenode(t), Node);
+    luaM_freemem(L, t->node, nodeblocksize(sizenode(t)));
   luaM_freearray(L, t->array, t->sizearray, TValue);
   luaM_free(L, t);
 }
@@ -397,12 +627,17 @@ static Node *getfreepos (Table *t) {
 ** position), new key goes to an empty position. 
 */
 static TValue *newkey (lua_State *L, Table *t, const TValue *key) {
-  Node *mp = mainposition(t, key);
+  Node *mp;
+  if (!t->placing && orderfull(t)) {  /* no free order slot? (and dummynode) */
+    rehash(L, t, key, 1);  /* compact, or grow */
+    return luaH_set(L, t, key);  /* re-insert key into new table */
+  }
+  mp = mainposition(t, key);
   if (!ttisnil(gval(mp)) || mp == dummynode) {
     Node *othern;
     Node *n = getfreepos(t);  /* get a free place */
     if (n == NULL) {  /* cannot find a free place? */
-      rehash(L, t, key);  /* grow table */
+      rehash(L, t, key, 0);  /* grow table */
       return luaH_set(L, t, key);  /* re-insert key into grown table */
     }
     lua_assert(n != dummynode);
@@ -412,8 +647,10 @@ static TValue *newkey (lua_State *L, Table *t, const TValue *key) {
       while (gnext(othern) != mp) othern = gnext(othern);  /* find previous */
       gnext(othern) = n;  /* redo the chain with `n' in place of `mp' */
       *n = *mp;  /* copy colliding node into free pos. (mp->next also goes) */
+      if (gord(n) >= 0) gorder(t)[gord(n)] = nodeindex(t, n);  /* its slot follows */
       gnext(mp) = NULL;  /* now `mp' is free */
       setnilvalue(gval(mp));
+      gord(mp) = -1;
     }
     else {  /* colliding node is in its own main position */
       /* new node will go into free position */
@@ -422,7 +659,10 @@ static TValue *newkey (lua_State *L, Table *t, const TValue *key) {
       mp = n;
     }
   }
+  else
+    dropslot(t, mp);  /* main position is free or holds a dead key */
   gkey(mp)->value = key->value; gkey(mp)->tt = key->tt;
+  if (!t->placing) appendslot(t, mp);  /* else resize gives it its slot */
   luaC_barriert(L, t, key);
   lua_assert(ttisnil(gval(mp)));
   return gval(mp);
@@ -491,11 +731,33 @@ const TValue *luaH_get (Table *t, const TValue *key) {
 }
 
 
+/*
+** `p' is the value of a key that is still in the table but deleted (nil).
+** A non-integer key in the hash part is being added again, so it moves to
+** the end of the order; integer keys and array slots have a fixed place.
+*/
+static TValue *revive (lua_State *L, Table *t, TValue *p, const TValue *key) {
+  Node *n;
+  if (cast(size_t, p - t->array) < cast(size_t, t->sizearray) || isintkey(key))
+    return p;
+  n = cast(Node *, p);  /* `i_val' is a Node's first field */
+  if (gord(n) >= 0 && gord(n) == t->nother - 1)
+    return p;  /* already the last one */
+  if (orderfull(t)) {
+    rehash(L, t, key, 1);  /* drops `key', which is dead */
+    return luaH_set(L, t, key);
+  }
+  dropslot(t, n);
+  appendslot(t, n);
+  return p;
+}
+
+
 TValue *luaH_set (lua_State *L, Table *t, const TValue *key) {
   const TValue *p = luaH_get(t, key);
   t->flags = 0;
   if (p != luaO_nilobject)
-    return cast(TValue *, p);
+    return ttisnil(p) ? revive(L, t, cast(TValue *, p), key) : cast(TValue *, p);
   else {
     if (ttisnil(key)) luaG_runerror(L, "table index is nil");
     else if (ttisnumber(key) && luai_numisnan(nvalue(key)))
@@ -519,13 +781,12 @@ TValue *luaH_setnum (lua_State *L, Table *t, int key) {
 
 TValue *luaH_setstr (lua_State *L, Table *t, TString *key) {
   const TValue *p = luaH_getstr(t, key);
+  TValue k;
+  setsvalue(L, &k, key);
   if (p != luaO_nilobject)
-    return cast(TValue *, p);
-  else {
-    TValue k;
-    setsvalue(L, &k, key);
+    return ttisnil(p) ? revive(L, t, cast(TValue *, p), &k) : cast(TValue *, p);
+  else
     return newkey(L, t, &k);
-  }
 }
 
 

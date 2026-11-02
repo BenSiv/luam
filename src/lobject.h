@@ -331,6 +331,8 @@ typedef union Closure {
 typedef union TKey {
   struct {
     TValuefields;
+    int ord;           /* slot in the table's order array, or -1 (fits the
+                          padding before `next', so a Node stays 40 bytes) */
     struct Node *next; /* for chaining */
   } nk;
   TValue tvk;
@@ -345,12 +347,16 @@ typedef struct Table {
   CommonHeader;
   lu_byte flags;     /* 1<<p means tagmethod(p) is not present */
   lu_byte lsizenode; /* log2 of size of `node' array */
+  lu_byte intdirty;  /* integer slots may be out of ascending order */
+  lu_byte placing;   /* resize is placing keys in precomputed slots */
   struct Table *metatable;
   TValue *array; /* array part */
-  Node *node;
+  Node *node;    /* followed in the same block by the `int' order array */
   Node *lastfree; /* any free position is before this position */
   GCObject *gclist;
   int sizearray; /* size of `array' array */
+  int nother;    /* order slots used from the front: non-integer keys */
+  int nint;      /* order slots used from the back: integer keys */
 } Table;
 
 /*
