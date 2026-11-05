@@ -179,12 +179,15 @@ if [ -d "lib/ssl/src" ]; then
         echo "Downloading OpenSSL ${OPENSSL_VER}"
         if [ ! -f "dep/$OPENSSL_TAR" ]; then
             cd dep
-            run_cmd wget "https://www.openssl.org/source/$OPENSSL_TAR" || run_cmd curl -O "https://www.openssl.org/source/$OPENSSL_TAR"
+            # openssl.org redirects to GitHub releases: follow it (-L) and
+            # fail on HTTP errors (-f) instead of saving the redirect page.
+            OPENSSL_URL="https://github.com/openssl/openssl/releases/download/OpenSSL_${OPENSSL_VER//./_}/$OPENSSL_TAR"
+            run_cmd curl -fsSL -o "$OPENSSL_TAR" "$OPENSSL_URL" || run_cmd wget -O "$OPENSSL_TAR" "$OPENSSL_URL" || { rm -f "$OPENSSL_TAR"; echo "Failed to download OpenSSL from $OPENSSL_URL"; exit 1; }
             cd ..
         fi
         echo "Extracting OpenSSL"
         cd dep
-        run_cmd tar -xzf "$OPENSSL_TAR"
+        run_cmd tar -xzf "$OPENSSL_TAR" || { rm -f "$OPENSSL_TAR"; echo "Failed to extract dep/$OPENSSL_TAR"; exit 1; }
         cd "openssl-${OPENSSL_VER}"
         echo "Configuring OpenSSL (static)"
         run_cmd ./config no-shared no-tests
