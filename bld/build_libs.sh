@@ -173,16 +173,45 @@ if [ -d "lib/ssl/src" ]; then
     OPENSSL_VER="1.1.1w"
     OPENSSL_DIR="$(pwd)/dep/openssl-${OPENSSL_VER}"
     OPENSSL_TAR="openssl-${OPENSSL_VER}.tar.gz"
+    # Upstream's published SHA-256 (openssl.org/source/openssl-1.1.1w.tar.gz.sha256).
+    OPENSSL_SHA256="cf3098950cb4d853ad95c0841f1f9c6d3dc102dccfcacd521d93925208b76ac8"
+    # GitHub releases first (where openssl.org redirects), then Debian's copy
+    # of the same upstream tarball -- byte-identical, checked by the hash.
+    # Cloud Build could not reach GitHub's release assets for hours on
+    # 2026-11-08 (wget retried ~4.5 min, then failed) while deb.debian.org,
+    # which apt already uses there, kept working.
+    OPENSSL_URLS="https://github.com/openssl/openssl/releases/download/OpenSSL_${OPENSSL_VER//./_}/$OPENSSL_TAR https://deb.debian.org/debian/pool/main/o/openssl/openssl_${OPENSSL_VER}.orig.tar.gz"
     
     mkdir -p dep
     if [ ! -d "$OPENSSL_DIR" ]; then
         echo "Downloading OpenSSL ${OPENSSL_VER}"
         if [ ! -f "dep/$OPENSSL_TAR" ]; then
             cd dep
-            # openssl.org redirects to GitHub releases: follow it (-L) and
-            # fail on HTTP errors (-f) instead of saving the redirect page.
-            OPENSSL_URL="https://github.com/openssl/openssl/releases/download/OpenSSL_${OPENSSL_VER//./_}/$OPENSSL_TAR"
-            run_cmd curl -fsSL -o "$OPENSSL_TAR" "$OPENSSL_URL" || run_cmd wget -O "$OPENSSL_TAR" "$OPENSSL_URL" || { rm -f "$OPENSSL_TAR"; echo "Failed to download OpenSSL from $OPENSSL_URL"; exit 1; }
+            # Follow redirects (-L), fail on HTTP errors (-f), and give up on
+            # a source quickly so the next one gets its turn.
+            for OPENSSL_URL in $OPENSSL_URLS; do
+                rm -f "$OPENSSL_TAR"
+                if command -v curl > /dev/null 2>&1; then
+                    curl -fsSL --connect-timeout 20 --max-time 180 --retry 2 -o "$OPENSSL_TAR" "$OPENSSL_URL" || rm -f "$OPENSSL_TAR"
+                else
+                    wget -q --tries=2 --timeout=30 -O "$OPENSSL_TAR" "$OPENSSL_URL" || rm -f "$OPENSSL_TAR"
+                fi
+                if [ -s "$OPENSSL_TAR" ]; then
+                    if ! command -v sha256sum > /dev/null 2>&1; then
+                        echo "sha256sum not found: not verifying $OPENSSL_TAR"
+                        break
+                    fi
+                    if [ "$(sha256sum "$OPENSSL_TAR" | cut -d' ' -f1)" = "$OPENSSL_SHA256" ]; then
+                        echo "OpenSSL from $OPENSSL_URL (sha256 ok)"
+                        break
+                    fi
+                    echo "OpenSSL from $OPENSSL_URL has the wrong sha256; discarded"
+                    rm -f "$OPENSSL_TAR"
+                else
+                    echo "Could not download OpenSSL from $OPENSSL_URL"
+                fi
+            done
+            [ -s "$OPENSSL_TAR" ] || { echo "Failed to download OpenSSL from any of: $OPENSSL_URLS"; exit 1; }
             cd ..
         fi
         echo "Extracting OpenSSL"
