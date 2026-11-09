@@ -10,11 +10,6 @@
             "match": "--.*$"
         },
         {
-            "name": "comment.block.luam",
-            "begin": "--\\[\\[",
-            "end": "\\]\\]"
-        },
-        {
             "name": "string.quoted.triple.luam",
             "begin": "\"\"\"",
             "end": "\"\"\""
@@ -26,7 +21,7 @@
             "patterns": [
                 {
                     "name": "constant.character.escape.luam",
-                    "match": "\\\\."
+                    "match": "\\\\(x[0-9a-fA-F]{2}|[0-9]{1,3}|.)"
                 }
             ]
         },
@@ -37,17 +32,21 @@
             "patterns": [
                 {
                     "name": "constant.character.escape.luam",
-                    "match": "\\\\."
+                    "match": "\\\\(x[0-9a-fA-F]{2}|[0-9]{1,3}|.)"
                 }
             ]
         },
         {
             "name": "keyword.control.luam",
-            "match": "\\b(break|do|else|elseif|end|for|if|return|then|while)\\b"
+            "match": "\\b(break|do|else|elseif|end|for|if|in|return|then|while)\\b"
+        },
+        {
+            "name": "keyword.operator.logical.luam",
+            "match": "\\b(and|or|not)\\b"
         },
         {
             "name": "storage.type.luam",
-            "match": "\\b(function|var|mutable)\\b"
+            "match": "\\b(function|const)\\b"
         },
         {
             "name": "constant.language.luam",
@@ -55,19 +54,19 @@
         },
         {
             "name": "variable.language.self.luam",
-            "match": "\\bself\\b"
+            "match": "\\b(self|_G|_VERSION)\\b"
         },
         {
             "name": "support.function.library.luam",
-            "match": "\\b(print|type|tostring|tonumber|require|error|setmetatable|getmetatable|rawget|rawset|pairs|ipairs|next|assert|pcall|xpcall|collectgarbage|dofile|load|loadfile|loadstring|module|select|unpack)\\b"
+            "match": "\\b(assert|collectgarbage|dofile|error|getfenv|getmetatable|ipairs|load|loadfile|loadstring|module|next|pairs|pcall|print|rawequal|rawget|rawset|require|select|setfenv|setmetatable|tonumber|tostring|type|unpack|xpcall)\\b"
         },
         {
             "name": "keyword.operator.luam",
-            "match": "!|!=|==|<=|>=|<|>|=;|=|\\.|:|\\.\\.|\\.\\.\\.|\\+|\\-|\\*|/|%|\\^|#"
+            "match": "!=|==|<=|>=|<|>|=|\\.\\.\\.|\\.\\.|\\.|\\+|\\-|\\*|/|%|\\^|#"
         },
         {
             "name": "constant.numeric.luam",
-            "match": "\\b\\d+(\\.\\d+)?([eE][+-]?\\d+)?\\b|\\b0x[0-9a-fA-F]+\\b"
+            "match": "\\b0[xX][0-9a-fA-F]+\\b|\\b\\d+(\\.\\d+)?([eE][+-]?\\d+)?\\b"
         }
     ]
 }

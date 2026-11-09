@@ -1,11 +1,16 @@
 {
     "name": "luam-lang",
+    "publisher": "bensiv",
     "displayName": "Luam Language",
     "description": "Syntax highlighting for Luam",
     "version": "0.0.1",
     "engines": {
         "vscode": "^1.75.0"
     },
+    "extensionKind": [
+        "workspace",
+        "ui"
+    ],
     "categories": [
         "Programming Languages"
     ],
