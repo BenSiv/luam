@@ -3,6 +3,12 @@
 
 cgi = {}
 
+-- Helper to safely coalesce nil values in Luam (where `or` requires booleans)
+function default_val(val, fallback)
+    if val == nil then return fallback end
+    return val
+end
+
 -- True if currently executing under a CGI server environment.
 function cgi.is_cgi()
     gateway = os.getenv("GATEWAY_INTERFACE")
@@ -32,9 +38,9 @@ end
 
 -- Write standard CGI HTTP response headers and body to stdout.
 function cgi.respond(opts)
-    status = opts.status or "200 OK"
-    content_type = opts.content_type or "text/html; charset=utf-8"
-    body = opts.body or ""
+    status = default_val(opts.status, "200 OK")
+    content_type = default_val(opts.content_type, "text/html; charset=utf-8")
+    body = default_val(opts.body, "")
 
     io.write("Status: " .. status .. "\r\n")
     io.write("Content-Type: " .. content_type .. "\r\n")
