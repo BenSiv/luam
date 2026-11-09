@@ -301,10 +301,18 @@ print("Preparing build")
 -- This project's own source, subdirectories and all.
 copy_lua_tree(SRC_DIR, TMPDIR)
 
--- Luam's own flat stdlib.
+-- Luam's own flat stdlib. Fail loudly if a project file in SRC_DIR has
+-- the same name as a stdlib module: in interpreter mode (where SRC_DIR
+-- precedes LUAM_DIR/lib on LUA_PATH) the project file would shadow the
+-- stdlib module, while here in the flat TMPDIR the stdlib copy would
+-- silently overwrite the project file.
 for entry_name in lfs.dir(paths.joinpath(LUAM_DIR, "lib")) do
     if string.match(entry_name, "%.lua$") != nil then
-        copy_file(paths.joinpath(LUAM_DIR, "lib", entry_name), paths.joinpath(TMPDIR, entry_name))
+        dest_path = paths.joinpath(TMPDIR, entry_name)
+        if paths.file_exists(dest_path) then
+            fail("project source file '" .. entry_name .. "' collides with Luam stdlib module 'lib/" .. entry_name .. "'")
+        end
+        copy_file(paths.joinpath(LUAM_DIR, "lib", entry_name), dest_path)
     end
 end
 
@@ -312,7 +320,11 @@ end
 for _, name in ipairs(FLATTEN_MODULES) do
     init_path = paths.joinpath(LUAM_DIR, "lib", name, "init.lua")
     if paths.file_exists(init_path) then
-        copy_file(init_path, paths.joinpath(TMPDIR, name .. ".lua"))
+        dest_path = paths.joinpath(TMPDIR, name .. ".lua")
+        if paths.file_exists(dest_path) then
+            fail("project source file '" .. name .. ".lua' collides with Luam vendored module 'lib/" .. name .. "/init.lua'")
+        end
+        copy_file(init_path, dest_path)
     end
 end
 
