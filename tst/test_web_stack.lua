@@ -9,6 +9,7 @@ assert(html.escape("<script>alert('x & y \"')</script>") == "&lt;script&gt;alert
 assert(html.html_escape("test & fun") == "test &amp; fun")
 assert(html.json_for_script('{"text":"</script>"}') == '{"text":"\\u003c/script>"}')
 assert(html.js_string_literal('hello "world"\n<break>') == 'hello \\"world\\"\\n\\u003cbreak>')
+assert(html.js_string_literal('path\\to\r\nline2\rline3') == 'path\\\\to\\nline2\\nline3')
 
 -- Test render
 tpl = "Hello {{ name }}, you have {{{ unescaped_html }}} and rating {{ stats.score }}."

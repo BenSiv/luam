@@ -46,6 +46,22 @@ function database.exec(db_path, statement, ...)
     return database_adapter.sqlite_update(db_path, statement, ...)
 end
 
+function database.sqlite_keep_open(enabled)
+    return database_adapter.sqlite_keep_open(enabled)
+end
+
+function database.is_sqlite_keep_open()
+    return database_adapter.is_sqlite_keep_open()
+end
+
+function database.sqlite_close_all()
+    return database_adapter.sqlite_close_all()
+end
+
+function database.mariadb_close_all()
+    return database_adapter.mariadb_close_all()
+end
+
 -- database_adapter.get_tables/get_columns go through a different sqlite
 -- binding entry point (sqlite.rows(db, query), a db-level convenience
 -- call) than sqlite_query's sqlite.prepare + stmt.rows/nrows -- and

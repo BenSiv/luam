@@ -5,10 +5,12 @@ d = require("database_adapter")
 p = "test_keep_open.sqlite"
 os.remove(p)
 -- default: no cache
+assert(d.is_sqlite_keep_open() == false, "keep_open false by default")
 d.sqlite_update(p, "CREATE TABLE t (x INTEGER);")
 assert(d.sqlite_connection_count() == 0, "no cache by default")
 -- keep open
 d.sqlite_keep_open(true)
+assert(d.is_sqlite_keep_open() == true, "keep_open true after enabling")
 d.sqlite_update(p, "INSERT INTO t VALUES (1);")
 rows = d.sqlite_query(p, "SELECT count(*) AS n FROM t;")
 assert(d.sqlite_connection_count() == 1, "one cached connection")
@@ -27,6 +29,11 @@ assert(rows[1].xs == "1,4", "rolled back 2, kept 4; got " .. tostring(rows[1].xs
 d.sqlite_keep_open(true)
 assert(pcall(d.sqlite_query, p, "SELECT * FROM nope;") == false)
 assert(d.sqlite_query(p, "SELECT 1 AS one;")[1].one == 1)
+-- paths.file_exists must use stat() rather than open+close so POSIX fcntl
+-- locks on a kept-open WAL database are never stripped mid-session
+paths = require("paths")
+assert(paths.file_exists(p) == true, "file_exists true on open sqlite db")
+assert(paths.file_exists(p .. ".nonexistent") == false, "file_exists false on missing file")
 d.sqlite_close_all()
 os.remove(p)
 os.remove(p .. "-wal")

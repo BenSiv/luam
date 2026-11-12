@@ -82,14 +82,15 @@ function add_to_path(path)
     package.path = path_to_add .. package.path
 end
 
+-- stat() via lfs rather than io.open + io.close: besides saving an
+-- open/close pair, closing any descriptor to a file on POSIX releases all
+-- fcntl advisory locks this process holds on that inode -- including an
+-- open SQLite WAL connection's shared lock on the database file.
 function file_exists(path)
-	answer = false
-	file = io.open(path, "r")
-	if file != nil then
-		answer = true
-		io.close(file)
+	if type(path) != "string" or path == "" then
+		return false
 	end
-	return answer
+	return lfs.attributes(path, "mode") != nil
 end
 
 -- Reads a whole file into a string, or nil if it can't be opened.

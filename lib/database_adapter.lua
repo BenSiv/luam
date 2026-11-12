@@ -43,6 +43,10 @@ function sqlite_keep_open(enabled)
     end
 end
 
+function is_sqlite_keep_open()
+    return _sqlite_keep_open == true
+end
+
 function open_sqlite_connection(db_path)
     db = sqlite.open(db_path)
     if (db == nil) then
@@ -254,6 +258,8 @@ end
 -- correct if task #57's persistent-process work ever lets one process
 -- outlive a single request, without needing to change this code.
 _mariadb_connections = {}
+_mariadb_last_used = {}
+MARIADB_PING_INTERVAL_SECS = 5
 
 function mariadb_connection_key(descriptor)
     return tostring(descriptor.host) .. ":" .. tostring(descriptor.port) ..
@@ -275,18 +281,33 @@ function sql_mode_disables_backslash_escapes(mode)
 end
 
 -- Returns a live, cached connection for this descriptor -- opens one if
--- none is cached yet, or replaces one that's gone stale (detected via
--- mariadb.ping rather than waiting for the next real query to fail on it).
-function get_mariadb_connection(descriptor)
+-- none is cached yet, or replaces one that's gone stale. Within a short
+-- window (MARIADB_PING_INTERVAL_SECS) of the previous use, skips the extra
+-- wire-level mysql_ping() round-trip and falls back to transparent
+-- reconnect-once in mariadb_query/mariadb_update if the socket dropped.
+function get_mariadb_connection_internal(descriptor, force_reconnect)
     native = get_mariadb_native()
     key = mariadb_connection_key(descriptor)
+    now = os.time()
     cached = _mariadb_connections[key]
-    if cached != nil and native.ping(cached) == true then
-        return cached, nil
+    if cached != nil and force_reconnect != true then
+        if native.isopen(cached) == true then
+            last_used = _mariadb_last_used[key]
+            if last_used != nil and (now - last_used) >= 0 and (now - last_used) < MARIADB_PING_INTERVAL_SECS then
+                _mariadb_last_used[key] = now
+                return cached, nil
+            elseif native.ping(cached) == true then
+                _mariadb_last_used[key] = now
+                return cached, nil
+            end
+        end
     end
     if cached != nil then
-        native.close(cached)
+        if native.isopen(cached) == true then
+            native.close(cached)
+        end
         _mariadb_connections[key] = nil
+        _mariadb_last_used[key] = nil
     end
 
     conn, err = native.connect(
@@ -326,7 +347,12 @@ function get_mariadb_connection(descriptor)
     end
 
     _mariadb_connections[key] = conn
+    _mariadb_last_used[key] = os.time()
     return conn, nil
+end
+
+function get_mariadb_connection(descriptor)
+    return get_mariadb_connection_internal(descriptor, false)
 end
 
 -- Real mysql_real_escape_string (connection/charset-aware), not a naive
@@ -342,31 +368,51 @@ function escape_mariadb(descriptor, value)
     return native.escape(conn, tostring(value))
 end
 
+function format_mariadb_sql(native, conn, template, raw_args)
+    if #raw_args == 0 then
+        return template
+    end
+    formatted_args = {}
+    for i, val in ipairs(raw_args) do
+        if type(val) == "string" then
+            formatted_args[i] = native.escape(conn, val)
+        else
+            formatted_args[i] = val
+        end
+    end
+    return string.format(template, unpack(formatted_args))
+end
+
 -- database_adapter.mariadb_query(descriptor, query, ...) -> rows, column_names
 -- Same %s-interpolation-with-escaped-varargs convention as sqlite_query
 -- above -- see doc/mariadb-migration.md's "Design decisions" section on
 -- bound parameters as a later, additive option, not required up front.
 function mariadb_query(descriptor, query, ...)
     native = get_mariadb_native()
-    local_args = {...}
-    if #local_args > 0 then
-        for i, val in ipairs(local_args) do
-            if type(val) == "string" then
-                local_args[i] = escape_mariadb(descriptor, val)
-            end
-        end
-        query = string.format(query, unpack(local_args))
-    end
+    raw_args = {...}
+    key = mariadb_connection_key(descriptor)
+    was_cached = (_mariadb_connections[key] != nil)
 
-    conn, err = get_mariadb_connection(descriptor)
+    conn, err = get_mariadb_connection_internal(descriptor, false)
     if conn == nil then
         error("Error connecting to MariaDB: " .. tostring(err))
     end
 
-    rows, err = native.query(conn, query)
-    if rows == nil then
-        error("Invalid query: " .. tostring(err) .. "\nQuery: " .. query)
+    formatted_query = format_mariadb_sql(native, conn, query, raw_args)
+    rows, err = native.query(conn, formatted_query)
+    if rows == nil and was_cached and (native.isopen(conn) == false or native.ping(conn) == false) then
+        conn, reconn_err = get_mariadb_connection_internal(descriptor, true)
+        if conn == nil then
+            error("Error connecting to MariaDB: " .. tostring(reconn_err))
+        end
+        formatted_query = format_mariadb_sql(native, conn, query, raw_args)
+        rows, err = native.query(conn, formatted_query)
     end
+    if rows == nil then
+        error("Invalid query: " .. tostring(err) .. "\nQuery: " .. formatted_query)
+    end
+
+    _mariadb_last_used[key] = os.time()
 
     if #rows == 0 then
         return nil, {}
@@ -384,25 +430,30 @@ end
 -- sqlite_update's own true/insert_id pair above.
 function mariadb_update(descriptor, statement, ...)
     native = get_mariadb_native()
-    local_args = {...}
-    if #local_args > 0 then
-        for i, val in ipairs(local_args) do
-            if type(val) == "string" then
-                local_args[i] = escape_mariadb(descriptor, val)
-            end
-        end
-        statement = string.format(statement, unpack(local_args))
-    end
+    raw_args = {...}
+    key = mariadb_connection_key(descriptor)
+    was_cached = (_mariadb_connections[key] != nil)
 
-    conn, err = get_mariadb_connection(descriptor)
+    conn, err = get_mariadb_connection_internal(descriptor, false)
     if conn == nil then
         error("Error connecting to MariaDB: " .. tostring(err))
     end
 
-    affected, insert_id = native.exec(conn, statement)
-    if affected == nil then
-        error("Invalid statement: " .. tostring(insert_id) .. "\nStatement: " .. statement)
+    formatted_stmt = format_mariadb_sql(native, conn, statement, raw_args)
+    affected, insert_id = native.exec(conn, formatted_stmt)
+    if affected == nil and was_cached and (native.isopen(conn) == false or native.ping(conn) == false) then
+        conn, reconn_err = get_mariadb_connection_internal(descriptor, true)
+        if conn == nil then
+            error("Error connecting to MariaDB: " .. tostring(reconn_err))
+        end
+        formatted_stmt = format_mariadb_sql(native, conn, statement, raw_args)
+        affected, insert_id = native.exec(conn, formatted_stmt)
     end
+    if affected == nil then
+        error("Invalid statement: " .. tostring(insert_id) .. "\nStatement: " .. formatted_stmt)
+    end
+
+    _mariadb_last_used[key] = os.time()
     return affected, insert_id
 end
 
@@ -413,8 +464,11 @@ end
 function mariadb_close_all()
     native = get_mariadb_native()
     for key, conn in pairs(_mariadb_connections) do
-        native.close(conn)
+        if native.isopen(conn) == true then
+            native.close(conn)
+        end
         _mariadb_connections[key] = nil
+        _mariadb_last_used[key] = nil
     end
 end
 
@@ -447,13 +501,11 @@ function get_sql_values(row, col_names)
 end
 
 function import_delimited(db_path, file_path, table_name, delimiter)    
-    db = sqlite.open(db_path)
-    if (db == nil) then
-        error("Error opening database")
-    end
+    db, owned = acquire_sqlite_connection(db_path)
 
     content = delimited_files.readdlm(file_path, delimiter, true)
     if (content == nil) then
+        release_sqlite_connection(db, owned, false)
         error("Error reading delimited file")
     end
     
@@ -471,10 +523,12 @@ function import_delimited(db_path, file_path, table_name, delimiter)
 
     result = sqlite.exec(db, insert_statement)
     if (result != sqlite.OK) then
-        error("Error: " .. tostring(sqlite.errmsg(db)))
+        err_msg = tostring(sqlite.errmsg(db))
+        release_sqlite_connection(db, owned, true)
+        error("Error: " .. err_msg)
     end
 
-    sqlite.close(db)
+    release_sqlite_connection(db, owned, false)
     return true
 end
 
@@ -505,10 +559,7 @@ function load_df_rows(db_path, table_name, dataframe)
     col_names = "'" .. table.concat(columns, "', '") .. "'"
 
     -- Open DB
-    db = sqlite.open(db_path)
-    if (db == nil) then
-        error("Error opening database")
-    end
+    db, owned = acquire_sqlite_connection(db_path)
 
     -- Insert row by row
     for row_index, row in ipairs(dataframe) do
@@ -539,7 +590,7 @@ function load_df_rows(db_path, table_name, dataframe)
         end
     end
 
-    sqlite.close(db)
+    release_sqlite_connection(db, owned, false)
     return true
 end
 
@@ -553,8 +604,8 @@ function load_df(db_path, table_name, dataframe)
     columns = dataframes.get_columns(dataframe)
     
     -- Open the SQLite database
-    db = sqlite.open(db_path)
-    if (db == nil) then
+    ok, db, owned = pcall(acquire_sqlite_connection, db_path)
+    if (not ok or db == nil) then
         print("Error opening database")
         return nil
     end
@@ -589,12 +640,12 @@ function load_df(db_path, table_name, dataframe)
     if (result != sqlite.OK) then
         print("Error: " .. tostring(sqlite.errmsg(db)))
         print("Insert Statement: " .. insert_statement)
-        sqlite.close(db)
+        release_sqlite_connection(db, owned, true)
         return nil
     end
 
     -- Close the database connection
-    sqlite.close(db)
+    release_sqlite_connection(db, owned, false)
     return true
 end
 
@@ -602,8 +653,11 @@ end
 database_adapter.sqlite_query = sqlite_query
 database_adapter.sqlite_update = sqlite_update
 database_adapter.sqlite_keep_open = sqlite_keep_open
+database_adapter.is_sqlite_keep_open = is_sqlite_keep_open
 database_adapter.sqlite_close_all = sqlite_close_all
 database_adapter.sqlite_connection_count = sqlite_connection_count
+database_adapter.acquire_sqlite_connection = acquire_sqlite_connection
+database_adapter.release_sqlite_connection = release_sqlite_connection
 database_adapter.import_delimited = import_delimited
 database_adapter.export_delimited = export_delimited
 database_adapter.load_df = load_df

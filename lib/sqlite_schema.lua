@@ -1,3 +1,4 @@
+database_adapter = require("database_adapter")
 sqlite = require("sqlite3")
 _G.sqlite3 = nil
 
@@ -5,8 +6,8 @@ _G.sqlite3 = nil
 sqlite_schema = {}
 
 function get_tables(db_path)
-    db = sqlite.open(db_path)
-    if (db == nil) then
+    ok, db, owned = pcall(database_adapter.acquire_sqlite_connection, db_path)
+    if (not ok or db == nil) then
         print("Error opening database")
         return nil
     end
@@ -16,13 +17,13 @@ function get_tables(db_path)
         table.insert(table_list, row.name)
     end
 
-    sqlite.close(db)
+    database_adapter.release_sqlite_connection(db, owned, false)
     return table_list
 end
 
 function get_columns(db_path, table_name)
-    db = sqlite.open(db_path)
-    if (db == nil) then
+    ok, db, owned = pcall(database_adapter.acquire_sqlite_connection, db_path)
+    if (not ok or db == nil) then
         error("Failed to open database at " .. db_path)
     end
 
@@ -33,13 +34,13 @@ function get_columns(db_path, table_name)
         table.insert(columns, row.name)
     end
 
-    sqlite.close(db)
+    database_adapter.release_sqlite_connection(db, owned, false)
     return columns
 end
 
 function get_table_info(db_path, table_name)
-    db = sqlite.open(db_path)
-    if (db == nil) then
+    ok, db, owned = pcall(database_adapter.acquire_sqlite_connection, db_path)
+    if (not ok or db == nil) then
         error(string.format("Failed to open database at %s", db_path))
     end
 
@@ -56,13 +57,13 @@ function get_table_info(db_path, table_name)
         }
     end
 
-    sqlite.close(db)
+    database_adapter.release_sqlite_connection(db, owned, false)
     return columns
 end
 
 function get_schema(db_path)
-    db = sqlite.open(db_path)
-    if (db == nil) then
+    ok, db, owned = pcall(database_adapter.acquire_sqlite_connection, db_path)
+    if (not ok or db == nil) then
         error(string.format("Failed to open database at %s", db_path))
     end
 
@@ -83,7 +84,7 @@ function get_schema(db_path)
         end
     end
 
-    sqlite.close(db)
+    database_adapter.release_sqlite_connection(db, owned, false)
     return schema
 end
 

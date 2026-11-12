@@ -2,15 +2,25 @@
 
 html = {}
 
+HTML_ESCAPE_MAP = {
+    ["&"] = "&amp;",
+    ["<"] = "&lt;",
+    [">"] = "&gt;",
+    ["\""] = "&quot;",
+    ["'"] = "&#39;",
+}
+
+JS_ESCAPE_MAP = {
+    ["\\"] = "\\\\",
+    ["\""] = "\\\"",
+    ["\r"] = "\\n",
+    ["\n"] = "\\n",
+    ["<"] = "\\u003c",
+}
+
 -- HTML body and attribute escaping.
 function html.escape(s)
-    s = tostring(s)
-    s = string.gsub(s, "&", "&amp;")
-    s = string.gsub(s, "<", "&lt;")
-    s = string.gsub(s, ">", "&gt;")
-    s = string.gsub(s, "\"", "&quot;")
-    s = string.gsub(s, "'", "&#39;")
-    return s
+    return (string.gsub(tostring(s), "[&<>\"']", HTML_ESCAPE_MAP))
 end
 
 -- Backward compatibility alias for daat
@@ -25,13 +35,10 @@ end
 -- Escapes a plain string for safe embedding directly into a JavaScript string literal.
 function html.js_string_literal(s)
     s = tostring(s)
-    s = string.gsub(s, "\\", "\\\\")
-    s = string.gsub(s, "\"", "\\\"")
-    s = string.gsub(s, "\r\n", "\\n")
-    s = string.gsub(s, "\r", "\\n")
-    s = string.gsub(s, "\n", "\\n")
-    s = string.gsub(s, "<", "\\u003c")
-    return s
+    if string.find(s, "\r", 1, true) != nil then
+        s = string.gsub(s, "\r\n", "\n")
+    end
+    return (string.gsub(s, "[\\\"\r\n<]", JS_ESCAPE_MAP))
 end
 
 return html

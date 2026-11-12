@@ -58,9 +58,12 @@ end
 
 -- Return a comma separated hex string suitable for a C array definition.
 function string_to_c_hex_literal(chars)
+	if #chars == 0 then
+		return "0x00"
+	end
 	hex = {}
-	for character in string.gmatch(chars, ".") do
-		table.insert(hex, string.format("0x%02x", string.byte(character)))
+	for idx = 1, #chars do
+		table.insert(hex, string.format("0x%02x", string.byte(chars, idx)))
 	end
 	return table.concat(hex, ", ")
 end
@@ -282,31 +285,63 @@ end
 function outhex(str)
 	io.write(outfile, string_to_c_hex_literal(str), ", ")
 end
--- Embed Lua program source code.
-function out_lua_source(file)
-	f = io.open(file.path, "r")
-	prefix = io.read(f, 4)
-	if prefix != nil then
-		if string.match(prefix, "\xef\xbb\xbf") != nil then
-			-- Strip the UTF-8 byte order mark.
-			prefix = string.sub(prefix, 4)
-		end
-		if string.match(prefix, "#") != nil then
-			-- Strip the shebang.
-			io.read(f, "*line")
-			prefix = "\n"
-		end
-		out(string_to_c_hex_literal(prefix), ", ")
+-- Precompile Lua program source code to bytecode (or pass .luac through)
+-- so runtime startup skips lexing/parsing and loads directly from .rodata.
+function compile_lua_file(file)
+	f = io.open(file.path, "rb")
+	if f == nil then
+		io.write(io.stderr, "cannot open file: " .. tostring(file.path) .. "\n")
+		os.exit(1)
 	end
-	while true do
-		strdata = io.read(f, 4096)
-		if strdata != nil then
-			out(string_to_c_hex_literal(strdata), ", ")
-		else
-			break
-		end
-	end
+	source = io.read(f, "*all")
 	io.close(f)
+	if source == nil then
+		source = ""
+	end
+	if string.sub(source, 1, 4) != "\x1bLua" then
+		if string.sub(source, 1, 3) == "\xef\xbb\xbf" then
+			-- Strip the UTF-8 byte order mark.
+			source = string.sub(source, 4)
+		end
+		if string.sub(source, 1, 1) == "#" then
+			-- Strip leading shebang while keeping line numbers aligned.
+			nl = string.find(source, "\n", 1, true)
+			if nl != nil then
+				source = string.sub(source, nl)
+			else
+				source = "\n"
+			end
+		end
+		compile_fn = load
+		if loadstring != nil then
+			compile_fn = loadstring
+		end
+		chunk, err = compile_fn(source, file.dotpath_noextension)
+		if chunk == nil then
+			io.write(io.stderr, "error compiling " .. tostring(file.path) .. ": " .. tostring(err) .. "\n")
+			os.exit(1)
+		end
+		source = string.dump(chunk)
+	end
+	return source
+end
+
+function out_bytes_chunked(bytes)
+	chunk_size = 4096
+	total = #bytes
+	if total == 0 then
+		out("0x00")
+		return
+	end
+	pos = 1
+	while pos <= total do
+		slice_end = pos + chunk_size - 1
+		if slice_end > total then
+			slice_end = total
+		end
+		out(string_to_c_hex_literal(string.sub(bytes, pos, slice_end)), ", ")
+		pos = slice_end + 1
+	end
 end
 
 out("""
@@ -326,6 +361,9 @@ extern "C" {
 
 #if LUA_VERSION_NUM == 501
 	#define LUA_OK 0
+	#define BUNDLE_RAWLEN(L, idx) lua_objlen((L), (idx))
+#else
+	#define BUNDLE_RAWLEN(L, idx) lua_rawlen((L), (idx))
 #endif
 
 /* Copied from lua.c */
@@ -404,112 +442,133 @@ out("""
 }
 #endif
 
+typedef struct {
+	const char *name;
+	const unsigned char *data;
+	size_t size;
+} lua_bundle_entry;
+
+""")
+
+for i, file in ipairs(lua_source_files) do
+	compiled = compile_lua_file(file)
+	file.compiled_size = #compiled
+	out(string.format('static const unsigned char lua_require_%i[] = {\n	', i))
+	out_bytes_chunked(compiled)
+	out("\n};\n\n")
+end
+
+out("static const lua_bundle_entry lua_bundle_entries[] = {\n")
+for i, file in ipairs(lua_source_files) do
+	out(string.format('\t{ "%s", lua_require_%i, %i },\n', file.dotpath_noextension, i, file.compiled_size))
+end
+out("\t{ NULL, NULL, 0 }\n};\n")
+
+out("""
+
+static const lua_bundle_entry *find_bundle_entry(const char *name) {
+	const lua_bundle_entry *e;
+	for (e = lua_bundle_entries; e->name != NULL; e++) {
+		if (strcmp(e->name, name) == 0) {
+			return e;
+		}
+	}
+	return NULL;
+}
+
+static int c_bundle_loader(lua_State *L) {
+	const char *raw_name = luaL_checkstring(L, 1);
+	size_t len = strlen(raw_name);
+	char norm_buf[512];
+	char init_buf[520];
+	char *norm = norm_buf;
+	const lua_bundle_entry *entry = NULL;
+	size_t i;
+
+	if (len >= sizeof(norm_buf)) {
+		norm = (char *)malloc(len + 1);
+		if (norm == NULL) {
+			return luaL_error(L, "out of memory loading module '%s'", raw_name);
+		}
+	}
+	for (i = 0; i < len; i++) {
+		char c = raw_name[i];
+		norm[i] = (c == '/' || c == '\\') ? '.' : c;
+	}
+	norm[len] = '\0';
+
+	entry = find_bundle_entry(norm);
+	if (entry == NULL && len + 5 < sizeof(init_buf)) {
+		memcpy(init_buf, norm, len);
+		memcpy(init_buf + len, ".init", 6);
+		entry = find_bundle_entry(init_buf);
+	}
+
+	if (entry != NULL) {
+		int load_status = luaL_loadbuffer(L, (const char *)entry->data, entry->size, entry->name);
+		if (norm != norm_buf) free(norm);
+		if (load_status != LUA_OK) {
+			return luaL_error(L, "error loading module '%s' from static bundle:\n\t%s",
+				raw_name, lua_tostring(L, -1));
+		}
+		return 1;
+	}
+
+	lua_pushfstring(L, "\n\tno module '%s' in static bundle", norm);
+	if (norm != norm_buf) free(norm);
+	return 1;
+}
 
 int main(int argc, char *argv[])
 {
+	int arg_i, narg;
 	lua_State *L = luaL_newstate();
 	luaL_openlibs(L);
 	createargtable(L, argv, argc, 0);
-
-	static const unsigned char lua_loader_program[] = {
-		""")
-
-outhex("""
-args = {...}
-lua_bundle = args[1]
-
-function load_string(str, name)
-	if _VERSION == "Lua 5.1" then
-		return loadstring(str, name)
-	else
-		return load(str, name)
-	end
-end
-
-function lua_loader(name)
-	separator = string.sub(package.config, 1, 1)
-	name = string.gsub(name, separator, ".")
-	mod = lua_bundle[name]
-	if mod == nil then
-		mod = lua_bundle[name .. ".init"]
-	end
-	if mod != nil then
-		if type(mod) == "string" then
-			chunk, errstr = load_string(mod, name)
-			if chunk != nil then
-				return chunk
-			else
-				error(
-					string.format("error loading module '%s' from static bundle:\n\t%s", name, errstr),
-					0
-				)
-			end
-		elseif type(mod) == "function" then
-			return mod
-		end
-	else
-		return string.format("\n\tno module '%s' in static bundle", name)
-	end
-end
-loader_list = package.loaders
-if loader_list == nil then
-	loader_list = package.searchers
-end
-table.insert(loader_list, 2, lua_loader)
-
--- Lua 5.1 has unpack(). Lua 5.2+ has table.unpack().
-unpack = unpack
-if unpack == nil then
-	unpack = table.unpack
-end
 """)
 
-outhex(string.format("""
-func = lua_loader("%s")
-if type(func) == "function" then
-	-- Run the main Lua program.
-	func(unpack(arg))
-else
-	error(func, 0)
-end
-""", mainlua.dotpath_noextension))
-
-out(string.format("""
-
-	};
-	/*printf("%%.*s", (int)sizeof(lua_loader_program), lua_loader_program);*/
-	if
-	(
-		luaL_loadbuffer(L, (const char*)lua_loader_program, sizeof(lua_loader_program), "%s") 
-		!= LUA_OK
-	)
-	{
-		fprintf(stderr, "luaL_loadbuffer: %%s\n", lua_tostring(L, -1));
-		lua_close(L);
-		return 1;
-	}
-	
-	/* lua_bundle */
-	lua_newtable(L);
-""", mainlua.basename_noextension));
-
-for i, file in ipairs(lua_source_files) do
-	out(string.format('	static const unsigned char lua_require_%i[] = {\n		', i))
-	out_lua_source(file);
-	out("\n	};\n")
-	out(string.format("""
-	lua_pushlstring(L, (const char*)lua_require_%i, sizeof(lua_require_%i));
-""", i, i))
-	out(string.format('	lua_setfield(L, -2, "%s");\n\n', file.dotpath_noextension))
-end
-
-for _, library in ipairs(module_library_files) do
-	out(string.format('	lua_pushcfunction(L, luaopen_%s);\n', library.dotpath_underscore))
-	out(string.format('	lua_setfield(L, -2, "%s");\n\n', library.dotpath_noextension))
+if #module_library_files > 0 then
+	out("\tlua_getglobal(L, \"package\");\n\tlua_getfield(L, -1, \"preload\");\n")
+	for _, library in ipairs(module_library_files) do
+		out(string.format('\tlua_pushcfunction(L, luaopen_%s);\n', library.dotpath_underscore))
+		out(string.format('\tlua_setfield(L, -2, "%s");\n', library.dotpath_noextension))
+	end
+	out("\tlua_pop(L, 2);\n")
 end
 
 out("""
-	if (docall(L, 1, LUA_MULTRET))
+	lua_getglobal(L, "package");
+	lua_getfield(L, -1, "loaders");
+	if (lua_isnil(L, -1)) {
+		lua_pop(L, 1);
+		lua_getfield(L, -1, "searchers");
+	}
+	if (lua_istable(L, -1)) {
+		int loader_len = (int)BUNDLE_RAWLEN(L, -1);
+		int idx;
+		for (idx = loader_len; idx >= 2; idx--) {
+			lua_rawgeti(L, -1, idx);
+			lua_rawseti(L, -2, idx + 1);
+		}
+		lua_pushcfunction(L, c_bundle_loader);
+		lua_rawseti(L, -2, 2);
+	}
+	lua_pop(L, 2);
+
+	if (luaL_loadbuffer(L, (const char *)lua_bundle_entries[0].data, lua_bundle_entries[0].size, lua_bundle_entries[0].name) != LUA_OK)
+	{
+		fprintf(stderr, "luaL_loadbuffer: %s\n", lua_tostring(L, -1));
+		lua_close(L);
+		return 1;
+	}
+
+	narg = (argc > 1) ? (argc - 1) : 0;
+	luaL_checkstack(L, narg + 2, "too many arguments to script");
+	for (arg_i = 1; arg_i < argc; arg_i++) {
+		lua_pushstring(L, argv[arg_i]);
+	}
+
+	if (docall(L, narg, LUA_MULTRET))
 	{
 		const char *errmsg = lua_tostring(L, 1);
 		if (errmsg)
