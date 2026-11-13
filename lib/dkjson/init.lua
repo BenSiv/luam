@@ -1,7 +1,7 @@
 -- Module options:
 always_try_using_lpeg = true
 register_global_module_table = false
-global_module_name = 'json'
+global_module_name = "json"
 
 
 -- David Kolf's JSON module for Lua 5.1/5.2
@@ -78,12 +78,12 @@ json.null = setmetatable ({}, {
 function isarray (tbl)
   max, n, arraylen = 0, 0, 0
   for k,v in pairs (tbl) do
-    if k == 'n' and type(v) == 'number' then
+    if k == "n" and type(v) == "number" then
       arraylen = v
       if v > max then
         max = v
       end
-    elseif type(k) != 'number' or k < 1 or floor(k) != k then
+    elseif type(k) != "number" or k < 1 or floor(k) != k then
       return false
     elseif k > max then
       max = k
@@ -158,16 +158,16 @@ end
 
 function quotestring (value)
   -- based on the regexp "escapable" in https://github.com/douglascrockford/JSON-js
-  result = fsub (value, "[%z\1-\31\"\\\127]", escapeutf8)
+  result = fsub (value, "[%z\x01-\x1F\"\\\x7F]", escapeutf8)
   if strfind (result, "[\\194\\216\\220\\225\\226\\239]") != nil then
-    result = fsub (result, "\194[\128-\159\173]", escapeutf8)
-    result = fsub (result, "\216[\128-\132]", escapeutf8)
-    result = fsub (result, "\220\143", escapeutf8)
-    result = fsub (result, "\225\158[\180\181]", escapeutf8)
-    result = fsub (result, "\226\128[\139-\143]", escapeutf8)
-    result = fsub (result, "\226\128\168", escapeutf8)
-    result = fsub (result, "\239\187\191", escapeutf8)
-    result = fsub (result, "\239\191[\176\183-\191]", escapeutf8)
+    result = fsub (result, "\xC2[\x80-\x9F\xAD]", escapeutf8)
+    result = fsub (result, "\xD8[\x80-\x84]", escapeutf8)
+    result = fsub (result, "\xDC\x8F", escapeutf8)
+    result = fsub (result, "\xE1\x9E[\xB4\xB5]", escapeutf8)
+    result = fsub (result, "\xE2\x80[\x8B-\x8F]", escapeutf8)
+    result = fsub (result, "\xE2\x80\xA8", escapeutf8)
+    result = fsub (result, "\xEF\xBB\xBF", escapeutf8)
+    result = fsub (result, "\xEF\xBF[\xB0\xB7-\xBF]", escapeutf8)
   end
   return "\"" .. result .. "\""
 end
@@ -231,7 +231,7 @@ encode2  = nil -- forward declaration
 
 function addpair (key, value, prev, indent, level, buffer, buflen, tables, globalorder, state)
   kt = type (key)
-  if kt != 'string' and kt != 'number' then
+  if kt != "string" and kt != "number" then
     return nil, "type '" .. kt .. "' is not supported as a key by JSON."
   end
   newbuflen = buflen
@@ -264,7 +264,7 @@ end
 function appendcustom(res, buffer, state)
   buflen = state.bufferlen
   newbuflen = buflen
-  if type (res) == 'string' then
+  if type (res) == "string" then
     newbuflen = newbuflen + 1
     buffer[newbuflen] = res
   end
@@ -302,26 +302,26 @@ encode2 = function (value, indent, level, buffer, buflen, tables, globalorder, s
   valtype = type (value)
   newbuflen = buflen
   valmeta = getmetatable (value)
-  if type(valmeta) != 'table' then valmeta = nil end -- only tables
+  if type(valmeta) != "table" then valmeta = nil end -- only tables
   valtojson = nil
   if valmeta != nil then
     valtojson = valmeta.__tojson
   end
   if valtojson != nil then
     if tables[value] != nil then
-      return exception('reference cycle', value, state, buffer, buflen)
+      return exception("reference cycle", value, state, buffer, buflen)
     end
     tables[value] = true
     state.bufferlen = buflen
     ret, msg = valtojson (value, state)
-    if ret == nil then return exception('custom encoder failed', value, state, buffer, newbuflen, msg) end
+    if ret == nil then return exception("custom encoder failed", value, state, buffer, newbuflen, msg) end
     tables[value] = nil
     newbuflen = appendcustom(ret, buffer, state)
   else
     if value == nil then
       newbuflen = buflen + 1
       buffer[newbuflen] = "null"
-    elseif valtype == 'number' then
+    elseif valtype == "number" then
         s = nil 
         if value != value or value >= huge or -value >= huge then
           -- This is the behaviour of the original JSON implementation.
@@ -331,24 +331,24 @@ encode2 = function (value, indent, level, buffer, buflen, tables, globalorder, s
         end
         newbuflen = buflen + 1
         buffer[newbuflen] = s
-      elseif valtype == 'boolean' or valtype == 'flag' then
+      elseif valtype == "boolean" or valtype == "flag" then
           newbuflen = buflen + 1
           if value == true then
             buffer[newbuflen] = "true"
           else
             buffer[newbuflen] = "false"
           end
-        elseif valtype == 'string' then
+        elseif valtype == "string" then
             newbuflen = buflen + 1
             buffer[newbuflen] = quotestring (value)
-          elseif valtype == 'table' then
+          elseif valtype == "table" then
               if tables[value] != nil then
-                return exception('reference cycle', value, state, buffer, buflen)
+                return exception("reference cycle", value, state, buffer, buflen)
               end
               tables[value] = true
               newlevel = level + 1
               isa, n = isarray (value)
-              if n == 0 and valmeta != nil and valmeta.__jsontype == 'object' then
+              if n == 0 and valmeta != nil and valmeta.__jsontype == "object" then
                 isa = false
               end
               msg = nil 
@@ -410,7 +410,7 @@ encode2 = function (value, indent, level, buffer, buflen, tables, globalorder, s
               end
               tables[value] = nil
             else
-              return exception ('unsupported type', value, state, buffer, newbuflen,
+              return exception ("unsupported type", value, state, buffer, newbuflen,
                 "type '" .. valtype .. "' is not supported by JSON.")
 
     end
@@ -482,7 +482,7 @@ function scanwhite (str, pos)
     pos = strfind (str, "%S", pos)
     if pos == nil then return nil end
     sub2 = strsub (str, pos, pos + 1)
-    if sub2 == "\239\187" and strsub (str, pos + 2, pos + 2) == "\191" then
+    if sub2 == "\xEF\xBB" and strsub (str, pos + 2, pos + 2) == "\xBF" then
       -- UTF-8 Byte Order Mark
       pos = pos + 3
     else
@@ -611,7 +611,7 @@ function scantable (what, closechar, str, startpos, nullval, objectmeta, arrayme
   len = strlen (str)
   tbl, n = {}, 0
   pos = startpos + 1
-  if what == 'object' then
+  if what == "object" then
     setmetatable (tbl, objectmeta)
   else
     setmetatable (tbl, arraymeta)
@@ -662,10 +662,10 @@ scanvalue = function (str, pos, nullval, objectmeta, arraymeta)
   end
   char = strsub (str, pos, pos)
   if char == "{" then
-    return scantable ('object', "}", str, pos, nullval, objectmeta, arraymeta)
+    return scantable ("object", "}", str, pos, nullval, objectmeta, arraymeta)
   else
     if char == "[" then
-      return scantable ('array', "]", str, pos, nullval, objectmeta, arraymeta)
+      return scantable ("array", "]", str, pos, nullval, objectmeta, arraymeta)
     else
       if char == "\"" then
         return scanstring (str, pos)
@@ -702,7 +702,7 @@ function optionalmetatables(...)
   if select("#", ...) > 0 then
     return ...
   else
-    return {__jsontype = 'object'}, {__jsontype = 'array'}
+    return {__jsontype = "object"}, {__jsontype = "array"}
   end
 end
 
@@ -735,7 +735,7 @@ function json.use_lpeg ()
 
   SingleLineComment = P"//" * (1 - S"\n\r")^0
   MultiLineComment = P"/*" * (1 - P"*/")^0 * P"*/"
-  Space = (S" \n\r\t" + P"\239\187\191" + SingleLineComment + MultiLineComment)^0
+  Space = (S" \n\r\t" + P"\xEF\xBB\xBF" + SingleLineComment + MultiLineComment)^0
 
   PlainChar = 1 - S"\"\\\n\r"
   EscapeSequence = (P"\\" * g.C (S"\"\\/bfnrt" + Err "unsupported escape sequence")) / escapechars
@@ -776,7 +776,7 @@ function json.use_lpeg ()
       pos = npos
       nt = nt + 1
       t[nt] = obj
-      if cont == 'last' then break end
+      if cont == "last" then break end
     end
     return pos, setmetatable (t, state.arraymeta)
   end
@@ -791,7 +791,7 @@ function json.use_lpeg ()
       if npos == nil then break end
       pos = npos
       t[key] = obj
-      if cont == 'last' then break end
+      if cont == "last" then break end
     end
     return pos, setmetatable (t, state.objectmeta)
   end
@@ -800,9 +800,9 @@ function json.use_lpeg ()
   Object = P"{" * g.Cmt (g.Carg(1) * g.Carg(2), parseobject) * Space * (P"}" + Err "'}' expected")
   Value = Space * (Array + Object + SimpleValue)
   ExpectedValue = Value + Space * Err "value expected"
-  ArrayContent = Value * Space * (P"," * g.Cc'cont' + g.Cc'last') * g.Cp()
+  ArrayContent = Value * Space * (P"," * g.Cc"cont" + g.Cc"last") * g.Cp()
   Pair = g.Cg (Space * String * Space * (P":" + Err "colon expected") * ExpectedValue)
-  ObjectContent = Pair * Space * (P"," * g.Cc'cont' + g.Cc'last') * g.Cp()
+  ObjectContent = Pair * Space * (P"," * g.Cc"cont" + g.Cc"last") * g.Cp()
   DecodeValue = ExpectedValue * g.Cp ()
 
   function json.decode (str, pos, nullval, ...)

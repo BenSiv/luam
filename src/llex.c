@@ -178,22 +178,144 @@ static void read_numeral(LexState *ls, SemInfo *seminfo) {
     trydecpoint(ls, seminfo); /* try to update decimal point separator */
 }
 
-static int skip_sep(LexState *ls) {
-  int count = 0;
-  int s = ls->current;
-  lua_assert(s == '[' || s == ']');
-  save_and_next(ls);
-  while (ls->current == '=') {
-    save_and_next(ls);
-    count++;
+static int hexvalue(int c) {
+  if (c >= '0' && c <= '9')
+    return c - '0';
+  if (c >= 'a' && c <= 'f')
+    return c - 'a' + 10;
+  if (c >= 'A' && c <= 'F')
+    return c - 'A' + 10;
+  return -1;
+}
+
+static void save_utf8(LexState *ls, unsigned long cp) {
+  if (cp <= 0x7FUL) {
+    save(ls, (int)cp);
+  } else if (cp <= 0x7FFUL) {
+    save(ls, (int)(0xC0UL | (cp >> 6)));
+    save(ls, (int)(0x80UL | (cp & 0x3FUL)));
+  } else if (cp <= 0xFFFFUL) {
+    save(ls, (int)(0xE0UL | (cp >> 12)));
+    save(ls, (int)(0x80UL | ((cp >> 6) & 0x3FUL)));
+    save(ls, (int)(0x80UL | (cp & 0x3FUL)));
+  } else {
+    save(ls, (int)(0xF0UL | (cp >> 18)));
+    save(ls, (int)(0x80UL | ((cp >> 12) & 0x3FUL)));
+    save(ls, (int)(0x80UL | ((cp >> 6) & 0x3FUL)));
+    save(ls, (int)(0x80UL | (cp & 0x3FUL)));
   }
-  return (ls->current == s) ? count : (-count) - 1;
+}
+
+static void read_escape(LexState *ls) {
+  int c;
+  next(ls); /* skip '\\' */
+  switch (ls->current) {
+  case 'a':
+    c = '\a';
+    goto read_save;
+  case 'b':
+    c = '\b';
+    goto read_save;
+  case 'f':
+    c = '\f';
+    goto read_save;
+  case 'n':
+    c = '\n';
+    goto read_save;
+  case 'r':
+    c = '\r';
+    goto read_save;
+  case 't':
+    c = '\t';
+    goto read_save;
+  case 'v':
+    c = '\v';
+    goto read_save;
+  case '\\':
+  case '"':
+  case '\'':
+    c = ls->current;
+    goto read_save;
+  case '0':
+    next(ls);
+    if (ls->current >= '0' && ls->current <= '9') {
+      save(ls, '\\');
+      save(ls, '0');
+      save(ls, ls->current);
+      luaX_lexerror(ls, "decimal escape sequence not supported; use \\xXX",
+                    TK_STRING);
+    }
+    save(ls, '\0');
+    return;
+  case 'x': {
+    int h1, h2;
+    next(ls);
+    h1 = hexvalue(ls->current);
+    if (h1 < 0)
+      luaX_lexerror(ls, "hexadecimal digit expected in \\xXX escape",
+                    TK_STRING);
+    next(ls);
+    h2 = hexvalue(ls->current);
+    if (h2 < 0)
+      luaX_lexerror(ls, "hexadecimal digit expected in \\xXX escape",
+                    TK_STRING);
+    next(ls);
+    save(ls, (h1 << 4) | h2);
+    return;
+  }
+  case 'u': {
+    unsigned long cp = 0;
+    int digits = 0;
+    next(ls);
+    if (ls->current != '{')
+      luaX_lexerror(ls, "missing '{' in \\u{xxxx} escape", TK_STRING);
+    next(ls);
+    while (hexvalue(ls->current) >= 0) {
+      cp = (cp << 4) | (unsigned long)hexvalue(ls->current);
+      digits++;
+      if (digits > 6 || cp > 0x10FFFFUL)
+        luaX_lexerror(ls, "UTF-8 value too large", TK_STRING);
+      next(ls);
+    }
+    if (digits == 0 || ls->current != '}')
+      luaX_lexerror(ls, "invalid \\u{xxxx} escape", TK_STRING);
+    next(ls);
+    save_utf8(ls, cp);
+    return;
+  }
+  case 'z':
+    next(ls);
+    while (ls->current != EOZ && isspace(ls->current)) {
+      if (currIsNewline(ls))
+        inclinenumber(ls);
+      else
+        next(ls);
+    }
+    return;
+  case '\n':
+  case '\r':
+    save(ls, '\n');
+    inclinenumber(ls);
+    return;
+  case EOZ:
+    return; /* caller handles EOZ with unfinished string error */
+  default:
+    save(ls, '\\');
+    if (ls->current != EOZ)
+      save(ls, ls->current);
+    if (ls->current >= '1' && ls->current <= '9')
+      luaX_lexerror(ls, "decimal escape sequence not supported; use \\xXX",
+                    TK_STRING);
+    luaX_lexerror(ls, "invalid escape sequence", TK_STRING);
+    return;
+  }
+read_save:
+  save(ls, c);
+  next(ls);
 }
 
 static void read_triple_quote_string(LexState *ls, SemInfo *seminfo) {
-  /* buffer already contains """ */
-  if (currIsNewline(ls))
-    inclinenumber(ls);
+  /* buffer already contains opening """ */
   for (;;) {
     switch (ls->current) {
     case EOZ:
@@ -210,36 +332,27 @@ static void read_triple_quote_string(LexState *ls, SemInfo *seminfo) {
       }
       break;
     }
+    case '\\':
+      read_escape(ls);
+      break;
     case '\n':
-    case '\r': {
+    case '\r':
       save(ls, '\n');
       inclinenumber(ls);
-      if (!seminfo)
-        luaZ_resetbuffer(ls->buff);
       break;
-    }
-    default: {
-      if (seminfo)
-        save_and_next(ls);
-      else
-        next(ls);
-    }
+    default:
+      save_and_next(ls);
+      break;
     }
   }
 endloop:
-  if (seminfo)
-    seminfo->ts = luaX_newstring(ls, luaZ_buffer(ls->buff) + 3,
-                                 luaZ_bufflen(ls->buff) - 6);
+  seminfo->ts =
+      luaX_newstring(ls, luaZ_buffer(ls->buff) + 3, luaZ_bufflen(ls->buff) - 6);
 }
 
-static void read_string(LexState *ls, int del, SemInfo *seminfo) {
-  /* assume delimiter was already saved if we are continuing, allowing split use
-   */
-  /* But standard call expects us to start saving. */
-  /* Let's refactor calling code instead or handle internal logic */
-  /* keeping it simple: modify read_string to take 'skip_first' bool? No. */
-  /* Just paste the body. */
-  while (ls->current != del) {
+static void read_string(LexState *ls, SemInfo *seminfo) {
+  /* buffer already contains opening " */
+  while (ls->current != '"') {
     switch (ls->current) {
     case EOZ:
       luaX_lexerror(ls, "unfinished string", TK_EOS);
@@ -248,80 +361,15 @@ static void read_string(LexState *ls, int del, SemInfo *seminfo) {
     case '\r':
       luaX_lexerror(ls, "unfinished string", TK_STRING);
       continue; /* to avoid warnings */
-    case '\\': {
-      int c;
-      next(ls); /* do not save the `\' */
-      switch (ls->current) {
-      case 'a':
-        c = '\a';
-        break;
-      case 'b':
-        c = '\b';
-        break;
-      case 'f':
-        c = '\f';
-        break;
-      case 'n':
-        c = '\n';
-        break;
-      case 'r':
-        c = '\r';
-        break;
-      case 't':
-        c = '\t';
-        break;
-      case 'v':
-        c = '\v';
-        break;
-      case 'x': {
-        int i;
-        next(ls);
-        c = 0;
-        for (i = 0; i < 2; i++) {
-          if (isdigit(ls->current))
-            c = 16 * c + (ls->current - '0');
-          else if (isxdigit(ls->current))
-            c = 16 * c + (tolower(ls->current) - 'a' + 10);
-          else
-            luaX_lexerror(ls, "invalid escape sequence", TK_STRING);
-          next(ls);
-        }
-        save(ls, c);
-        continue;
-      }
-      case '\n': /* go through */
-      case '\r':
-        save(ls, '\n');
-        inclinenumber(ls);
-        continue;
-      case EOZ:
-        continue; /* will raise an error next loop */
-      default: {
-        if (!isdigit(ls->current))
-          save_and_next(ls); /* handles \\, \", \', and \? */
-        else {               /* \xxx */
-          int i = 0;
-          c = 0;
-          do {
-            c = 10 * c + (ls->current - '0');
-            next(ls);
-          } while (++i < 3 && isdigit(ls->current));
-          if (c > UCHAR_MAX)
-            luaX_lexerror(ls, "escape sequence too large", TK_STRING);
-          save(ls, c);
-        }
-        continue;
-      }
-      }
-      save(ls, c);
-      next(ls);
+    case '\\':
+      read_escape(ls);
       continue;
-    }
     default:
       save_and_next(ls);
+      continue;
     }
   }
-  save_and_next(ls); /* skip delimiter */
+  save_and_next(ls); /* skip closing " */
   seminfo->ts =
       luaX_newstring(ls, luaZ_buffer(ls->buff) + 1, luaZ_bufflen(ls->buff) - 2);
 }
@@ -388,12 +436,6 @@ static int llex(LexState *ls, SemInfo *seminfo) {
         return TK_NE;
       }
     }
-    case '\'': {
-      int del = ls->current;
-      save_and_next(ls);
-      read_string(ls, del, seminfo);
-      return TK_STRING;
-    }
     case '"': {
       save_and_next(ls);
       if (ls->current == '"') {
@@ -406,7 +448,7 @@ static int llex(LexState *ls, SemInfo *seminfo) {
         seminfo->ts = luaX_newstring(ls, "", 0);
         return TK_STRING;
       }
-      read_string(ls, '"', seminfo);
+      read_string(ls, seminfo);
       return TK_STRING;
     }
     case '.': {

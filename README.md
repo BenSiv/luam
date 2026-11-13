@@ -117,22 +117,25 @@ out the way they were written. See [doc/table_order.md](doc/table_order.md).
 
 ### 3. Enhanced String & Data Support
 
-#### Triple-Quoted Strings
-Multiline strings use `"""` instead of the traditional `[[ ... ]]` syntax.
+#### Unified Double-Quoted Strings (`"..."` and `"""..."""`)
+Luam uses `"` as its sole string quote (`'...'` single-quoted strings and `[[ ... ]]` bracket strings are removed). Both single-line `"..."` and multiline `"""..."""` share the same strict `\` escape engine, and `"""..."""` preserves raw bytes 100% literally — including line 1, with no hidden leading-newline stripping:
 
 ```lua
 s = """
-Multi-line
-String support
+first line
+    second line
 """
+-- exact value: "\nfirst line\n    second line\n"
 ```
 
-#### Hexadecimal Escape Sequences
-Strings support hexadecimal escapes using `\xXX`.
+Use `string.dedent(...)` when you want indentation stripped explicitly. See [doc/strings_and_escapes.md](doc/strings_and_escapes.md) for the full specification.
 
-```lua
-"A" == "\x41"
-```
+#### Strict `\` Escape Sequences
+Unknown escapes (such as `"\d"` or `"\s"`) and legacy decimal escapes (`"\27"`, `"\027"`) are compile-time syntax errors instead of silently dropping backslashes. Supported escapes across both `"..."` and `"""..."""`:
+- Standard controls & quotes: `\a`, `\b`, `\f`, `\n`, `\r`, `\t`, `\v`, `\\`, `\"`, `\'`, `\0` (when not followed by a digit)
+- Hexadecimal bytes: `\xXX` (`"A" == "\x41"`)
+- Compile-time UTF-8 code points: `\u{X...}` (`"\u{2122}" == "™"`)
+- Line continuations & whitespace skip: `\<newline>` and `\z`
 
 #### `__len` Metamethod
 Tables support the `__len` metamethod (backported from Lua 5.2), enabling custom length semantics.
@@ -165,7 +168,9 @@ xpcall(func, handler, arg1, arg2)
 #### Unified `load`
 `load(chunk)` handles both functions and strings, replacing the need for `loadstring`.
 
-#### Math & Table Enhancements
+#### Math, String & Table Enhancements
+- Plain-text `string.*` helpers (100% literal bytes, no `%` pattern magic): `contains`, `starts_with`, `ends_with`, `index_of`, `count`, `replace`, `trim`, `ltrim`, `rtrim`, `strip_prefix`, `strip_suffix`, `dedent`, `split`, `lines`, `words`, and `template` (`{{}}` / `{{key}}`).
+- `string.format("%q", s)` emits `\x00` for NUL bytes so arbitrary binary strings round-trip cleanly through `load`.
 - `math.log(x, base)` supports an optional base argument.
 - `table.pack(...)` creates a table from arguments and includes an `n` field.
 - `table.unpack(t)` is standardized (renamed from `unpack`).
@@ -236,6 +241,7 @@ Design notes on specific language changes:
 - [doc/forward_references.md](doc/forward_references.md) — why calling a same-file function defined later doesn't work by default, and the zero-new-syntax pre-declaration idiom for when it's genuinely needed
 - [doc/strict_not_operator.md](doc/strict_not_operator.md) — the strict `not` operator and literal-`nil` restrictions
 - [doc/table_order.md](doc/table_order.md) — `pairs` order: integer keys ascending, then every other key in the order it was added
+- [doc/strings_and_escapes.md](doc/strings_and_escapes.md) — unified `"..."` / `"""..."""` string literals, strict `\` escapes, and plain-text `string.*` helpers
 - [doc/changelog.md](doc/changelog.md) — full list of differences from Lua 5.1, with measured (not estimated) size numbers
 - [doc/install.md](doc/install.md) — build targets and platform options
 

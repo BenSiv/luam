@@ -71,11 +71,11 @@ assert(string_to_c_hex_literal("hello") == "0x68, 0x65, 0x6c, 0x6c, 0x6f")
 
 -- Strip the directory from a filename.
 function basename(path)
-	name = string.gsub(path, """(.*[\/])(.*)""", "%2")
+	name = string.gsub(path, "(.*[\\/])(.*)", "%2")
 	return name
 end
 assert(basename("/path/to/file.lua") == "file.lua")
-assert(basename("""C:\path\to\file.lua""") == "file.lua")
+assert(basename("C:\\path\\to\\file.lua") == "file.lua")
 
 function is_source_file(extension)
 	return
@@ -434,7 +434,7 @@ extern "C" {
 """)
 
 for _, library in ipairs(module_library_files) do
-	out(string.format('	int luaopen_%s(lua_State *L);\n', library.dotpath_underscore))
+	out(string.format("	int luaopen_%s(lua_State *L);\n", library.dotpath_underscore))
 end
 
 out("""
@@ -453,14 +453,14 @@ typedef struct {
 for i, file in ipairs(lua_source_files) do
 	compiled = compile_lua_file(file)
 	file.compiled_size = #compiled
-	out(string.format('static const unsigned char lua_require_%i[] = {\n	', i))
+	out(string.format("static const unsigned char lua_require_%i[] = {\n	", i))
 	out_bytes_chunked(compiled)
 	out("\n};\n\n")
 end
 
 out("static const lua_bundle_entry lua_bundle_entries[] = {\n")
 for i, file in ipairs(lua_source_files) do
-	out(string.format('\t{ "%s", lua_require_%i, %i },\n', file.dotpath_noextension, i, file.compiled_size))
+	out(string.format("\t{ \"%s\", lua_require_%i, %i },\n", file.dotpath_noextension, i, file.compiled_size))
 end
 out("\t{ NULL, NULL, 0 }\n};\n")
 
@@ -493,9 +493,9 @@ static int c_bundle_loader(lua_State *L) {
 	}
 	for (i = 0; i < len; i++) {
 		char c = raw_name[i];
-		norm[i] = (c == '/' || c == '\\') ? '.' : c;
+		norm[i] = (c == '/' || c == '\\\\') ? '.' : c;
 	}
-	norm[len] = '\0';
+	norm[len] = '\\0';
 
 	entry = find_bundle_entry(norm);
 	if (entry == NULL && len + 5 < sizeof(init_buf)) {
@@ -508,13 +508,13 @@ static int c_bundle_loader(lua_State *L) {
 		int load_status = luaL_loadbuffer(L, (const char *)entry->data, entry->size, entry->name);
 		if (norm != norm_buf) free(norm);
 		if (load_status != LUA_OK) {
-			return luaL_error(L, "error loading module '%s' from static bundle:\n\t%s",
+			return luaL_error(L, "error loading module '%s' from static bundle:\\n\\t%s",
 				raw_name, lua_tostring(L, -1));
 		}
 		return 1;
 	}
 
-	lua_pushfstring(L, "\n\tno module '%s' in static bundle", norm);
+	lua_pushfstring(L, "\\n\\tno module '%s' in static bundle", norm);
 	if (norm != norm_buf) free(norm);
 	return 1;
 }
@@ -530,8 +530,8 @@ int main(int argc, char *argv[])
 if #module_library_files > 0 then
 	out("\tlua_getglobal(L, \"package\");\n\tlua_getfield(L, -1, \"preload\");\n")
 	for _, library in ipairs(module_library_files) do
-		out(string.format('\tlua_pushcfunction(L, luaopen_%s);\n', library.dotpath_underscore))
-		out(string.format('\tlua_setfield(L, -2, "%s");\n', library.dotpath_noextension))
+		out(string.format("\tlua_pushcfunction(L, luaopen_%s);\n", library.dotpath_underscore))
+		out(string.format("\tlua_setfield(L, -2, \"%s\");\n", library.dotpath_noextension))
 	end
 	out("\tlua_pop(L, 2);\n")
 end
@@ -557,7 +557,7 @@ out("""
 
 	if (luaL_loadbuffer(L, (const char *)lua_bundle_entries[0].data, lua_bundle_entries[0].size, lua_bundle_entries[0].name) != LUA_OK)
 	{
-		fprintf(stderr, "luaL_loadbuffer: %s\n", lua_tostring(L, -1));
+		fprintf(stderr, "luaL_loadbuffer: %s\\n", lua_tostring(L, -1));
 		lua_close(L);
 		return 1;
 	}
@@ -573,7 +573,7 @@ out("""
 		const char *errmsg = lua_tostring(L, 1);
 		if (errmsg)
 		{
-			fprintf(stderr, "%s\n", errmsg);
+			fprintf(stderr, "%s\\n", errmsg);
 		}
 		lua_close(L);
 		return 1;

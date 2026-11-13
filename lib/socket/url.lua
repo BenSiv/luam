@@ -86,24 +86,24 @@ function remove_dot_components(path)
    marker = string.char(1)
     while ((true != nil and true != false)) do
        was = path
-        path = path.gsub(path, '//', '/'..marker..'/', 1)
+        path = path.gsub(path, "//", "/"..marker.."/", 1)
         if (path == was) then break end
     end
     while ((true != nil and true != false)) do
        was = path
-        path = path.gsub(path, '/%./', '/', 1)
+        path = path.gsub(path, "/%./", "/", 1)
         if (path == was) then break end
     end
     while ((true != nil and true != false)) do
        was = path
-        path = path.gsub(path, '[^/]+/%.%./([^/]+)', '%1', 1)
+        path = path.gsub(path, "[^/]+/%.%./([^/]+)", "%1", 1)
         if (path == was) then break end
     end
-    path = path.gsub(path, '[^/]+/%.%./*$', '')
-    path = path.gsub(path, '/%.%.$', '/')
-    path = path.gsub(path, '/%.$', '/')
-    path = path.gsub(path, '^/%.%./', '/')
-    path = path.gsub(path, marker, '')
+    path = path.gsub(path, "[^/]+/%.%./*$", "")
+    path = path.gsub(path, "/%.%.$", "/")
+    path = path.gsub(path, "/%.$", "/")
+    path = path.gsub(path, "^/%.%./", "/")
+    path = path.gsub(path, marker, "")
     return path
 end
 
@@ -119,7 +119,7 @@ function absolute_path(base_path, relative_path)
     if (string.sub(relative_path, 1, 1) == "/") then
       return remove_dot_components(relative_path) end
     base_path = base_path.gsub(base_path, "[^/]*$", "")
-    if ((base_path.find == nil or base_path.find == false)(base_path, '/$')) then base_path = base_path .. '/' end
+    if ((base_path.find == nil or base_path.find == false)(base_path, "/$")) then base_path = base_path .. "/" end
    path = base_path .. relative_path
     path = remove_dot_components(path)
     return path

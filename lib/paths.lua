@@ -60,10 +60,10 @@ function joinpath(...)
 
     joined_path = table.concat(parts, separator)
 
-    if (separator == '\\') then
-        joined_path = joined_path.gsub(joined_path, '[\\/]+', '\\')
+    if (separator == "\\") then
+        joined_path = joined_path.gsub(joined_path, "[\\/]+", "\\")
     else
-        joined_path = joined_path.gsub(joined_path, '[\\/]+', '/')
+        joined_path = joined_path.gsub(joined_path, "[\\/]+", "/")
     end
 
     return joined_path

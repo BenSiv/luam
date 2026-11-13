@@ -14,8 +14,9 @@ see the notes inline below.)
 | Constants | none | `const` keyword, compile-time enforced |
 | Inequality operator | `~=` | `!=` (`~=` removed) |
 | `repeat`/`until` | present | removed (use `while`) |
-| Multiline strings | `[[ ... ]]` | `""" ... """` |
-| String escapes | — | `\xXX` hex escapes added |
+| Single-quoted strings | `'...'` | removed (`"` only; [strings_and_escapes.md](strings_and_escapes.md)) |
+| Multiline strings | `[[ ... ]]` (strips leading newline) | `""" ... """` (100% literal line 1 + shared `\` escapes) |
+| String escapes | `\ddd` decimal; unknown `\X` silently drops `\` | strict whitelist: `\xXX`, `\u{X...}`, `\z`, `\0` (non-decimal); `\ddd` and unknown `\X` are compile errors |
 | `__len` metamethod | not in 5.1 | backported from 5.2 |
 | Colon method syntax | `obj:m()`, `function obj:m()` | removed (use `obj.m(obj, ...)`) |
 | Table traversal order | unspecified (hash order) | integer keys ascending, then other keys in insertion order ([table_order.md](table_order.md)) |
@@ -114,6 +115,8 @@ All spot-checked against the built interpreter:
 - `table.pack(...)` / `table.unpack(t)` — as in 5.2.
 - `os.exit(true|false)` — boolean accepted alongside the integer status code.
 - `package.searchers` — alias for `package.loaders`.
+- Plain-text `string.*` helpers ([strings_and_escapes.md](strings_and_escapes.md)): `contains`, `starts_with`, `ends_with`, `index_of`, `count`, `replace`, `trim`, `ltrim`, `rtrim`, `strip_prefix`, `strip_suffix`, `dedent`, `split`, `lines`, `words`, and `template` (`{{}}` positional and `{{key}}` named).
+- `string.format("%q", s)` — emits `\x00` rather than `\000` for NUL bytes so binary strings round-trip cleanly under strict escapes.
 
 ## Size, measured
 
@@ -124,8 +127,8 @@ machine, same `-O2`, both built with their own `make linux`:
 
 | Metric | Lua 5.1 | Luam | Diff |
 |---|---|---|---|
-| Source lines (`src/*.c` + `*.h`) | 16,963 | 16,914 | -49 (-0.3%) |
-| Interpreter binary, stripped | 207,072 B | 215,264 B | **+8,192 B (+4.0%, larger)** |
+| Source lines (`src/*.c` + `*.h`) | 16,963 | 17,743 | +780 (+4.6%) |
+| Interpreter binary, stripped | 207,072 B | 227,552 B | **+20,480 B (+9.9%, larger)** |
 
 Luam is *not* smaller than Lua 5.1 — this doc previously claimed the
 opposite. Source size is close (clang-format reformatting offset most of the

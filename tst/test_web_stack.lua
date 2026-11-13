@@ -7,9 +7,9 @@ external_tool = require("external_tool")
 -- Test html escaping
 assert(html.escape("<script>alert('x & y \"')</script>") == "&lt;script&gt;alert(&#39;x &amp; y &quot;&#39;)&lt;/script&gt;")
 assert(html.html_escape("test & fun") == "test &amp; fun")
-assert(html.json_for_script('{"text":"</script>"}') == '{"text":"\\u003c/script>"}')
-assert(html.js_string_literal('hello "world"\n<break>') == 'hello \\"world\\"\\n\\u003cbreak>')
-assert(html.js_string_literal('path\\to\r\nline2\rline3') == 'path\\\\to\\nline2\\nline3')
+assert(html.json_for_script("{\"text\":\"</script>\"}") == "{\"text\":\"\\u003c/script>\"}")
+assert(html.js_string_literal("hello \"world\"\n<break>") == "hello \\\"world\\\"\\n\\u003cbreak>")
+assert(html.js_string_literal("path\\to\r\nline2\rline3") == "path\\\\to\\nline2\\nline3")
 
 -- Test render
 tpl = "Hello {{ name }}, you have {{{ unescaped_html }}} and rating {{ stats.score }}."
@@ -20,7 +20,7 @@ ctx = {
 }
 out = render.render(tpl, ctx)
 assert(out == "Hello Ben &lt;Coder&gt;, you have <strong>bold</strong> and rating 100.")
-assert(render.render('<a title="{{ t }}">', {t = "Bob & \"friends\""}) == '<a title="Bob &amp; &quot;friends&quot;">')
+assert(render.render("<a title=\"{{ t }}\">", {t = "Bob & \"friends\""}) == "<a title=\"Bob &amp; &quot;friends&quot;\">")
 assert(render.render("{{ a }}-{{ b }}", {a = "x", b = "y"}) == "x-y")
 ok_missing, _ = pcall(render.render, "{{ missing }}", {})
 assert(ok_missing == false)
@@ -38,15 +38,15 @@ assert(cgi.set_cookie_header("session", "abc", 3600, true) == "Set-Cookie: sessi
 assert(cgi.clear_cookie_header("session") == "Set-Cookie: session=; Path=/; Max-Age=0")
 
 -- Test multipart
-ct = 'multipart/form-data; boundary="----FormBoundary7MA4YWxkTrZu0gW"'
+ct = "multipart/form-data; boundary=\"----FormBoundary7MA4YWxkTrZu0gW\""
 assert(multipart.boundary_from_content_type(ct) == "----FormBoundary7MA4YWxkTrZu0gW")
 mp_body = table.concat({
     "------FormBoundary7MA4YWxkTrZu0gW",
-    'Content-Disposition: form-data; name="site_name"',
+    "Content-Disposition: form-data; name=\"site_name\"",
     "",
     "Celleste LIMS",
     "------FormBoundary7MA4YWxkTrZu0gW",
-    'Content-Disposition: form-data; name="logo"; filename="logo.png"',
+    "Content-Disposition: form-data; name=\"logo\"; filename=\"logo.png\"",
     "Content-Type: image/png",
     "",
     "\x89PNG\r\n",

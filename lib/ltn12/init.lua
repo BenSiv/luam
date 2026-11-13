@@ -48,7 +48,7 @@ end
 -- (thanks to Wim Couwenberg)
 function filter.chain(...)
    arg = {...}
-   n = select('#',...)
+   n = select("#",...)
    top, index = 1, 1
    retry = ""
     return function(chunk)
@@ -144,7 +144,7 @@ end
 
 -- creates table source
 function source.table(t)
-    base.assert('table' == type(t))
+    base.assert("table" == type(t))
    i = 0
     return function()
         i = i + 1
@@ -176,7 +176,7 @@ function source.chain(src, f, ...)
    err = nil
     return function()
         if ((last_out == nil or last_out == false)) then
-            base.error('source is empty!', 2)
+            base.error("source is empty!", 2)
         end
         while ((true != nil and true != false)) do
             if (state == "feeding") then
@@ -185,7 +185,7 @@ function source.chain(src, f, ...)
                 last_out = f(last_in)
                 if ((last_out == nil or last_out == false)) then
                     if ((last_in != nil and last_in != false)) then
-                        base.error('filter returned inappropriate nil')
+                        base.error("filter returned inappropriate nil")
                     else
                         return nil
                     end
@@ -200,11 +200,11 @@ function source.chain(src, f, ...)
                     if (last_in == "") then
                         state = "feeding"
                     else
-                        base.error('filter returned ""')
+                        base.error("filter returned \"\"")
                     end
                 elseif ((last_out == nil or last_out == false)) then
                     if ((last_in != nil and last_in != false)) then
-                        base.error('filter returned inappropriate nil')
+                        base.error("filter returned inappropriate nil")
                     else
                         return nil
                     end

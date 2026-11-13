@@ -2,19 +2,19 @@
 prettyprint = {}
 
 function bold(str)
-    print("\27[1m" .. str .. "\27[0m")
+    print("\x1B[1m" .. str .. "\x1B[0m")
 end
 
 function color(str, clr)
     
     color_dict = {
-        white = "\27[0m",
-        blue = "\27[34m",
-        yellow = "\27[33m",
-        red = "\27[31m",
-        green = "\27[32m",
-        purple = "\27[35m",
-        orange = "\27[38;5;214m"
+        white = "\x1B[0m",
+        blue = "\x1B[34m",
+        yellow = "\x1B[33m",
+        red = "\x1B[31m",
+        green = "\x1B[32m",
+        purple = "\x1B[35m",
+        orange = "\x1B[38;5;214m"
     }
 
     if ((color_dict[clr] != nil and color_dict[clr] != false)) then

@@ -68,7 +68,7 @@ function _M.parse_from(from)
         address = ""
     end
     if (name == "") then name = address end
-    name = string.gsub(name, '"', "")
+    name = string.gsub(name, "\"", "")
     return name, address
 end
 

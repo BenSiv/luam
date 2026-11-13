@@ -36,11 +36,11 @@ function choose(table)
 end
 
 -- define the encoding filters
-encodet['base64'] = function()
+encodet["base64"] = function()
     return ltn12.filter.cycle(_M.b64, "")
 end
 
-encodet['quoted-printable'] = function(mode)
+encodet["quoted-printable"] = function(mode)
    sep = "\r\n"
     if (mode == "binary") then
         sep = "=0D=0A"
@@ -49,25 +49,25 @@ encodet['quoted-printable'] = function(mode)
 end
 
 -- define the decoding filters
-decodet['base64'] = function()
+decodet["base64"] = function()
     return ltn12.filter.cycle(_M.unb64, "")
 end
 
-decodet['quoted-printable'] = function()
+decodet["quoted-printable"] = function()
     return ltn12.filter.cycle(_M.unqp, "")
 end
 
 -- define the line-wrap filters
-wrapt['text'] = function(length)
+wrapt["text"] = function(length)
     if (length == nil) then
         length = 76
     end
     return ltn12.filter.cycle(_M.wrp, length, length)
 end
-wrapt['base64'] = wrapt['text']
-wrapt['default'] = wrapt['text']
+wrapt["base64"] = wrapt["text"]
+wrapt["default"] = wrapt["text"]
 
-wrapt['quoted-printable'] = function()
+wrapt["quoted-printable"] = function()
     return ltn12.filter.cycle(_M.qpwrp, 76, 76)
 end
 

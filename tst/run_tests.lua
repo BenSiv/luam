@@ -48,6 +48,7 @@ tests = {
     "test_sql_mode_check.lua",
     "test_struct.lua",
     "test_string_utils.lua",
+    "test_strings_and_escapes.lua",
 }
 
 failed = 0

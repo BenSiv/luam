@@ -10,7 +10,7 @@ dates = {}
 function pad_to_length(input, total_length, pad_char)
     input = input
     if (pad_char == nil) then
-        pad_char = '0'
+        pad_char = "0"
     end
     while (utils.length(input) < total_length) do
         input = input .. pad_char

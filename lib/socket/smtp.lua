@@ -154,7 +154,7 @@ end
 seqno = 0
 function newboundary()
     seqno = seqno + 1
-    return string.format('%s%05d==%05u', os.date('%d%m%Y%H%M%S'),
+    return string.format("%s%05d==%05u", os.date("%d%m%Y%H%M%S"),
         math.random(0, 99999), seqno)
 end
 
@@ -170,7 +170,7 @@ function send_headers(tosend)
         if canonic[f] != nil then
             canonic_name = canonic[f]
         end
-        h = canonic_name .. ': ' .. v .. "\r\n" .. h
+        h = canonic_name .. ": " .. v .. "\r\n" .. h
     end
     coroutine.yield(h)
 end
@@ -188,11 +188,11 @@ function send_multipart(mesgt)
         mesgt_headers = {}
     end
    headers = lower_headers(mesgt_headers)
-    if headers['content-type'] == nil then
-        headers['content-type'] = 'multipart/mixed'
+    if headers["content-type"] == nil then
+        headers["content-type"] = "multipart/mixed"
     end
-    headers['content-type'] = headers['content-type'] ..
-        '; boundary="' ..  bd .. '"'
+    headers["content-type"] = headers["content-type"] ..
+        "; boundary=\"" ..  bd .. "\""
     send_headers(headers)
     -- send preamble
     if (mesgt.body.preamble != nil and mesgt.body.preamble != false) then
@@ -221,8 +221,8 @@ function send_source(mesgt)
         mesgt_headers = ({})
     end
    headers = lower_headers(mesgt_headers)
-    if headers['content-type'] == nil then
-        headers['content-type'] = 'text/plain; charset="iso-8859-1"'
+    if headers["content-type"] == nil then
+        headers["content-type"] = "text/plain; charset=\"iso-8859-1\""
     end
     send_headers(headers)
     -- send body from source
@@ -242,8 +242,8 @@ function send_string(mesgt)
         mesgt_headers = ({})
     end
    headers = lower_headers(mesgt_headers)
-    if headers['content-type'] == nil then
-        headers['content-type'] = 'text/plain; charset="iso-8859-1"'
+    if headers["content-type"] == nil then
+        headers["content-type"] = "text/plain; charset=\"iso-8859-1\""
     end
     send_headers(headers)
     -- send body from string

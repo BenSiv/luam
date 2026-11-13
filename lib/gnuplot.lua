@@ -27,7 +27,7 @@ function array_to_file(arr)
         for j = 1, #arr do
             v = arr[j][i]
             if (type(v) == "string") then
-                v = v.gsub(v, '"', '')  -- remove quotes if present
+                v = v.gsub(v, "\"", "")  -- remove quotes if present
             end
             if (v != nil) then
                 line[j] = tostring(v)
@@ -89,24 +89,24 @@ function generate_code(plot, cmd, output_path)
     if (term_height == nil) then
         term_height = 600
     end
-    table.insert(code, string.format('set terminal %s size %d,%d', term_type, term_width, term_height))
+    table.insert(code, string.format("set terminal %s size %d,%d", term_type, term_width, term_height))
     if ((output_path != nil and output_path != false)) then
-        table.insert(code, string.format('set output "%s"', output_path))
+        table.insert(code, string.format("set output \"%s\"", output_path))
     end
 
     -- time series support
     if ((cfg.xformat != nil and cfg.xformat != false)) then
-        table.insert(code, 'set xdata time')
-        table.insert(code, 'set timefmt "'..cfg.xformat..'"')   -- how to parse input
-        table.insert(code, 'set format x "'..cfg.xformat..'"')  -- how to display
+        table.insert(code, "set xdata time")
+        table.insert(code, "set timefmt \""..cfg.xformat.."\"")   -- how to parse input
+        table.insert(code, "set format x \""..cfg.xformat.."\"")  -- how to display
     end
 
     -- labels and grid
-    if ((cfg.title != nil and cfg.title != false)) then table.insert(code, 'set title "'..cfg.title..'"') end
-    if ((cfg.xlabel != nil and cfg.xlabel != false)) then table.insert(code, 'set xlabel "'..cfg.xlabel..'"') end
-    if ((cfg.ylabel != nil and cfg.ylabel != false)) then table.insert(code, 'set ylabel "'..cfg.ylabel..'"') end
-    if ((cfg.grid != nil and cfg.grid != false)) then table.insert(code, 'set grid') end
-    if ((cfg.xtics != nil and cfg.xtics != false)) then table.insert(code, 'set xtics '..cfg.xtics) end
+    if ((cfg.title != nil and cfg.title != false)) then table.insert(code, "set title \""..cfg.title.."\"") end
+    if ((cfg.xlabel != nil and cfg.xlabel != false)) then table.insert(code, "set xlabel \""..cfg.xlabel.."\"") end
+    if ((cfg.ylabel != nil and cfg.ylabel != false)) then table.insert(code, "set ylabel \""..cfg.ylabel.."\"") end
+    if ((cfg.grid != nil and cfg.grid != false)) then table.insert(code, "set grid") end
+    if ((cfg.xtics != nil and cfg.xtics != false)) then table.insert(code, "set xtics "..cfg.xtics) end
 
     -- axis ranges
     if ((cfg.xrange != nil and cfg.xrange != false)) then
@@ -130,12 +130,12 @@ function generate_code(plot, cmd, output_path)
     -- plot command
     plots = {}
     for _, d in ipairs(cfg.data) do
-        line = '"'..d[1]..'"'
+        line = "\""..d[1].."\""
         if ((d.using != nil and d.using != false)) then
             line = line .. " using " .. table.concat(d.using, ":")
         end
         if ((d.with != nil and d.with != false)) then line = line .. " w " .. d.with end
-        if ((d.title != nil and d.title != false)) then line = line .. ' t "'..d.title..'"' end
+        if ((d.title != nil and d.title != false)) then line = line .. " t \""..d.title.."\"" end
         table.insert(plots, line)
     end
     table.insert(code, cmd.." "..table.concat(plots, ", "))

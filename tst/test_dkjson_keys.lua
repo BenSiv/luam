@@ -4,7 +4,7 @@
 
 json = dofile("lib/dkjson/init.lua")
 
-keys = {"plain", "quote \" inside", "back\\slash", "tab\there", "ctrl\1char", "del\127char", "High Five\226\132\162"}
+keys = {"plain", "quote \" inside", "back\\slash", "tab\there", "ctrl\x01char", "del\x7Fchar", "High Five\u{2122}"}
 t = {}
 for i, key in ipairs(keys) do
     t[key] = i

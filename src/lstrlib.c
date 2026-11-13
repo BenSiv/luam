@@ -763,7 +763,7 @@ static void addquoted(lua_State *L, luaL_Buffer *b, int arg) {
       break;
     }
     case '\0': {
-      luaL_addlstring(b, "\\000", 4);
+      luaL_addlstring(b, "\\x00", 4);
       break;
     }
     default: {
@@ -890,15 +890,469 @@ static int str_format(lua_State *L) {
 }
 
 
+/*
+** {======================================================
+** Plain-text string helpers (literal bytes, no pattern magic)
+** =======================================================
+*/
+
+static int str_contains(lua_State *L) {
+  size_t ls, lsub;
+  const char *s = luaL_checklstring(L, 1, &ls);
+  const char *sub = luaL_checklstring(L, 2, &lsub);
+  lua_pushboolean(L, lmemfind(s, ls, sub, lsub) != NULL);
+  return 1;
+}
+
+static int str_starts_with(lua_State *L) {
+  size_t ls, lp;
+  const char *s = luaL_checklstring(L, 1, &ls);
+  const char *p = luaL_checklstring(L, 2, &lp);
+  lua_pushboolean(L, lp <= ls && memcmp(s, p, lp) == 0);
+  return 1;
+}
+
+static int str_ends_with(lua_State *L) {
+  size_t ls, lsuf;
+  const char *s = luaL_checklstring(L, 1, &ls);
+  const char *suf = luaL_checklstring(L, 2, &lsuf);
+  lua_pushboolean(L, lsuf <= ls && memcmp(s + ls - lsuf, suf, lsuf) == 0);
+  return 1;
+}
+
+static int str_index_of(lua_State *L) {
+  size_t ls, lsub;
+  const char *s = luaL_checklstring(L, 1, &ls);
+  const char *sub = luaL_checklstring(L, 2, &lsub);
+  ptrdiff_t init = posrelat(luaL_optinteger(L, 3, 1), ls) - 1;
+  const char *p;
+  if (init < 0) {
+    init = 0;
+  } else if ((size_t)init > ls) {
+    lua_pushnil(L);
+    return 1;
+  }
+  p = lmemfind(s + init, ls - (size_t)init, sub, lsub);
+  if (p != NULL)
+    lua_pushinteger(L, p - s + 1);
+  else
+    lua_pushnil(L);
+  return 1;
+}
+
+static int str_count(lua_State *L) {
+  size_t ls, lsub;
+  const char *s = luaL_checklstring(L, 1, &ls);
+  const char *sub = luaL_checklstring(L, 2, &lsub);
+  lua_Integer n = 0;
+  const char *p;
+  luaL_argcheck(L, lsub > 0, 2, "substring cannot be empty");
+  while ((p = lmemfind(s, ls, sub, lsub)) != NULL) {
+    n++;
+    ls -= (size_t)(p - s) + lsub;
+    s = p + lsub;
+  }
+  lua_pushinteger(L, n);
+  return 1;
+}
+
+static int str_replace(lua_State *L) {
+  size_t ls, lold, lnew;
+  const char *s = luaL_checklstring(L, 1, &ls);
+  const char *old = luaL_checklstring(L, 2, &lold);
+  const char *rep = luaL_checklstring(L, 3, &lnew);
+  int has_max = !lua_isnoneornil(L, 4);
+  lua_Integer max_n = has_max ? luaL_checkinteger(L, 4) : 0;
+  lua_Integer count = 0;
+  luaL_Buffer b;
+  luaL_argcheck(L, lold > 0, 2, "old substring cannot be empty");
+  luaL_buffinit(L, &b);
+  while (!has_max || count < max_n) {
+    const char *p = lmemfind(s, ls, old, lold);
+    if (p == NULL)
+      break;
+    luaL_addlstring(&b, s, (size_t)(p - s));
+    luaL_addlstring(&b, rep, lnew);
+    ls -= (size_t)(p - s) + lold;
+    s = p + lold;
+    count++;
+  }
+  luaL_addlstring(&b, s, ls);
+  luaL_pushresult(&b);
+  lua_pushinteger(L, count);
+  return 2;
+}
+
+static int trim_aux(lua_State *L, int left, int right) {
+  size_t ls;
+  const char *s = luaL_checklstring(L, 1, &ls);
+  unsigned char set[256];
+  size_t start = 0;
+  size_t end = ls;
+  memset(set, 0, sizeof(set));
+  if (lua_isnoneornil(L, 2)) {
+    set[' '] = 1;
+    set['\t'] = 1;
+    set['\n'] = 1;
+    set['\r'] = 1;
+    set['\v'] = 1;
+    set['\f'] = 1;
+  } else {
+    size_t lchars, i;
+    const char *chars = luaL_checklstring(L, 2, &lchars);
+    for (i = 0; i < lchars; i++)
+      set[uchar(chars[i])] = 1;
+  }
+  if (left) {
+    while (start < end && set[uchar(s[start])])
+      start++;
+  }
+  if (right) {
+    while (end > start && set[uchar(s[end - 1])])
+      end--;
+  }
+  lua_pushlstring(L, s + start, end - start);
+  return 1;
+}
+
+static int str_trim(lua_State *L) {
+  return trim_aux(L, 1, 1);
+}
+
+static int str_ltrim(lua_State *L) {
+  return trim_aux(L, 1, 0);
+}
+
+static int str_rtrim(lua_State *L) {
+  return trim_aux(L, 0, 1);
+}
+
+static int str_strip_prefix(lua_State *L) {
+  size_t ls, lp;
+  const char *s = luaL_checklstring(L, 1, &ls);
+  const char *p = luaL_checklstring(L, 2, &lp);
+  if (lp <= ls && memcmp(s, p, lp) == 0) {
+    lua_pushlstring(L, s + lp, ls - lp);
+    lua_pushboolean(L, 1);
+  } else {
+    lua_pushlstring(L, s, ls);
+    lua_pushboolean(L, 0);
+  }
+  return 2;
+}
+
+static int str_strip_suffix(lua_State *L) {
+  size_t ls, lsuf;
+  const char *s = luaL_checklstring(L, 1, &ls);
+  const char *suf = luaL_checklstring(L, 2, &lsuf);
+  if (lsuf <= ls && memcmp(s + ls - lsuf, suf, lsuf) == 0) {
+    lua_pushlstring(L, s, ls - lsuf);
+    lua_pushboolean(L, 1);
+  } else {
+    lua_pushlstring(L, s, ls);
+    lua_pushboolean(L, 0);
+  }
+  return 2;
+}
+
+static int str_dedent(lua_State *L) {
+  size_t ls;
+  const char *s = luaL_checklstring(L, 1, &ls);
+  size_t i = 0;
+  const char *margin = NULL;
+  size_t margin_len = 0;
+  const char *p, *end;
+  luaL_Buffer b;
+  /* strip leading wrapper blank line if empty/whitespace up to first '\n' */
+  while (i < ls && (s[i] == ' ' || s[i] == '\t'))
+    i++;
+  if (i < ls && s[i] == '\r' && i + 1 < ls && s[i + 1] == '\n') {
+    s += i + 2;
+    ls -= i + 2;
+  } else if (i < ls && s[i] == '\n') {
+    s += i + 1;
+    ls -= i + 1;
+  }
+  /* strip trailing whitespace-only wrapper line after last '\n' */
+  i = ls;
+  while (i > 0 && (s[i - 1] == ' ' || s[i - 1] == '\t'))
+    i--;
+  if (i > 0 && s[i - 1] == '\n') {
+    i--;
+    if (i > 0 && s[i - 1] == '\r')
+      i--;
+    ls = i;
+  }
+  /* pass 1: find common leading space/tab prefix across non-empty lines */
+  p = s;
+  end = s + ls;
+  while (p < end) {
+    const char *nl = (const char *)memchr(p, '\n', (size_t)(end - p));
+    const char *lend = nl ? nl : end;
+    size_t llen, ws = 0;
+    if (lend > p && lend[-1] == '\r')
+      lend--;
+    llen = (size_t)(lend - p);
+    while (ws < llen && (p[ws] == ' ' || p[ws] == '\t'))
+      ws++;
+    if (ws < llen) {
+      if (margin == NULL) {
+        margin = p;
+        margin_len = ws;
+      } else {
+        size_t k = 0;
+        size_t lim = ws < margin_len ? ws : margin_len;
+        while (k < lim && margin[k] == p[k])
+          k++;
+        margin_len = k;
+      }
+    }
+    if (nl == NULL)
+      break;
+    p = nl + 1;
+  }
+  /* pass 2: emit dedented lines */
+  luaL_buffinit(L, &b);
+  p = s;
+  while (p < end) {
+    const char *nl = (const char *)memchr(p, '\n', (size_t)(end - p));
+    const char *lend = nl ? nl : end;
+    int has_cr = (nl != NULL && lend > p && lend[-1] == '\r');
+    size_t llen, ws = 0;
+    if (has_cr)
+      lend--;
+    llen = (size_t)(lend - p);
+    while (ws < llen && (p[ws] == ' ' || p[ws] == '\t'))
+      ws++;
+    if (ws < llen)
+      luaL_addlstring(&b, p + margin_len, llen - margin_len);
+    if (nl != NULL) {
+      if (has_cr)
+        luaL_addchar(&b, '\r');
+      luaL_addchar(&b, '\n');
+      p = nl + 1;
+    } else {
+      break;
+    }
+  }
+  luaL_pushresult(&b);
+  return 1;
+}
+
+static int str_split(lua_State *L) {
+  size_t ls, lsep;
+  const char *s = luaL_checklstring(L, 1, &ls);
+  const char *sep = luaL_checklstring(L, 2, &lsep);
+  int has_max = !lua_isnoneornil(L, 3);
+  lua_Integer max_splits = has_max ? luaL_checkinteger(L, 3) : 0;
+  lua_Integer splits = 0;
+  int idx = 1;
+  luaL_argcheck(L, lsep > 0, 2, "separator cannot be empty");
+  lua_newtable(L);
+  while (!has_max || splits < max_splits) {
+    const char *p = lmemfind(s, ls, sep, lsep);
+    if (p == NULL)
+      break;
+    lua_pushlstring(L, s, (size_t)(p - s));
+    lua_rawseti(L, -2, idx++);
+    ls -= (size_t)(p - s) + lsep;
+    s = p + lsep;
+    splits++;
+  }
+  lua_pushlstring(L, s, ls);
+  lua_rawseti(L, -2, idx);
+  return 1;
+}
+
+static int str_lines(lua_State *L) {
+  size_t ls;
+  const char *s = luaL_checklstring(L, 1, &ls);
+  const char *end = s + ls;
+  int idx = 1;
+  lua_newtable(L);
+  while (s < end) {
+    const char *nl = (const char *)memchr(s, '\n', (size_t)(end - s));
+    if (nl == NULL) {
+      lua_pushlstring(L, s, (size_t)(end - s));
+      lua_rawseti(L, -2, idx++);
+      break;
+    } else {
+      size_t len = (size_t)(nl - s);
+      if (len > 0 && s[len - 1] == '\r')
+        len--;
+      lua_pushlstring(L, s, len);
+      lua_rawseti(L, -2, idx++);
+      s = nl + 1;
+    }
+  }
+  return 1;
+}
+
+static int str_words(lua_State *L) {
+  size_t ls, i = 0;
+  const char *s = luaL_checklstring(L, 1, &ls);
+  int idx = 1;
+  lua_newtable(L);
+  while (i < ls) {
+    size_t start;
+    while (i < ls && (s[i] == ' ' || (s[i] >= '\t' && s[i] <= '\r')))
+      i++;
+    if (i >= ls)
+      break;
+    start = i;
+    while (i < ls && !(s[i] == ' ' || (s[i] >= '\t' && s[i] <= '\r')))
+      i++;
+    lua_pushlstring(L, s + start, i - start);
+    lua_rawseti(L, -2, idx++);
+  }
+  return 1;
+}
+
+static void push_tostring(lua_State *L, int idx) {
+  if (idx < 0)
+    idx = lua_gettop(L) + idx + 1;
+  if (luaL_callmeta(L, idx, "__tostring")) {
+    if (!lua_isstring(L, -1))
+      luaL_error(L, LUA_QL("__tostring") " must return a string");
+    return;
+  }
+  switch (lua_type(L, idx)) {
+  case LUA_TNUMBER:
+    lua_pushvalue(L, idx);
+    lua_tostring(L, -1);
+    break;
+  case LUA_TSTRING:
+    lua_pushvalue(L, idx);
+    break;
+  case LUA_TBOOLEAN:
+    lua_pushstring(L, lua_toboolean(L, idx) ? "true" : "false");
+    break;
+  case LUA_TNIL:
+    lua_pushliteral(L, "nil");
+    break;
+  default:
+    lua_pushfstring(L, "%s: %p", luaL_typename(L, idx), lua_topointer(L, idx));
+    break;
+  }
+}
+
+static int is_ident_key(const char *s, size_t len) {
+  size_t i;
+  if (len == 0)
+    return 0;
+  for (i = 0; i < len; i++) {
+    unsigned char c = uchar(s[i]);
+    if (!(isalnum(c) || c == '_'))
+      return 0;
+  }
+  return 1;
+}
+
+static int str_template(lua_State *L) {
+  int top = lua_gettop(L);
+  size_t ls;
+  const char *s = luaL_checklstring(L, 1, &ls);
+  const char *p = s;
+  const char *end = s + ls;
+  int named_mode = (top == 2 && lua_istable(L, 2));
+  int pos_arg = 2;
+  luaL_Buffer b;
+  luaL_buffinit(L, &b);
+  while (p < end) {
+    const char *open = lmemfind(p, (size_t)(end - p), "{{", 2);
+    const char *close;
+    if (open == NULL) {
+      luaL_addlstring(&b, p, (size_t)(end - p));
+      break;
+    }
+    luaL_addlstring(&b, p, (size_t)(open - p));
+    while (open + 2 < end && open[2] == '{') {
+      luaL_addchar(&b, '{');
+      open++;
+    }
+    close = lmemfind(open + 2, (size_t)(end - (open + 2)), "}}", 2);
+    if (close == NULL) {
+      luaL_addlstring(&b, open, (size_t)(end - open));
+      break;
+    }
+    if (close == open + 2) {
+      /* positional {{}} */
+      if (pos_arg <= top) {
+        push_tostring(L, pos_arg);
+        luaL_addvalue(&b);
+      } else {
+        luaL_addlstring(&b, "nil", 3);
+      }
+      pos_arg++;
+      p = close + 2;
+    } else if (named_mode) {
+      const char *ks = open + 2;
+      const char *ke = close;
+      while (ks < ke && (*ks == ' ' || *ks == '\t'))
+        ks++;
+      while (ke > ks && (ke[-1] == ' ' || ke[-1] == '\t'))
+        ke--;
+      if (is_ident_key(ks, (size_t)(ke - ks))) {
+        lua_pushlstring(L, ks, (size_t)(ke - ks));
+        lua_gettable(L, 2);
+        if (lua_isnil(L, -1)) {
+          lua_pop(L, 1);
+          luaL_addlstring(&b, open, (size_t)((close + 2) - open));
+        } else {
+          int val_idx = lua_gettop(L);
+          push_tostring(L, val_idx);
+          lua_remove(L, val_idx);
+          luaL_addvalue(&b);
+        }
+      } else {
+        luaL_addlstring(&b, open, (size_t)((close + 2) - open));
+      }
+      p = close + 2;
+    } else {
+      luaL_addlstring(&b, open, (size_t)((close + 2) - open));
+      p = close + 2;
+    }
+  }
+  luaL_pushresult(&b);
+  return 1;
+}
+
+/* }====================================================== */
+
+
 static const luaL_Reg strlib[] = {
-    {"byte", str_byte},       {"char", str_char},
-    {"dump", str_dump},       {"find", str_find},
-    {"format", str_format},   {"gfind", gfind_nodef},
-    {"gmatch", gmatch},       {"gsub", str_gsub},
-    {"len", str_len},         {"lower", str_lower},
-    {"match", str_match},     {"rep", str_rep},
-    {"reverse", str_reverse}, {"sub", str_sub},
-    {"upper", str_upper},     {NULL, NULL}};
+    {"byte", str_byte},
+    {"char", str_char},
+    {"contains", str_contains},
+    {"count", str_count},
+    {"dedent", str_dedent},
+    {"dump", str_dump},
+    {"ends_with", str_ends_with},
+    {"find", str_find},
+    {"format", str_format},
+    {"gfind", gfind_nodef},
+    {"gmatch", gmatch},
+    {"gsub", str_gsub},
+    {"index_of", str_index_of},
+    {"len", str_len},
+    {"lines", str_lines},
+    {"lower", str_lower},
+    {"ltrim", str_ltrim},
+    {"match", str_match},
+    {"rep", str_rep},
+    {"replace", str_replace},
+    {"reverse", str_reverse},
+    {"rtrim", str_rtrim},
+    {"split", str_split},
+    {"starts_with", str_starts_with},
+    {"strip_prefix", str_strip_prefix},
+    {"strip_suffix", str_strip_suffix},
+    {"sub", str_sub},
+    {"template", str_template},
+    {"trim", str_trim},
+    {"upper", str_upper},
+    {"words", str_words},
+    {NULL, NULL}};
 
 
 static void createmetatable(lua_State *L) {

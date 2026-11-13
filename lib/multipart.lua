@@ -60,8 +60,8 @@ function multipart.parse(content_type, body)
             header_block = string.sub(part, 1, header_end - 1)
             content = string.sub(part, header_end + 4)
 
-            name = string.match(header_block, 'name="([^"]*)"')
-            filename = string.match(header_block, 'filename="([^"]*)"')
+            name = string.match(header_block, "name=\"([^\"]*)\"")
+            filename = string.match(header_block, "filename=\"([^\"]*)\"")
             part_content_type = string.match(header_block, "[Cc]ontent%-[Tt]ype:%s*([^\r\n]+)")
 
             if name != nil then

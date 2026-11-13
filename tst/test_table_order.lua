@@ -260,8 +260,8 @@ t = {}
 t.zeta = 1
 t.alpha = 2
 t.mid = {b = true, a = false}
-assert(json.encode(t) == '{"zeta":1,"alpha":2,"mid":{"b":true,"a":false}}', "json order: " .. json.encode(t))
-decoded = json.decode('{"z":1,"y":2,"x":3}')
-assert(json.encode(decoded) == '{"z":1,"y":2,"x":3}', "json round trip order: " .. json.encode(decoded))
+assert(json.encode(t) == "{\"zeta\":1,\"alpha\":2,\"mid\":{\"b\":true,\"a\":false}}", "json order: " .. json.encode(t))
+decoded = json.decode("{\"z\":1,\"y\":2,\"x\":3}")
+assert(json.encode(decoded) == "{\"z\":1,\"y\":2,\"x\":3}", "json round trip order: " .. json.encode(decoded))
 
 print("table order tests passed")

@@ -36,9 +36,9 @@ SCHEMES = ({
         port = 443
         , create = function(t)
          https = assert(
-            require("ssl.https"), 'LuaSocket: LuaSec not found')
+            require("ssl.https"), "LuaSocket: LuaSec not found")
          tcp = assert(
-            https.tcp, 'LuaSocket: Function tcp() not available from LuaSec')
+            https.tcp, "LuaSocket: Function tcp() not available from LuaSec")
           return tcp(t) end })})
 
 -----------------------------------------------------------------------------
@@ -254,7 +254,7 @@ function adjustheaders(reqt)
    host = reqt.host
    port = base.tostring(reqt.port)
     if port != base.tostring(SCHEMES[reqt.scheme].port) then
-        host = host .. ':' .. port end
+        host = host .. ":" .. port end
    lower = ({
         ["user-agent"] = _M.USERAGENT,
         ["host"] = host,
@@ -308,7 +308,7 @@ function adjustrequest(reqt)
    schemedefs, host, port, method = SCHEMES[nreqt.scheme], nreqt.host, nreqt.port, nreqt.method
     if (nreqt.create == nil or nreqt.create == false) then nreqt.create = schemedefs.create(nreqt) end
     if (port == nil or port == "" or port == false) then nreqt.port = schemedefs.port end
-    if (method == nil or method == "" or method == false) then nreqt.method = 'GET' end
+    if (method == nil or method == "" or method == false) then nreqt.method = "GET" end
     if (host == nil or host == "" or host == false) then
         socket.try(nil, "invalid host '" .. base.tostring(nreqt.host) .. "'")
     end
@@ -344,7 +344,7 @@ function shouldredirect(reqt, code, headers)
    scheme = url.parse(location).scheme
     if (scheme != nil and scheme != false) and (SCHEMES[scheme] == nil or SCHEMES[scheme] == false) then return false end
     -- avoid https downgrades
-    if ('https' == reqt.scheme) and ('https' != scheme) then return false end
+    if ("https" == reqt.scheme) and ("https" != scheme) then return false end
    sr_nredirects = reqt.nredirects
     if sr_nredirects == nil or sr_nredirects == false then
         sr_nredirects = 0

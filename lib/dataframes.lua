@@ -2,7 +2,7 @@ utils = require("utils")
 
 function strip_ansi(str)
     if str == nil then return "" end
-    return (string.gsub(tostring(str), "\027%[[%d;]*%a", ""))
+    return (string.gsub(tostring(str), "\x1B%[[%d;]*%a", ""))
 end
 
 function visual_len(str)
@@ -211,7 +211,7 @@ function df_format_header(columns, column_widths, bold_headers)
     for _, col_name in ipairs(columns) do
         header_value = df_fit_cell(col_name, column_widths[col_name])
         if (bold_headers == true) then
-            header_value = "\27[1m" .. header_value .. "\27[0m"
+            header_value = "\x1B[1m" .. header_value .. "\x1B[0m"
         end
         table.insert(parts, header_value)
     end

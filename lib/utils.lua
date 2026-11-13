@@ -618,7 +618,7 @@ function serialize(tbl)
         if (type(v) == "table") then
             str = str .. serialize(v) .. ","
         elseif (type(v) == "string") then
-            str = str .. '"' .. v .. '",'
+            str = str .. "\"" .. v .. "\","
         else
             str = str .. tostring(v) .. ","
         end
