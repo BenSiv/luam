@@ -389,7 +389,7 @@ end
 -- mentioning `asset.read("example")` never false-matches). Like
 -- extract_requires, only literal paths are discovered so missing
 -- assets fail the build here at compile time instead of at runtime.
-function extract_assets(source)
+function extract_assets(source, caller_relpath)
     found = {}
     len = #source
     i = 1
@@ -454,6 +454,8 @@ function extract_assets(source)
                         table.insert(found, relpath)
                         i = s_end + 1
                         matched = true
+                    elseif caller_relpath != "asset.lua" and string.find(source, "^asset%s*%.%s*read%s*%(", i) != nil then
+                        fail("non-literal asset.read(...) in " .. caller_relpath .. ": pass a string literal so static builds can bundle the asset")
                     end
                 end
             end
@@ -525,7 +527,7 @@ function visit(relpath)
     source_file = io.open(full_path, "r")
     source = io.read(source_file, "*all")
     io.close(source_file)
-    for _, asset_relpath in ipairs(extract_assets(source)) do
+    for _, asset_relpath in ipairs(extract_assets(source, relpath)) do
         record_asset(asset_relpath, relpath)
     end
     for _, name in ipairs(extract_requires(source)) do

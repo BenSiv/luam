@@ -101,5 +101,16 @@ bad_build_cmd = "cd \"" .. tmp_root .. "\" && \"" .. paths.joinpath(luam_root, "
     paths.joinpath(luam_root, "lib", "static", "build.lua") .. "\" --src bad_src --entry main.lua --bin bad_app --luamdir \"" .. luam_root .. "\" > /dev/null 2>&1"
 assert(os.execute(bad_build_cmd) != 0, "static build should fail when an asset.read target does not exist")
 
+-- 5. Non-literal asset.read(var) fails the static build at compile time
+--    instead of hiding an unbundled asset until runtime.
+lfs.mkdir(paths.joinpath(tmp_root, "dyn_src"))
+f_dyn = io.open(paths.joinpath(tmp_root, "dyn_src", "main.lua"), "wb")
+io.write(f_dyn, "asset = require(\"asset\")\np = \"ui/widget.js\"\nx = asset.read(p)\n")
+io.close(f_dyn)
+
+dyn_build_cmd = "cd \"" .. tmp_root .. "\" && \"" .. paths.joinpath(luam_root, "bin", "luam") .. "\" \"" ..
+    paths.joinpath(luam_root, "lib", "static", "build.lua") .. "\" --src dyn_src --entry main.lua --bin dyn_app --luamdir \"" .. luam_root .. "\" > /dev/null 2>&1"
+assert(os.execute(dyn_build_cmd) != 0, "static build should fail on non-literal asset.read(var)")
+
 os.execute("rm -rf \"" .. tmp_root .. "\"")
 print("PASS test_asset.lua")
