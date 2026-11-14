@@ -49,6 +49,8 @@ tests = {
     "test_struct.lua",
     "test_string_utils.lua",
     "test_strings_and_escapes.lua",
+    "test_web_stack.lua",
+    "test_asset.lua",
 }
 
 failed = 0

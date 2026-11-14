@@ -384,6 +384,99 @@ function extract_requires(source)
     return names
 end
 
+-- Every literal asset.read("relpath") call in real code (skipping
+-- comments and unrelated string literals so a doc comment or prompt
+-- mentioning `asset.read("example")` never false-matches). Like
+-- extract_requires, only literal paths are discovered so missing
+-- assets fail the build here at compile time instead of at runtime.
+function extract_assets(source)
+    found = {}
+    len = #source
+    i = 1
+    while i <= len do
+        c = string.sub(source, i, i)
+        if c == "-" and string.sub(source, i, i + 1) == "--" then
+            eq = string.match(source, "^%-%-%[(=*)%[", i)
+            if eq != nil then
+                close_pat = "]" .. eq .. "]"
+                close_pos = string.index_of(source, close_pat, i + 4 + #eq)
+                if close_pos == nil then
+                    i = len + 1
+                else
+                    i = close_pos + #close_pat
+                end
+            else
+                nl_pos = string.index_of(source, "\n", i + 2)
+                if nl_pos == nil then
+                    i = len + 1
+                else
+                    i = nl_pos + 1
+                end
+            end
+        elseif c == "\"" and string.sub(source, i, i + 2) == "\"\"\"" then
+            j = i + 3
+            while j <= len do
+                jc = string.sub(source, j, j)
+                if jc == "\\" then
+                    j = j + 2
+                elseif jc == "\"" and string.sub(source, j, j + 2) == "\"\"\"" then
+                    j = j + 3
+                    break
+                else
+                    j = j + 1
+                end
+            end
+            i = j
+        elseif c == "\"" then
+            j = i + 1
+            while j <= len do
+                jc = string.sub(source, j, j)
+                if jc == "\\" then
+                    j = j + 2
+                elseif jc == "\"" then
+                    j = j + 1
+                    break
+                else
+                    j = j + 1
+                end
+            end
+            i = j
+        else
+            matched = false
+            if c == "a" then
+                prev = ""
+                if i > 1 then
+                    prev = string.sub(source, i - 1, i - 1)
+                end
+                if prev == "" or string.match(prev, "[%w_.]") == nil then
+                    s_start, s_end, relpath = string.find(source, "^asset%s*%.%s*read%s*%(%s*\"([^\"]*)\"%s*%)", i)
+                    if s_start != nil then
+                        table.insert(found, relpath)
+                        i = s_end + 1
+                        matched = true
+                    end
+                end
+            end
+            if not matched then
+                i = i + 1
+            end
+        end
+    end
+    return found
+end
+
+function validate_asset_relpath(relpath, caller_relpath)
+    if relpath == "" or string.starts_with(relpath, "/") or string.ends_with(relpath, "/") or
+       string.contains(relpath, "\\") or string.contains(relpath, "//") then
+        fail("invalid asset.read(\"" .. relpath .. "\") path in " .. caller_relpath)
+    end
+    for _, part in ipairs(string.split(relpath, "/")) do
+        if part == "" or part == "." or part == ".." then
+            fail("invalid asset.read(\"" .. relpath .. "\") path in " .. caller_relpath)
+        end
+    end
+end
+
 -- "agent_tools.bridge" -> "agent_tools/bridge.lua"; "sandbox" -> "sandbox.lua".
 function module_name_to_relpath(name)
     return (string.gsub(name, "%.", "/")) .. ".lua"
@@ -391,6 +484,27 @@ end
 
 VISITED = {}
 FILES = {}
+BUNDLED_ASSET_SEEN = {}
+BUNDLED_ASSET_LIST = {}
+
+function record_asset(relpath, caller_relpath)
+    validate_asset_relpath(relpath, caller_relpath)
+    if BUNDLED_ASSET_SEEN[relpath] == true then
+        return
+    end
+    BUNDLED_ASSET_SEEN[relpath] = true
+    src_asset_path = paths.joinpath(SRC_DIR, relpath)
+    asset_file = io.open(src_asset_path, "rb")
+    if asset_file == nil then
+        fail("asset.read(\"" .. relpath .. "\") referenced in " .. caller_relpath .. ", but '" .. src_asset_path .. "' does not exist")
+    end
+    asset_bytes = io.read(asset_file, "*all")
+    io.close(asset_file)
+    if asset_bytes == nil then
+        asset_bytes = ""
+    end
+    table.insert(BUNDLED_ASSET_LIST, {relpath = relpath, bytes = asset_bytes})
+end
 
 -- Depth-first from `relpath`. If it resolves to a real .lua file in
 -- TMPDIR, add it (before recursing, so ENTRY always lands first in
@@ -411,6 +525,9 @@ function visit(relpath)
     source_file = io.open(full_path, "r")
     source = io.read(source_file, "*all")
     io.close(source_file)
+    for _, asset_relpath in ipairs(extract_assets(source)) do
+        record_asset(asset_relpath, relpath)
+    end
     for _, name in ipairs(extract_requires(source)) do
         visit(module_name_to_relpath(name))
     end
@@ -429,12 +546,25 @@ for _, dir in ipairs(ALWAYS_INCLUDE_DIRS) do
         dir_files = {}
         list_lua_tree(dir_path, dir, dir_files)
         for _, relpath in ipairs(dir_files) do
-            if VISITED[relpath] != true then
-                VISITED[relpath] = true
-                table.insert(FILES, relpath)
-            end
+            visit(relpath)
         end
     end
+end
+
+if VISITED["asset.lua"] == true or #BUNDLED_ASSET_LIST > 0 then
+    bundled_assets_path = paths.joinpath(TMPDIR, "_bundled_assets.lua")
+    if paths.file_exists(bundled_assets_path) then
+        fail("project source file '_bundled_assets.lua' collides with generated asset bundle")
+    end
+    bundle_parts = {"return {\n"}
+    for _, item in ipairs(BUNDLED_ASSET_LIST) do
+        table.insert(bundle_parts, string.format("    [%q] = %q,\n", item.relpath, item.bytes))
+    end
+    table.insert(bundle_parts, "}\n")
+    bundle_out = io.open(bundled_assets_path, "wb")
+    io.write(bundle_out, table.concat(bundle_parts, ""))
+    io.close(bundle_out)
+    table.insert(FILES, "_bundled_assets.lua")
 end
 
 print("Files to bundle: " .. table.concat(FILES, " "))
