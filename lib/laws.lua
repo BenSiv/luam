@@ -66,8 +66,11 @@ end
 -- Formatting & Structural Equality
 --------------------------------------------------------------------------
 
-format_value = nil
-format_value = function(v)
+function compare_keys_asc(a, b)
+    return tostring(a) < tostring(b)
+end
+
+function format_value(v)
     t = type(v)
     if t == "nil" then
         return "nil"
@@ -107,7 +110,7 @@ format_value = function(v)
         end
         return "{" .. table.concat(parts, ", ") .. "}"
     end
-    table.sort(keys, function(a, b) return tostring(a) < tostring(b) end)
+    table.sort(keys, compare_keys_asc)
     parts = {}
     for _, k in ipairs(keys) do
         key_str = "[" .. format_value(k) .. "]"
@@ -121,8 +124,7 @@ end
 
 laws.format = format_value
 
-deep_equal = nil
-deep_equal = function(a, b, tolerance)
+function deep_equal(a, b, tolerance)
     ta = type(a)
     tb = type(b)
     if ta != tb then
@@ -156,145 +158,150 @@ end
 laws.deep_equal = deep_equal
 
 --------------------------------------------------------------------------
--- Integrated Shrink Trees: node = {value = v, shrinks = function() -> {node, ...}}
+-- Integrated Shrink Trees: node = {value = v, shrinks = shrink_fn}
 --------------------------------------------------------------------------
+
+function empty_shrinks()
+    return {}
+end
 
 function leaf_node(v)
-    return {value = v, shrinks = function() return {} end}
+    return {value = v, shrinks = empty_shrinks}
 end
 
-make_int_node = nil
-make_int_node = function(val, target)
+function shrink_true_node()
+    return {leaf_node(false)}
+end
+
+function make_int_node(val, target)
+    function shrink_int()
+        if val == target then
+            return {}
+        end
+        out = {}
+        seen = {}
+        diff = val - target
+        step = diff
+        -- First try jumping straight to `target`, then binary-search midpoints toward `val`.
+        table.insert(out, make_int_node(target, target))
+        seen[target] = true
+        while math.abs(step) > 1 do
+            if step > 0 then
+                step = math.floor(step / 2)
+            else
+                step = -math.floor((-step) / 2)
+            end
+            cand = val - step
+            if cand != val and seen[cand] == nil then
+                seen[cand] = true
+                table.insert(out, make_int_node(cand, target))
+            end
+        end
+        if val > target and seen[val - 1] == nil then
+            table.insert(out, make_int_node(val - 1, target))
+        elseif val < target and seen[val + 1] == nil then
+            table.insert(out, make_int_node(val + 1, target))
+        end
+        return out
+    end
     return {
         value = val,
-        shrinks = function()
-            if val == target then
-                return {}
-            end
-            out = {}
-            seen = {}
-            diff = val - target
-            step = diff
-            -- First try jumping straight to `target`, then binary-search midpoints toward `val`.
-            table.insert(out, make_int_node(target, target))
-            seen[target] = true
-            while math.abs(step) > 1 do
-                if step > 0 then
-                    step = math.floor(step / 2)
-                else
-                    step = -math.floor((-step) / 2)
-                end
-                cand = val - step
-                if cand != val and seen[cand] == nil then
-                    seen[cand] = true
-                    table.insert(out, make_int_node(cand, target))
-                end
-            end
-            if val > target and seen[val - 1] == nil then
-                table.insert(out, make_int_node(val - 1, target))
-            elseif val < target and seen[val + 1] == nil then
-                table.insert(out, make_int_node(val + 1, target))
-            end
-            return out
-        end,
+        shrinks = shrink_int,
     }
 end
 
-make_real_node = nil
-make_real_node = function(val, lo, hi, depth)
+function make_real_node(val, lo, hi, depth)
+    function shrink_real()
+        if depth >= 12 then
+            return {}
+        end
+        target = 0.0
+        if lo > 0.0 then
+            target = lo
+        elseif hi < 0.0 then
+            target = hi
+        end
+        if math.abs(val - target) < 1e-9 then
+            return {}
+        end
+        cands = {target}
+        rounded = math.floor(val)
+        if rounded >= lo and rounded <= hi and math.abs(rounded - val) > 1e-9 then
+            table.insert(cands, rounded)
+        end
+        mid = target + (val - target) * 0.5
+        if mid >= lo and mid <= hi then
+            table.insert(cands, mid)
+        end
+        out = {}
+        for _, c in ipairs(cands) do
+            if math.abs(c - val) > 1e-9 then
+                table.insert(out, make_real_node(c, lo, hi, depth + 1))
+            end
+        end
+        return out
+    end
     return {
         value = val,
-        shrinks = function()
-            if depth >= 12 then
-                return {}
-            end
-            target = 0.0
-            if lo > 0.0 then
-                target = lo
-            elseif hi < 0.0 then
-                target = hi
-            end
-            if math.abs(val - target) < 1e-9 then
-                return {}
-            end
-            cands = {target}
-            rounded = math.floor(val)
-            if rounded >= lo and rounded <= hi and math.abs(rounded - val) > 1e-9 then
-                table.insert(cands, rounded)
-            end
-            mid = target + (val - target) * 0.5
-            if mid >= lo and mid <= hi then
-                table.insert(cands, mid)
-            end
-            out = {}
-            for _, c in ipairs(cands) do
-                if math.abs(c - val) > 1e-9 then
-                    table.insert(out, make_real_node(c, lo, hi, depth + 1))
-                end
-            end
-            return out
-        end,
+        shrinks = shrink_real,
     }
 end
 
-map_node = nil
-map_node = function(node, fn)
+function map_node(node, fn)
+    function shrink_mapped()
+        children = node.shrinks()
+        mapped = {}
+        for _, child in ipairs(children) do
+            table.insert(mapped, map_node(child, fn))
+        end
+        return mapped
+    end
     return {
         value = fn(node.value),
-        shrinks = function()
-            children = node.shrinks()
-            mapped = {}
-            for _, child in ipairs(children) do
-                table.insert(mapped, map_node(child, fn))
-            end
-            return mapped
-        end,
+        shrinks = shrink_mapped,
     }
 end
 
-filter_node = nil
-filter_node = function(node, pred)
+function filter_node(node, pred)
+    function shrink_filtered()
+        filtered = {}
+        for _, child in ipairs(node.shrinks()) do
+            if pred(child.value) == true then
+                table.insert(filtered, filter_node(child, pred))
+            end
+        end
+        return filtered
+    end
     return {
         value = node.value,
-        shrinks = function()
-            filtered = {}
-            for _, child in ipairs(node.shrinks()) do
-                if pred(child.value) == true then
-                    table.insert(filtered, filter_node(child, pred))
-                end
-            end
-            return filtered
-        end,
+        shrinks = shrink_filtered,
     }
 end
 
 --------------------------------------------------------------------------
--- Value Generators: gen = {generate = function(rng, size) -> node}
+-- Value Generators: gen = {generate = generate_fn}
 --------------------------------------------------------------------------
 
 function laws.constant(val)
+    function generate_constant(_, _)
+        return leaf_node(val)
+    end
+    return {generate = generate_constant}
+end
+
+function generate_boolean(r, _)
+    b = rng_int(r, 0, 1) == 1
+    if not b then
+        return leaf_node(false)
+    end
     return {
-        generate = function(_, _)
-            return leaf_node(val)
-        end,
+        value = true,
+        shrinks = shrink_true_node,
     }
 end
 
 function laws.boolean()
-    return {
-        generate = function(r, _)
-            b = rng_int(r, 0, 1) == 1
-            if not b then
-                return leaf_node(false)
-            end
-            return {
-                value = true,
-                shrinks = function()
-                    return {leaf_node(false)}
-                end,
-            }
-        end,
-    }
+    return {generate = generate_boolean}
 end
 
 function laws.int(lo, hi)
@@ -306,47 +313,47 @@ function laws.int(lo, hi)
     elseif hi < 0 then
         target = hi
     end
-    return {
-        generate = function(r, size)
-            eff_lo = lo
-            eff_hi = hi
-            if size != nil and size >= 0 then
-                bound_lo = target - size
-                bound_hi = target + size
-                if bound_lo > eff_lo and bound_lo <= eff_hi then
-                    eff_lo = bound_lo
-                end
-                if bound_hi < eff_hi and bound_hi >= eff_lo then
-                    eff_hi = bound_hi
-                end
+    function generate_int(r, size)
+        eff_lo = lo
+        eff_hi = hi
+        if size != nil and size >= 0 then
+            bound_lo = target - size
+            bound_hi = target + size
+            if bound_lo > eff_lo and bound_lo <= eff_hi then
+                eff_lo = bound_lo
             end
-            v = rng_int(r, eff_lo, eff_hi)
-            return make_int_node(v, target)
-        end,
-    }
+            if bound_hi < eff_hi and bound_hi >= eff_lo then
+                eff_hi = bound_hi
+            end
+        end
+        v = rng_int(r, eff_lo, eff_hi)
+        return make_int_node(v, target)
+    end
+    return {generate = generate_int}
 end
 
 function laws.real(lo, hi)
     if lo == nil then lo = -100.0 end
     if hi == nil then hi = 100.0 end
-    return {
-        generate = function(r, _)
-            v = lo + rng_float(r) * (hi - lo)
-            return make_real_node(v, lo, hi, 0)
-        end,
-    }
+    function generate_real(r, _)
+        v = lo + rng_float(r) * (hi - lo)
+        return make_real_node(v, lo, hi, 0)
+    end
+    return {generate = generate_real}
 end
 
 function laws.one_of(items)
     if items == nil or #items == 0 then
         error("laws.one_of requires a non-empty list")
     end
-    return {
-        generate = function(r, _)
-            idx = rng_int(r, 1, #items)
-            return map_node(make_int_node(idx, 1), function(i) return items[i] end)
-        end,
-    }
+    function pick_item_at(i)
+        return items[i]
+    end
+    function generate_one_of(r, _)
+        idx = rng_int(r, 1, #items)
+        return map_node(make_int_node(idx, 1), pick_item_at)
+    end
+    return {generate = generate_one_of}
 end
 
 function laws.frequency(weighted_gens)
@@ -360,68 +367,67 @@ function laws.frequency(weighted_gens)
     if total_w <= 0 then
         error("laws.frequency total weight must be positive")
     end
-    return {
-        generate = function(r, size)
-            pick = rng_int(r, 1, total_w)
-            acc = 0
-            chosen = weighted_gens[1][2]
-            for _, pair in ipairs(weighted_gens) do
-                acc = acc + pair[1]
-                if pick <= acc then
-                    chosen = pair[2]
-                    break
-                end
+    function generate_frequency(r, size)
+        pick = rng_int(r, 1, total_w)
+        acc = 0
+        chosen = weighted_gens[1][2]
+        for _, pair in ipairs(weighted_gens) do
+            acc = acc + pair[1]
+            if pick <= acc then
+                chosen = pair[2]
+                break
             end
-            return chosen.generate(r, size)
-        end,
-    }
+        end
+        return chosen.generate(r, size)
+    end
+    return {generate = generate_frequency}
 end
 
-make_list_node = nil
-make_list_node = function(elem_nodes, min_len)
+function make_list_node(elem_nodes, min_len)
     vals = {}
     for i, en in ipairs(elem_nodes) do
         vals[i] = en.value
     end
+    function shrink_list()
+        n = #elem_nodes
+        out = {}
+        -- 1. Drop chunks / single elements down toward min_len
+        if n > min_len then
+            if min_len == 0 then
+                table.insert(out, make_list_node({}, 0))
+            end
+            chunk = math.floor((n - min_len) / 2)
+            while chunk >= 1 do
+                k = 1
+                while k + chunk - 1 <= n and (n - chunk) >= min_len do
+                    sliced = {}
+                    for j = 1, n do
+                        if j < k or j > k + chunk - 1 then
+                            table.insert(sliced, elem_nodes[j])
+                        end
+                    end
+                    table.insert(out, make_list_node(sliced, min_len))
+                    k = k + chunk
+                end
+                chunk = math.floor(chunk / 2)
+            end
+        end
+        -- 2. Shrink individual elements in place
+        for i = 1, n do
+            for _, shrunk_elem in ipairs(elem_nodes[i].shrinks()) do
+                copy = {}
+                for j = 1, n do
+                    copy[j] = elem_nodes[j]
+                end
+                copy[i] = shrunk_elem
+                table.insert(out, make_list_node(copy, min_len))
+            end
+        end
+        return out
+    end
     return {
         value = vals,
-        shrinks = function()
-            n = #elem_nodes
-            out = {}
-            -- 1. Drop chunks / single elements down toward min_len
-            if n > min_len then
-                if min_len == 0 then
-                    table.insert(out, make_list_node({}, 0))
-                end
-                chunk = math.floor((n - min_len) / 2)
-                while chunk >= 1 do
-                    k = 1
-                    while k + chunk - 1 <= n and (n - chunk) >= min_len do
-                        sliced = {}
-                        for j = 1, n do
-                            if j < k or j > k + chunk - 1 then
-                                table.insert(sliced, elem_nodes[j])
-                            end
-                        end
-                        table.insert(out, make_list_node(sliced, min_len))
-                        k = k + chunk
-                    end
-                    chunk = math.floor(chunk / 2)
-                end
-            end
-            -- 2. Shrink individual elements in place
-            for i = 1, n do
-                for _, shrunk_elem in ipairs(elem_nodes[i].shrinks()) do
-                    copy = {}
-                    for j = 1, n do
-                        copy[j] = elem_nodes[j]
-                    end
-                    copy[i] = shrunk_elem
-                    table.insert(out, make_list_node(copy, min_len))
-                end
-            end
-            return out
-        end,
+        shrinks = shrink_list,
     }
 end
 
@@ -432,23 +438,22 @@ function laws.list(elem_gen, opts)
         if opts.min_len != nil then min_len = opts.min_len end
         if opts.max_len != nil then max_len = opts.max_len end
     end
-    return {
-        generate = function(r, size)
-            cap = max_len
-            if size != nil and size < cap then
-                cap = size
-                if cap < min_len then
-                    cap = min_len
-                end
+    function generate_list(r, size)
+        cap = max_len
+        if size != nil and size < cap then
+            cap = size
+            if cap < min_len then
+                cap = min_len
             end
-            len = rng_int(r, min_len, cap)
-            nodes = {}
-            for i = 1, len do
-                nodes[i] = elem_gen.generate(r, size)
-            end
-            return make_list_node(nodes, min_len)
-        end,
-    }
+        end
+        len = rng_int(r, min_len, cap)
+        nodes = {}
+        for i = 1, len do
+            nodes[i] = elem_gen.generate(r, size)
+        end
+        return make_list_node(nodes, min_len)
+    end
+    return {generate = generate_list}
 end
 
 DEFAULT_ALPHABET = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789 _-./:'\"[]"
@@ -465,44 +470,44 @@ function laws.text(opts)
         end
     end
     alpha_len = string.len(alphabet)
-    char_idx_gen = {
-        generate = function(r, _)
-            idx = rng_int(r, 1, alpha_len)
-            return make_int_node(idx, 1)
-        end,
-    }
-    list_gen = laws.list(char_idx_gen, {min_len = min_len, max_len = max_len})
-    return laws.map(list_gen, function(indices)
+    function generate_char_idx(r, _)
+        idx = rng_int(r, 1, alpha_len)
+        return make_int_node(idx, 1)
+    end
+    function indices_to_string(indices)
         chars = {}
         for i, idx in ipairs(indices) do
             chars[i] = string.sub(alphabet, idx, idx)
         end
         return table.concat(chars)
-    end)
+    end
+    char_idx_gen = {generate = generate_char_idx}
+    list_gen = laws.list(char_idx_gen, {min_len = min_len, max_len = max_len})
+    return laws.map(list_gen, indices_to_string)
 end
 
-make_record_node = nil
-make_record_node = function(sorted_keys, field_nodes)
+function make_record_node(sorted_keys, field_nodes)
     rec = {}
     for _, k in ipairs(sorted_keys) do
         rec[k] = field_nodes[k].value
     end
+    function shrink_record()
+        out = {}
+        for _, k in ipairs(sorted_keys) do
+            for _, shrunk_field in ipairs(field_nodes[k].shrinks()) do
+                next_nodes = {}
+                for _, k2 in ipairs(sorted_keys) do
+                    next_nodes[k2] = field_nodes[k2]
+                end
+                next_nodes[k] = shrunk_field
+                table.insert(out, make_record_node(sorted_keys, next_nodes))
+            end
+        end
+        return out
+    end
     return {
         value = rec,
-        shrinks = function()
-            out = {}
-            for _, k in ipairs(sorted_keys) do
-                for _, shrunk_field in ipairs(field_nodes[k].shrinks()) do
-                    next_nodes = {}
-                    for _, k2 in ipairs(sorted_keys) do
-                        next_nodes[k2] = field_nodes[k2]
-                    end
-                    next_nodes[k] = shrunk_field
-                    table.insert(out, make_record_node(sorted_keys, next_nodes))
-                end
-            end
-            return out
-        end,
+        shrinks = shrink_record,
     }
 end
 
@@ -511,16 +516,15 @@ function laws.record(schema_tbl)
     for k, _ in pairs(schema_tbl) do
         table.insert(sorted_keys, k)
     end
-    table.sort(sorted_keys, function(a, b) return tostring(a) < tostring(b) end)
-    return {
-        generate = function(r, size)
-            field_nodes = {}
-            for _, k in ipairs(sorted_keys) do
-                field_nodes[k] = schema_tbl[k].generate(r, size)
-            end
-            return make_record_node(sorted_keys, field_nodes)
-        end,
-    }
+    table.sort(sorted_keys, compare_keys_asc)
+    function generate_record(r, size)
+        field_nodes = {}
+        for _, k in ipairs(sorted_keys) do
+            field_nodes[k] = schema_tbl[k].generate(r, size)
+        end
+        return make_record_node(sorted_keys, field_nodes)
+    end
+    return {generate = generate_record}
 end
 
 function laws.tuple(...)
@@ -533,11 +537,10 @@ function laws.tuple(...)
 end
 
 function laws.map(gen, fn)
-    return {
-        generate = function(r, size)
-            return map_node(gen.generate(r, size), fn)
-        end,
-    }
+    function generate_mapped(r, size)
+        return map_node(gen.generate(r, size), fn)
+    end
+    return {generate = generate_mapped}
 end
 
 function laws.filter(gen, pred, max_tries)
@@ -545,27 +548,25 @@ function laws.filter(gen, pred, max_tries)
     if max_tries != nil then
         limit = max_tries
     end
-    return {
-        generate = function(r, size)
-            for _ = 1, limit do
-                cand = gen.generate(r, size)
-                if pred(cand.value) == true then
-                    return filter_node(cand, pred)
-                end
+    function generate_filtered(r, size)
+        for _ = 1, limit do
+            cand = gen.generate(r, size)
+            if pred(cand.value) == true then
+                return filter_node(cand, pred)
             end
-            error("laws.filter: exhausted " .. tostring(limit) .. " attempts without matching predicate")
-        end,
-    }
+        end
+        error("laws.filter: exhausted " .. tostring(limit) .. " attempts without matching predicate")
+    end
+    return {generate = generate_filtered}
 end
 
 function laws.bind(gen, fn)
-    return {
-        generate = function(r, size)
-            outer = gen.generate(r, size)
-            next_gen = fn(outer.value)
-            return next_gen.generate(r, size)
-        end,
-    }
+    function generate_bound(r, size)
+        outer = gen.generate(r, size)
+        next_gen = fn(outer.value)
+        return next_gen.generate(r, size)
+    end
+    return {generate = generate_bound}
 end
 
 --------------------------------------------------------------------------
@@ -666,54 +667,58 @@ function resolve_eq(opts)
     if opts != nil then
         tol = opts.tolerance
     end
-    return function(a, b)
+    function default_eq(a, b)
         return deep_equal(a, b, tol)
     end
+    return default_eq
 end
 
 -- f(f(x)) == f(x)
 function laws.idempotent(name, gen, fn, opts)
     eq = resolve_eq(opts)
-    return laws.forall(name, gen, function(x)
+    function check_idempotent(x)
         fx = fn(x)
         ffx = fn(fx)
         if eq(ffx, fx) == true then
             return true
         end
         return false, "f(f(x)) != f(x): f(x)=" .. format_value(fx) .. ", f(f(x))=" .. format_value(ffx)
-    end, opts)
+    end
+    return laws.forall(name, gen, check_idempotent, opts)
 end
 
 -- f(f(x)) == x
 function laws.involution(name, gen, fn, opts)
     eq = resolve_eq(opts)
-    return laws.forall(name, gen, function(x)
+    function check_involution(x)
         ffx = fn(fn(x))
         if eq(ffx, x) == true then
             return true
         end
         return false, "f(f(x)) != x: got " .. format_value(ffx)
-    end, opts)
+    end
+    return laws.forall(name, gen, check_involution, opts)
 end
 
 -- left_fn(x) == right_fn(x)
 function laws.commutative_diagram(name, gen, left_fn, right_fn, opts)
     eq = resolve_eq(opts)
-    return laws.forall(name, gen, function(x)
+    function check_diagram(x)
         lv = left_fn(x)
         rv = right_fn(x)
         if eq(lv, rv) == true then
             return true
         end
         return false, "diagram did not commute: left=" .. format_value(lv) .. " vs right=" .. format_value(rv)
-    end, opts)
+    end
+    return laws.forall(name, gen, check_diagram, opts)
 end
 
 -- phi(op_src(a, b)) == op_dst(phi(a), phi(b))
 function laws.homomorphism(name, gen_a, gen_b, op_src, op_dst, phi, opts)
     eq = resolve_eq(opts)
     pair_gen = laws.tuple(gen_a, gen_b)
-    return laws.forall(name, pair_gen, function(pair)
+    function check_homomorphism(pair)
         a = pair[1]
         b = pair[2]
         lhs = phi(op_src(a, b))
@@ -722,13 +727,14 @@ function laws.homomorphism(name, gen_a, gen_b, op_src, op_dst, phi, opts)
             return true
         end
         return false, "phi(a (*) b) != phi(a) (+) phi(b): lhs=" .. format_value(lhs) .. " vs rhs=" .. format_value(rhs)
-    end, opts)
+    end
+    return laws.forall(name, pair_gen, check_homomorphism, opts)
 end
 
 -- le_in(a, b) => le_out(fn(a), fn(b))
 function laws.monotone(name, gen_a, gen_b, le_in, le_out, fn, opts)
     pair_gen = laws.tuple(gen_a, gen_b)
-    return laws.forall(name, pair_gen, function(pair)
+    function check_monotone(pair)
         a = pair[1]
         b = pair[2]
         if le_in(a, b) == true then
@@ -745,7 +751,8 @@ function laws.monotone(name, gen_a, gen_b, le_in, le_out, fn, opts)
             end
         end
         return true
-    end, opts)
+    end
+    return laws.forall(name, pair_gen, check_monotone, opts)
 end
 
 --------------------------------------------------------------------------

@@ -82,37 +82,43 @@ if ok then
     assert(mismatch_rows == nil and merr != nil, "query_params should reject placeholder count mismatch")
 
     -- 4. Backend-agnostic re-entrant transactions (Seam 4)
-    tx_val = database.transaction(tmp_db, function()
+    function tx_inner_body()
+        database.exec(tmp_db, "INSERT INTO test (val, score) VALUES ('tx_inner', 20.0);")
+        return "nested_ok"
+    end
+    function tx_outer_body()
         database.exec(tmp_db, "INSERT INTO test (val, score) VALUES ('tx_outer', 10.0);")
-        nested = database.transaction(tmp_db, function()
-            database.exec(tmp_db, "INSERT INTO test (val, score) VALUES ('tx_inner', 20.0);")
-            return "nested_ok"
-        end)
+        nested = database.transaction(tmp_db, tx_inner_body)
         assert(nested == "nested_ok", "nested transaction return mismatch")
         return "committed"
-    end)
+    end
+    tx_val = database.transaction(tmp_db, tx_outer_body)
     assert(tx_val == "committed", "outer transaction return mismatch")
 
     -- Explicit abort via `return false, reason` rolls back and preserves all return values
-    aborted, abort_detail = database.transaction(tmp_db, function()
+    function tx_soft_abort()
         database.exec(tmp_db, "INSERT INTO test (val, score) VALUES ('rolled_back_soft', 99.0);")
         return false, "validation_failed"
-    end)
+    end
+    aborted, abort_detail = database.transaction(tmp_db, tx_soft_abort)
     assert(aborted == false and abort_detail == "validation_failed", "soft rollback return mismatch")
 
     -- Raising an error rolls back and re-raises
-    ok_raise = pcall(function()
-        database.transaction(tmp_db, function()
-            database.exec(tmp_db, "INSERT INTO test (val, score) VALUES ('rolled_back_err', 99.0);")
-            error("boom")
-        end)
-    end)
+    function tx_raise_boom()
+        database.exec(tmp_db, "INSERT INTO test (val, score) VALUES ('rolled_back_err', 99.0);")
+        error("boom")
+    end
+    function run_raising_tx()
+        database.transaction(tmp_db, tx_raise_boom)
+    end
+    ok_raise = pcall(run_raising_tx)
     assert(ok_raise == false, "expected raised transaction error to propagate")
 
     -- Nil first return value with non-nil second return value commits and preserves arity
-    r_nil, r_meta = database.transaction(tmp_db, function()
+    function tx_nil_first()
         return nil, "kept_second"
-    end)
+    end
+    r_nil, r_meta = database.transaction(tmp_db, tx_nil_first)
     assert(r_nil == nil and r_meta == "kept_second", "pack_varargs must preserve trailing returns after nil")
 
     tx_check = database.query(tmp_db, "SELECT COUNT(*) AS n FROM test WHERE val LIKE 'rolled_back%';")
@@ -122,9 +128,10 @@ if ok then
 
     -- 5. Advisory with_lock & inode-aware cache_key (Seam 5)
     k1 = database.cache_key(tmp_db)
-    lock_res = database.with_lock(tmp_db, "test_lock", 5, function()
+    function locked_return_123()
         return 123
-    end)
+    end
+    lock_res = database.with_lock(tmp_db, "test_lock", 5, locked_return_123)
     assert(lock_res == 123 and type(k1) == "string" and string.find(k1, "sqlite:", 1, true) == 1, "with_lock/cache_key failed")
 
     os.remove(tmp_db)

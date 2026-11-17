@@ -457,7 +457,7 @@ function database.transaction(db_path, fn)
     end
 
     conn_before = database.connection_id(db_path)
-    check_alive = function()
+    function check_alive()
         if conn_before != nil and database.connection_id(db_path) != conn_before then
             return false
         end
@@ -472,9 +472,10 @@ function database.transaction(db_path, fn)
     _active_transactions[tx_key] = check_alive
 
     results = nil
-    ok, err = pcall(function()
+    function run_tx()
         results = pack_varargs(fn(check_alive))
-    end)
+    end
+    ok, err = pcall(run_tx)
 
     _active_transactions[tx_key] = nil
 
@@ -519,9 +520,10 @@ function database.with_lock(db_path, lock_name, timeout_secs, fn)
         ))
     end
     results = nil
-    ok, err = pcall(function()
+    function run_locked()
         results = pack_varargs(fn())
-    end)
+    end
+    ok, err = pcall(run_locked)
     if locked then
         pcall(database.query, db_path, string.format(
             "SELECT RELEASE_LOCK(%s) AS released;", database.quote(lock_name)
