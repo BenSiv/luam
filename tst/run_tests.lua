@@ -51,6 +51,7 @@ tests = {
     "test_strings_and_escapes.lua",
     "test_web_stack.lua",
     "test_asset.lua",
+    "test_laws.lua",
 }
 
 failed = 0
