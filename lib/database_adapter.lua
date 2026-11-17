@@ -47,6 +47,182 @@ function is_sqlite_keep_open()
     return _sqlite_keep_open == true
 end
 
+-- Civil YYYY-MM-DD prefix -> integer days since 1970-01-01 (Howard
+-- Hinnant's Gregorian algorithm, pure integer arithmetic so host TZ/DST
+-- never shifts DATEDIFF). Returns nil if `value` does not begin with a
+-- valid YYYY-MM-DD date prefix.
+function civil_days_from_ymd(value)
+    if value == nil then
+        return nil
+    end
+    ys, ms, ds = string.match(tostring(value), "^%s*(%d%d%d%d)%-(%d%d)%-(%d%d)")
+    if ys == nil then
+        return nil
+    end
+    y = tonumber(ys)
+    m = tonumber(ms)
+    d = tonumber(ds)
+    if y == nil or m == nil or d == nil or m < 1 or m > 12 or d < 1 or d > 31 then
+        return nil
+    end
+    if m <= 2 then
+        y = y - 1
+    end
+    era = math.floor(y / 400)
+    yoe = y - (era * 400)
+    mp = m + 9
+    if m > 2 then
+        mp = m - 3
+    end
+    doy = math.floor((153 * mp + 2) / 5) + d - 1
+    doe = yoe * 365 + math.floor(yoe / 4) - math.floor(yoe / 100) + doy
+    return era * 146097 + doe - 719468
+end
+
+function sqlite_udf_exp(ctx, x)
+    n = tonumber(x)
+    if x == nil or n == nil then
+        sqlite.result_null(ctx)
+        return
+    end
+    sqlite.result_number(ctx, math.exp(n))
+end
+
+function sqlite_udf_ln(ctx, x)
+    n = tonumber(x)
+    if x == nil or n == nil or n <= 0 then
+        sqlite.result_null(ctx)
+        return
+    end
+    sqlite.result_number(ctx, math.log(n))
+end
+
+function sqlite_udf_log10(ctx, x)
+    n = tonumber(x)
+    if x == nil or n == nil or n <= 0 then
+        sqlite.result_null(ctx)
+        return
+    end
+    sqlite.result_number(ctx, math.log10(n))
+end
+
+function sqlite_udf_pow(ctx, x, y)
+    nx = tonumber(x)
+    ny = tonumber(y)
+    if x == nil or y == nil or nx == nil or ny == nil then
+        sqlite.result_null(ctx)
+        return
+    end
+    sqlite.result_number(ctx, nx ^ ny)
+end
+
+function sqlite_udf_sqrt(ctx, x)
+    n = tonumber(x)
+    if x == nil or n == nil or n < 0 then
+        sqlite.result_null(ctx)
+        return
+    end
+    sqlite.result_number(ctx, math.sqrt(n))
+end
+
+-- UTF-8 codepoint count (bytes that are not 10xxxxxx continuation
+-- bytes), matching MariaDB/MySQL's CHAR_LENGTH / CHARACTER_LENGTH.
+function sqlite_udf_char_length(ctx, s)
+    if s == nil then
+        sqlite.result_null(ctx)
+        return
+    end
+    _, count = string.gsub(tostring(s), "[^\x80-\xbf]", "")
+    sqlite.result_int(ctx, count)
+end
+
+function sqlite_udf_extremum(is_greatest, ctx, ...)
+    argc = select("#", ...)
+    if argc == 0 then
+        sqlite.result_null(ctx)
+        return
+    end
+    all_num = true
+    vals = {}
+    for i = 1, argc do
+        v = select(i, ...)
+        if v == nil then
+            -- Matches MariaDB/MySQL standard GREATEST/LEAST: any NULL
+            -- argument yields NULL (unlike SQLite's MAX/MIN only when
+            -- all args are non-NULL).
+            sqlite.result_null(ctx)
+            return
+        end
+        vals[i] = v
+        if type(v) != "number" and tonumber(v) == nil then
+            all_num = false
+        end
+    end
+    if all_num then
+        best = tonumber(vals[1])
+        for i = 2, argc do
+            cur = tonumber(vals[i])
+            if is_greatest and cur > best then
+                best = cur
+            elseif (not is_greatest) and cur < best then
+                best = cur
+            end
+        end
+        sqlite.result_number(ctx, best)
+    else
+        best_s = tostring(vals[1])
+        for i = 2, argc do
+            cur_s = tostring(vals[i])
+            if is_greatest and cur_s > best_s then
+                best_s = cur_s
+            elseif (not is_greatest) and cur_s < best_s then
+                best_s = cur_s
+            end
+        end
+        sqlite.result_text(ctx, best_s)
+    end
+end
+
+function sqlite_udf_greatest(ctx, ...)
+    sqlite_udf_extremum(true, ctx, ...)
+end
+
+function sqlite_udf_least(ctx, ...)
+    sqlite_udf_extremum(false, ctx, ...)
+end
+
+function sqlite_udf_datediff(ctx, d1, d2)
+    days1 = civil_days_from_ymd(d1)
+    days2 = civil_days_from_ymd(d2)
+    if days1 == nil or days2 == nil then
+        sqlite.result_null(ctx)
+        return
+    end
+    sqlite.result_int(ctx, days1 - days2)
+end
+
+-- Registers scalar SQL functions that MariaDB/MySQL provide natively
+-- but Debian/Ubuntu's system libsqlite3 omits (compiled without
+-- -DSQLITE_ENABLE_MATH_FUNCTIONS, and lacking CHAR_LENGTH/GREATEST/
+-- LEAST/DATEDIFF). Keeping these here in native Luam lets callers write
+-- portable SQL across both backends with zero C binding changes.
+function register_sqlite_compat_functions(db)
+    if sqlite.create_function == nil then
+        return
+    end
+    sqlite.create_function(db, "EXP", 1, sqlite_udf_exp)
+    sqlite.create_function(db, "LN", 1, sqlite_udf_ln)
+    sqlite.create_function(db, "LOG10", 1, sqlite_udf_log10)
+    sqlite.create_function(db, "POW", 2, sqlite_udf_pow)
+    sqlite.create_function(db, "POWER", 2, sqlite_udf_pow)
+    sqlite.create_function(db, "SQRT", 1, sqlite_udf_sqrt)
+    sqlite.create_function(db, "CHAR_LENGTH", 1, sqlite_udf_char_length)
+    sqlite.create_function(db, "CHARACTER_LENGTH", 1, sqlite_udf_char_length)
+    sqlite.create_function(db, "GREATEST", -1, sqlite_udf_greatest)
+    sqlite.create_function(db, "LEAST", -1, sqlite_udf_least)
+    sqlite.create_function(db, "DATEDIFF", 2, sqlite_udf_datediff)
+end
+
 function open_sqlite_connection(db_path)
     db = sqlite.open(db_path)
     if (db == nil) then
@@ -61,6 +237,7 @@ function open_sqlite_connection(db_path)
     -- each other, which matters once more than one client (e.g. several
     -- browser tabs against the same store) is hitting the database at once.
     sqlite.exec(db, "PRAGMA journal_mode = WAL;")
+    register_sqlite_compat_functions(db)
     return db
 end
 
@@ -213,9 +390,62 @@ function sqlite_update(db_path, statement, ...)
     -- sqlite3_last_insert_rowid's own convention (mirrors
     -- mariadb_update's insert_id return for the same reason).
     insert_id = sqlite.last_insert_rowid(db)
+    affected = 0
+    if sqlite.changes != nil then
+        affected = sqlite.changes(db)
+    end
 
     release_sqlite_connection(db, owned, false)
-    return true, insert_id
+    return true, insert_id, affected
+end
+
+-- Executes a parameterized SELECT against SQLite using real prepared
+-- statement binding (sqlite3_prepare_v2 + sqlite3_bind_*). Returns
+-- rows ({} when empty), or nil, err_string on prepare/placeholder/bind
+-- failure. Owned here alongside sqlite_query so callers never need to
+-- import the raw `sqlite3` C module directly.
+function sqlite_query_params(db_path, sql_text, bound_values)
+    expected_count = 0
+    if bound_values != nil then
+        expected_count = #bound_values
+    end
+    ok_open, db, owned = pcall(acquire_sqlite_connection, db_path)
+    if not ok_open or db == nil then
+        return nil, "cannot open database"
+    end
+    vm, err = sqlite.prepare(db, sql_text)
+    if vm == nil then
+        err_msg = tostring(err)
+        if type(err) == "number" then
+            db_err = sqlite.errmsg(db)
+            if db_err != nil then
+                err_msg = err_msg .. " (" .. tostring(db_err) .. ")"
+            end
+        end
+        release_sqlite_connection(db, owned, false)
+        return nil, "invalid sql: " .. err_msg
+    end
+    actual_count = sqlite.stmt.bind_parameter_count(vm)
+    if actual_count != expected_count then
+        sqlite.stmt.finalize(vm)
+        release_sqlite_connection(db, owned, false)
+        return nil, string.format("sql placeholder count mismatch: expected %d, statement has %d", expected_count, actual_count)
+    end
+    for i = 1, expected_count do
+        bind_rc = sqlite.stmt.bind(vm, i, bound_values[i])
+        if bind_rc != 0 then
+            sqlite.stmt.finalize(vm)
+            release_sqlite_connection(db, owned, false)
+            return nil, "failed to bind parameter #" .. tostring(i)
+        end
+    end
+    rows = {}
+    for row in sqlite.stmt.nrows(vm) do
+        table.insert(rows, row)
+    end
+    sqlite.stmt.finalize(vm)
+    release_sqlite_connection(db, owned, false)
+    return rows
 end
 
 -- ---------------------------------------------------------------------
@@ -651,6 +881,7 @@ end
 
 
 database_adapter.sqlite_query = sqlite_query
+database_adapter.sqlite_query_params = sqlite_query_params
 database_adapter.sqlite_update = sqlite_update
 database_adapter.sqlite_keep_open = sqlite_keep_open
 database_adapter.is_sqlite_keep_open = is_sqlite_keep_open

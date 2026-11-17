@@ -77,6 +77,49 @@ database.mariadb_update(descriptor, "INSERT INTO luam_mariadb_wrapper_test (val)
 back = database.mariadb_query(descriptor, "SELECT val FROM luam_mariadb_wrapper_test WHERE val = " .. quote(tricky) .. ";")
 assert(back != nil and #back == 1 and back[1].val == tricky, "expected a backslash-quote value to round-trip unchanged")
 
+-- Unified database.lua surface against MariaDB: normalized exec return,
+-- query_params with '%' and '\'', transaction commit + rollback, with_lock,
+-- and native EXP/LN/CHAR_LENGTH/GREATEST/DATEDIFF parity with SQLite UDFs.
+db_mod = require("database")
+ok_ex, ins_ex, aff_ex = db_mod.exec(descriptor, "INSERT INTO luam_mariadb_wrapper_test (val) VALUES ('norm');")
+assert(ok_ex == true and ins_ex > 0 and aff_ex == 1, "expected normalized database.exec return on MariaDB")
+
+param_val = "50% off \\' ? test"
+db_mod.exec(descriptor, "INSERT INTO luam_mariadb_wrapper_test (val) VALUES (" .. quote(param_val) .. ");")
+prows, perr = db_mod.query_params(descriptor,
+    "SELECT id, val FROM luam_mariadb_wrapper_test WHERE val = ? AND '?' = '?';",
+    {{type = "text", value = param_val}}
+)
+assert(prows != nil and #prows == 1 and prows[1].val == param_val,
+    "database.query_params failed on MariaDB: " .. tostring(perr))
+
+aborted_ok = db_mod.transaction(descriptor, function()
+    db_mod.exec(descriptor, "INSERT INTO luam_mariadb_wrapper_test (val) VALUES ('tx_abort');")
+    return false
+end)
+assert(aborted_ok == false, "expected soft transaction abort on MariaDB")
+abort_rows = db_mod.query(descriptor, "SELECT * FROM luam_mariadb_wrapper_test WHERE val = 'tx_abort';")
+assert(abort_rows == nil, "rolled-back MariaDB transaction row must not persist")
+
+commit_res = db_mod.transaction(descriptor, function()
+    db_mod.exec(descriptor, "INSERT INTO luam_mariadb_wrapper_test (val) VALUES ('tx_commit');")
+    return "ok_mdb"
+end)
+assert(commit_res == "ok_mdb", "expected MariaDB transaction commit")
+commit_rows = db_mod.query(descriptor, "SELECT * FROM luam_mariadb_wrapper_test WHERE val = 'tx_commit';")
+assert(commit_rows != nil and #commit_rows == 1, "committed MariaDB transaction row must persist")
+
+lock_val = db_mod.with_lock(descriptor, "luam_test_lock", 5, function() return 77 end)
+assert(lock_val == 77, "database.with_lock failed on MariaDB")
+
+fn_rows = db_mod.query(descriptor,
+    "SELECT EXP(1.0) AS e1, LN(EXP(2.5)) AS l25, CHAR_LENGTH('שלום') AS ulen, GREATEST(2, 9, 4) AS g, DATEDIFF('2024-03-01', '2024-02-01') AS dd;"
+)
+assert(math.abs(tonumber(fn_rows[1].e1) - math.exp(1.0)) < 1e-6, "MariaDB EXP mismatch")
+assert(math.abs(tonumber(fn_rows[1].l25) - 2.5) < 1e-6, "MariaDB LN mismatch")
+assert(tonumber(fn_rows[1].ulen) == 4 and tonumber(fn_rows[1].g) == 9 and tonumber(fn_rows[1].dd) == 29,
+    "MariaDB CHAR_LENGTH/GREATEST/DATEDIFF parity mismatch")
+
 database.mariadb_update(descriptor, "DROP TABLE luam_mariadb_wrapper_test;")
 database.mariadb_close_all()
 
