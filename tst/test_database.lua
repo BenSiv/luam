@@ -127,6 +127,7 @@ if ok then
     assert(tonumber(tx_kept[1].n) == 2, "committed nested transaction rows must persist")
 
     -- 5. Advisory with_lock & inode-aware cache_key (Seam 5)
+    external_tool = require("external_tool")
     luam_bin = "bin/luam"
     probe_bin = io.open(luam_bin, "r")
     if probe_bin != nil then
@@ -145,12 +146,31 @@ if ok then
 
         -- Cross-process contention: a separate OS process attempting the same
         -- lock with timeout = 0 must fail instead of running unlocked
-        child_cmd = string.format(
-            "LUA_PATH=%q LUA_CPATH=%q " ..
-            "%s -e \"db = require('database'); ok, err = pcall(db.with_lock, '%s', 'test_lock', 0, function() return 1 end); if ok then os.exit(1) end; if string.find(tostring(err), 'could not acquire database lock', 1, true) == nil then os.exit(2) end; os.exit(0)\"",
-            package.path, package.cpath, luam_bin, tmp_db
-        )
-        rc_child = os.execute(child_cmd)
+        contend_script = string.format("""
+db = require("database")
+function noop_locked()
+    return 1
+end
+ok, err = pcall(db.with_lock, %q, "test_lock", 0, noop_locked)
+if ok then
+    os.exit(1)
+end
+if string.find(tostring(err), "could not acquire database lock", 1, true) == nil then
+    os.exit(2)
+end
+os.exit(0)
+""", tmp_db)
+        function run_contend_child(script_path)
+            child_cmd = string.format(
+                "LUA_PATH=%s LUA_CPATH=%s %s %s",
+                external_tool.shell_quote(package.path),
+                external_tool.shell_quote(package.cpath),
+                external_tool.shell_quote(luam_bin),
+                external_tool.shell_quote(script_path)
+            )
+            return os.execute(child_cmd), nil
+        end
+        rc_child, _ = external_tool.with_temp_file(contend_script, "w", run_contend_child)
         assert(rc_child == 0, "expected contending child process with_lock to time out cleanly, got rc=" .. tostring(rc_child))
         return 123
     end
@@ -166,12 +186,30 @@ if ok then
     end
     ok_lerr = pcall(call_locked_raise)
     assert(ok_lerr == false, "expected error inside with_lock to propagate")
-    after_cmd = string.format(
-        "LUA_PATH=%q LUA_CPATH=%q " ..
-        "%s -e \"db = require('database'); v = db.with_lock('%s', 'test_lock', 1, function() return 99 end); if v != 99 then os.exit(1) end\"",
-        package.path, package.cpath, luam_bin, tmp_db
-    )
-    assert(os.execute(after_cmd) == 0, "expected SQLite lock to be released after raising fn")
+
+    after_script = string.format("""
+db = require("database")
+function return_99()
+    return 99
+end
+v = db.with_lock(%q, "test_lock", 1, return_99)
+if v != 99 then
+    os.exit(1)
+end
+os.exit(0)
+""", tmp_db)
+    function run_after_child(script_path)
+        after_cmd = string.format(
+            "LUA_PATH=%s LUA_CPATH=%s %s %s",
+            external_tool.shell_quote(package.path),
+            external_tool.shell_quote(package.cpath),
+            external_tool.shell_quote(luam_bin),
+            external_tool.shell_quote(script_path)
+        )
+        return os.execute(after_cmd), nil
+    end
+    rc_after, _ = external_tool.with_temp_file(after_script, "w", run_after_child)
+    assert(rc_after == 0, "expected SQLite lock to be released after raising fn")
 
     os.remove(tmp_db)
 else
