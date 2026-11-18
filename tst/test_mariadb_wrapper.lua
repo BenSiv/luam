@@ -47,6 +47,27 @@ rows, column_names = database.mariadb_query(descriptor, "SELECT * FROM luam_mari
 assert(rows != nil, "expected rows back")
 assert(#rows == 1, "expected 1 row")
 assert(rows[1].val == "O'Brien", "escaped value round-trip mismatch: " .. tostring(rows[1].val))
+assert(column_names != nil and #column_names == 2 and column_names[1] == "id" and column_names[2] == "val",
+    "expected ordered column_names {'id', 'val'}")
+
+-- NULL in row 1 must NOT drop the column from column_names or hide row 2's value,
+-- and 0-row SELECTs must still return ordered column_names (matching sqlite_query).
+database.mariadb_update(descriptor, "DROP TABLE IF EXISTS luam_mariadb_null_cols;")
+database.mariadb_update(descriptor, "CREATE TABLE luam_mariadb_null_cols (id INT PRIMARY KEY, z_col TEXT, a_col TEXT, m_col TEXT);")
+database.mariadb_update(descriptor, "INSERT INTO luam_mariadb_null_cols (id, z_col, a_col, m_col) VALUES (1, NULL, 'first', NULL), (2, 'z2', 'second', 'm2');")
+
+null_rows, null_cols = database.mariadb_query(descriptor, "SELECT z_col, a_col, m_col FROM luam_mariadb_null_cols ORDER BY id ASC;")
+assert(null_rows != nil and #null_rows == 2, "expected 2 rows from null_cols table")
+assert(#null_cols == 3 and null_cols[1] == "z_col" and null_cols[2] == "a_col" and null_cols[3] == "m_col",
+    "expected exact SELECT column order even when row 1 has NULLs, got: " .. table.concat(null_cols, ","))
+assert(null_rows[1].z_col == nil and null_rows[2].z_col == "z2" and null_rows[2].m_col == "m2",
+    "expected NULL in row 1 and populated values in row 2")
+
+zero_rows, zero_cols = database.mariadb_query(descriptor, "SELECT m_col, z_col, a_col FROM luam_mariadb_null_cols WHERE 1 = 0;")
+assert(zero_rows == nil, "expected nil rows on 0-row mariadb_query (matching sqlite_query)")
+assert(#zero_cols == 3 and zero_cols[1] == "m_col" and zero_cols[2] == "z_col" and zero_cols[3] == "a_col",
+    "expected ordered column_names on 0-row mariadb_query, got: " .. table.concat(zero_cols, ","))
+database.mariadb_update(descriptor, "DROP TABLE luam_mariadb_null_cols;")
 
 -- Connection reuse: repeated calls must not grow the cache -- the
 -- entire point of this wrapper existing over an open-per-call model.

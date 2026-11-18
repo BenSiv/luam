@@ -105,13 +105,16 @@ static int l_mariadb_connect(lua_State *L) {
 }
 
 /* Buffers a result set into a {{colname=value, ...}, ...} Lua array
-** (1-indexed rows, matching lib/database.lua's own row-table shape
-** from local_query's sqlite path) and frees it. NULL columns
-** become Lua nil, not the string "NULL" or an empty string -- matches
-** local_query's own handling of a SQLite NULL. */
-static void push_result_rows(lua_State *L, MYSQL_RES *res) {
+** (1-indexed rows), nil (error slot), and an ordered {colname1, ...}
+** column-names array straight from mysql_fetch_fields(res), then frees
+** `res`. Pushing column metadata directly from MYSQL_FIELD preserves
+** exact SELECT projection order even when row 1 contains NULL columns
+** (which become Lua nil and therefore omit keys from row tables) or
+** when the query matched zero rows. */
+static void push_result_rows_and_columns(lua_State *L, MYSQL_RES *res) {
     unsigned int num_fields = mysql_num_fields(res);
     MYSQL_FIELD *fields = mysql_fetch_fields(res);
+    unsigned int i;
 
     lua_newtable(L);
     lua_Integer row_idx = 0;
@@ -120,7 +123,6 @@ static void push_result_rows(lua_State *L, MYSQL_RES *res) {
         unsigned long *lengths = mysql_fetch_lengths(res);
         row_idx++;
         lua_newtable(L);
-        unsigned int i;
         for (i = 0; i < num_fields; i++) {
             lua_pushstring(L, fields[i].name);
             if (row[i] == NULL) {
@@ -132,14 +134,24 @@ static void push_result_rows(lua_State *L, MYSQL_RES *res) {
         }
         lua_rawseti(L, -2, row_idx);
     }
+
+    lua_pushnil(L);
+
+    lua_newtable(L);
+    for (i = 0; i < num_fields; i++) {
+        lua_pushstring(L, fields[i].name);
+        lua_rawseti(L, -2, (lua_Integer)(i + 1));
+    }
+
     mysql_free_result(res);
 }
 
-/* conn:query(sql) -> rows_table | nil, err_string
+/* mariadb.query(conn, sql) -> rows_table, nil, column_names_table | nil, err_string
 ** For a statement with no result set (e.g. called with an INSERT by
-** mistake), returns an empty table rather than erroring -- callers
-** wanting affected-rows/insert-id should use exec() instead, mirroring
-** local_query/local_update's own query-vs-statement split.
+** mistake), returns an empty rows table, nil, and an empty column-names
+** table rather than erroring -- callers wanting affected-rows/insert-id
+** should use exec() instead, mirroring local_query/local_update's own
+** query-vs-statement split.
 **
 ** Returns the FIRST statement's rows if `sql` is actually a
 ** semicolon-separated batch (query() is normally called with one
@@ -186,11 +198,13 @@ static int l_mariadb_query(lua_State *L) {
     }
     if (first_res == NULL) {
         lua_newtable(L);
-        return 1;
+        lua_pushnil(L);
+        lua_newtable(L);
+        return 3;
     }
 
-    push_result_rows(L, first_res);
-    return 1;
+    push_result_rows_and_columns(L, first_res);
+    return 3;
 }
 
 /* conn:exec(sql) -> affected_rows, insert_id | nil, err_string

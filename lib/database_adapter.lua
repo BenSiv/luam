@@ -670,7 +670,7 @@ function mariadb_query(descriptor, query, ...)
     end
 
     formatted_query = format_mariadb_sql(native, conn, query, raw_args)
-    rows, err = native.query(conn, formatted_query)
+    rows, err, column_names = native.query(conn, formatted_query)
     if rows == nil and was_cached and (native.isopen(conn) == false or native.ping(conn) == false) then
         if is_mariadb_pinned(key) then
             if native.isopen(conn) == true then
@@ -685,22 +685,21 @@ function mariadb_query(descriptor, query, ...)
             error("Error connecting to MariaDB: " .. tostring(reconn_err))
         end
         formatted_query = format_mariadb_sql(native, conn, query, raw_args)
-        rows, err = native.query(conn, formatted_query)
+        rows, err, column_names = native.query(conn, formatted_query)
     end
     if rows == nil then
         error("Invalid query: " .. tostring(err) .. "\nQuery: " .. formatted_query)
     end
 
     _mariadb_last_used[key] = os.time()
+    if column_names == nil then
+        column_names = {}
+    end
 
     if #rows == 0 then
-        return nil, {}
+        return nil, column_names
     end
 
-    column_names = {}
-    for k, _ in pairs(rows[1]) do
-        table.insert(column_names, k)
-    end
     return rows, column_names
 end
 

@@ -64,8 +64,16 @@ assert(rows[2].val == "bar", "row2 val mismatch")
 -- ~104), a convention this binding deliberately does NOT replicate --
 -- see lmariadb.c's push_result_rows comment.
 _, null_id = mariadb.exec(conn, "INSERT INTO luam_mariadb_test (val) VALUES (NULL);")
-rows, err = mariadb.query(conn, "SELECT val FROM luam_mariadb_test WHERE id = " .. tostring(null_id) .. ";")
+rows, err, cols = mariadb.query(conn, "SELECT val, id FROM luam_mariadb_test WHERE id = " .. tostring(null_id) .. ";")
+assert(err == nil, "expected nil error slot on successful query")
 assert(rows[1].val == nil, "expected NULL column to decode as nil")
+assert(cols != nil and #cols == 2 and cols[1] == "val" and cols[2] == "id",
+    "expected ordered column names even when NULL columns exist")
+
+empty_rows, empty_err, empty_cols = mariadb.query(conn, "SELECT val, id FROM luam_mariadb_test WHERE 1 = 0;")
+assert(empty_rows != nil and #empty_rows == 0 and empty_err == nil, "expected 0-row table and nil err")
+assert(empty_cols != nil and #empty_cols == 2 and empty_cols[1] == "val" and empty_cols[2] == "id",
+    "expected ordered column names on 0-row result set")
 
 -- escape() is real mysql_real_escape_string, not a naive gsub -- confirm
 -- a SQL-injection-shaped value round-trips safely through it.
