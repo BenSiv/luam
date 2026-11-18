@@ -4,6 +4,20 @@
 
 external_tool = {}
 
+function pack_varargs(...)
+    return {n = select("#", ...), ...}
+end
+
+function unpack_varargs(packed)
+    if packed == nil or packed.n == 0 then
+        return
+    end
+    if unpack != nil then
+        return unpack(packed, 1, packed.n)
+    end
+    return table.unpack(packed, 1, packed.n)
+end
+
 function external_tool.shell_quote(s)
     return "'" .. string.gsub(s, "'", "'\\''") .. "'"
 end
@@ -36,20 +50,30 @@ function external_tool.available(binary)
 end
 
 -- Writes `content` to a fresh temp file (`mode` "w" or "wb"), calls
--- `fn(tmp_path)` -- which should itself return (result, err) -- and
--- unconditionally removes the temp file afterward, on success or failure alike.
+-- `fn(tmp_path)` inside `pcall`, and unconditionally removes the temp
+-- file afterward whether `fn` returns normally or raises an error.
 function external_tool.with_temp_file(content, mode, fn)
     tmp_path = os.tmpname()
     file = io.open(tmp_path, mode)
     if file == nil then
         return nil, "could not create a temp file"
     end
-    io.write(file, content)
+    ok_write, write_err = pcall(io.write, file, content)
     io.close(file)
+    if not ok_write then
+        os.remove(tmp_path)
+        error(write_err, 0)
+    end
 
-    result, err = fn(tmp_path)
+    function invoke_with_path()
+        return pack_varargs(fn(tmp_path))
+    end
+    ok_fn, packed_or_err = pcall(invoke_with_path)
     os.remove(tmp_path)
-    return result, err
+    if not ok_fn then
+        error(packed_or_err, 0)
+    end
+    return unpack_varargs(packed_or_err)
 end
 
 return external_tool

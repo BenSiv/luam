@@ -4,14 +4,11 @@ utils = require("utils")
 
 gnuplot = {}
 
-temp_files = {}
-
 function write_temp_file(content)
     fname = os.tmpname()
-    f = io.open(fname, "w")
+    f = assert(io.open(fname, "w"))
     io.write(f, content)
     io.close(f)
-    table.insert(temp_files, fname)
     return fname
 end
 
@@ -21,13 +18,13 @@ function array_to_file(arr)
     assert(#arr > 0, "Input array is empty")
     n = #arr[1]  -- number of points
     lines = {}
-    
+
     for i = 1, n do
         line = {}
         for j = 1, #arr do
             v = arr[j][i]
             if (type(v) == "string") then
-                v = v.gsub(v, "\"", "")  -- remove quotes if present
+                v = string.gsub(v, "\"", "")  -- remove quotes if present
             end
             if (v != nil) then
                 line[j] = tostring(v)
@@ -37,7 +34,7 @@ function array_to_file(arr)
         end
         table.insert(lines, table.concat(line, " "))
     end
-    
+
     -- write to temporary file
     tmpname = os.tmpname()
     f = assert(io.open(tmpname, "w"))
@@ -46,27 +43,55 @@ function array_to_file(arr)
     return tmpname
 end
 
--- create a plot object (data + config)
+-- Removes all temporary series data files created by `gnuplot.create`.
+function cleanup(plot)
+    if plot == nil or type(plot._temp_files) != "table" then
+        return
+    end
+    for _, fname in ipairs(plot._temp_files) do
+        os.remove(fname)
+    end
+    plot._temp_files = {}
+end
+
+-- create a plot object (data + config) without mutating caller's series tables
 function create(cfg)
     if (cfg == nil) then
         cfg = {}
     end
     plot = {}
     plot.cfg = {}
-    for k,v in pairs(cfg) do
+    plot._temp_files = {}
+    for k, v in pairs(cfg) do
         plot.cfg[k] = v
     end
 
-    if (plot.cfg.data == nil) then
-        plot.cfg.data = {}
+    raw_data = cfg.data
+    if (raw_data == nil) then
+        raw_data = {}
     end
-    -- process arrays in data
-    for i, d in ipairs(plot.cfg.data) do
-        if (type(d[1]) == "table") then
-            d[1] = array_to_file(d[1])
-            d.file = true
+    plot_data = {}
+    function build_series_files()
+        for i, d in ipairs(raw_data) do
+            d_copy = {}
+            for dk, dv in pairs(d) do
+                d_copy[dk] = dv
+            end
+            if (type(d_copy[1]) == "table") then
+                data_path = array_to_file(d_copy[1])
+                table.insert(plot._temp_files, data_path)
+                d_copy[1] = data_path
+                d_copy.file = true
+            end
+            plot_data[i] = d_copy
         end
     end
+    ok_build, build_err = pcall(build_series_files)
+    if not ok_build then
+        cleanup(plot)
+        error(build_err, 0)
+    end
+    plot.cfg.data = plot_data
 
     return plot
 end
@@ -97,16 +122,16 @@ function generate_code(plot, cmd, output_path)
     -- time series support
     if ((cfg.xformat != nil and cfg.xformat != false)) then
         table.insert(code, "set xdata time")
-        table.insert(code, "set timefmt \""..cfg.xformat.."\"")   -- how to parse input
-        table.insert(code, "set format x \""..cfg.xformat.."\"")  -- how to display
+        table.insert(code, "set timefmt \"" .. cfg.xformat .. "\"")
+        table.insert(code, "set format x \"" .. cfg.xformat .. "\"")
     end
 
     -- labels and grid
-    if ((cfg.title != nil and cfg.title != false)) then table.insert(code, "set title \""..cfg.title.."\"") end
-    if ((cfg.xlabel != nil and cfg.xlabel != false)) then table.insert(code, "set xlabel \""..cfg.xlabel.."\"") end
-    if ((cfg.ylabel != nil and cfg.ylabel != false)) then table.insert(code, "set ylabel \""..cfg.ylabel.."\"") end
+    if ((cfg.title != nil and cfg.title != false)) then table.insert(code, "set title \"" .. cfg.title .. "\"") end
+    if ((cfg.xlabel != nil and cfg.xlabel != false)) then table.insert(code, "set xlabel \"" .. cfg.xlabel .. "\"") end
+    if ((cfg.ylabel != nil and cfg.ylabel != false)) then table.insert(code, "set ylabel \"" .. cfg.ylabel .. "\"") end
     if ((cfg.grid != nil and cfg.grid != false)) then table.insert(code, "set grid") end
-    if ((cfg.xtics != nil and cfg.xtics != false)) then table.insert(code, "set xtics "..cfg.xtics) end
+    if ((cfg.xtics != nil and cfg.xtics != false)) then table.insert(code, "set xtics " .. cfg.xtics) end
 
     -- axis ranges
     if ((cfg.xrange != nil and cfg.xrange != false)) then
@@ -130,42 +155,46 @@ function generate_code(plot, cmd, output_path)
     -- plot command
     plots = {}
     for _, d in ipairs(cfg.data) do
-        line = "\""..d[1].."\""
+        line = "\"" .. d[1] .. "\""
         if ((d.using != nil and d.using != false)) then
             line = line .. " using " .. table.concat(d.using, ":")
         end
         if ((d.with != nil and d.with != false)) then line = line .. " w " .. d.with end
-        if ((d.title != nil and d.title != false)) then line = line .. " t \""..d.title.."\"" end
+        if ((d.title != nil and d.title != false)) then line = line .. " t \"" .. d.title .. "\"" end
         table.insert(plots, line)
     end
-    table.insert(code, cmd.." "..table.concat(plots, ", "))
+    table.insert(code, cmd .. " " .. table.concat(plots, ", "))
 
     return table.concat(code, "\n")
 end
 
--- save plot to file
--- function savefig(plot, output_path)
---     code = generate_code(plot, "plot", output_path)
---     tmp = write_temp_file(code)
---     os.execute("gnuplot " .. tmp)
--- end
-
 function savefig(plot, output_path)
     code = generate_code(plot, "plot", output_path)
     tmp = write_temp_file(code)
-    
-    -- Use utils.exec_command instead of os.execute
-    output, ok = utils.exec_command("gnuplot " .. tmp)
-    
-    if ((ok == nil or ok == false)) then
+
+    function run_gnuplot()
+        return utils.exec_command("gnuplot " .. tmp)
+    end
+    call_ok, output, cmd_ok = pcall(run_gnuplot)
+
+    if plot.cfg == nil or plot.cfg.keep_temp_files != true then
+        os.remove(tmp)
+        cleanup(plot)
+    end
+
+    if not call_ok then
+        error(output, 0)
+    end
+    if ((cmd_ok == nil or cmd_ok == false)) then
         return false, output, tmp  -- Failed: return false + gnuplot output
     end
-    
+
     return true, output, tmp       -- Success: return true + gnuplot output
 end
 
 gnuplot.create = create
 gnuplot.savefig = savefig
 gnuplot.generate_code = generate_code
+gnuplot.cleanup = cleanup
 
 return gnuplot

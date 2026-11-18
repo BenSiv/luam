@@ -61,12 +61,66 @@ assert(parsed_mp.logo.data == "\x89PNG\r\n")
 
 -- Test external_tool
 assert(external_tool.shell_quote("it's cool") == "'it'\\''s cool'")
+leaked_tmp = nil
 res, err = external_tool.with_temp_file("hello world", "w", function(tmp)
+    leaked_tmp = tmp
     h = io.open(tmp, "r")
     txt = io.read(h, "*all")
     io.close(h)
     return txt, nil
 end)
 assert(res == "hello world")
+assert(io.open(leaked_tmp, "r") == nil, "temp file must be removed on normal return")
+
+raised_tmp = nil
+ok_tmp_err, tmp_err = pcall(external_tool.with_temp_file, "secret config", "w", function(tmp)
+    raised_tmp = tmp
+    error("callback crashed")
+end)
+assert(ok_tmp_err == false and string.find(tostring(tmp_err), "callback crashed", 1, true) != nil)
+assert(raised_tmp != nil and io.open(raised_tmp, "r") == nil,
+    "temp file must be removed even when callback raises")
+
+-- Test sandbox stdlib isolation & instruction-budget enforcement
+sandbox = require("sandbox")
+orig_gsub = string.gsub
+ok_sb, sb_val = sandbox.run("""
+    string.gsub = function() return "POISONED" end
+    table.concat = function() return "POISONED" end
+    math.floor = function() return -999 end
+    return string.gsub("abc", "b", "x")
+""", "poison_test", sandbox.data_env())
+assert(ok_sb == true and sb_val == "POISONED", "sandbox env may mutate its own local copy")
+assert(string.gsub == orig_gsub and string.gsub("O'Brien", "'", "''") == "O''Brien",
+    "sandboxed stdlib mutation must NOT poison host string.gsub")
+ok_sb2, sb_val2 = sandbox.run("return string.gsub(\"abc\", \"b\", \"y\")", "clean_env_test", sandbox.data_env())
+assert(ok_sb2 == true and sb_val2 == "ayc", "subsequent sandbox_env must receive fresh unpoisoned stdlib: " .. tostring(sb_val2))
+
+loop_env = sandbox.data_env()
+loop_env.__max_instructions = 2000
+ok_loop, loop_err = sandbox.run("""
+    while true do
+        pcall(function()
+            while true do end
+        end)
+    end
+""", "infinite_loop_test", loop_env)
+assert(ok_loop == false and string.find(tostring(loop_err), "instruction limit", 1, true) != nil,
+    "sandbox.run must abort infinite loops even when wrapped in pcall, got: " .. tostring(loop_err))
+
+-- Test gnuplot temp-file cleanup
+gnuplot = require("gnuplot")
+gp_plot = gnuplot.create({
+    type = "svg", width = 320, height = 200,
+    data = {{{{1, 2}, {3, 4}}, with = "lines", title = "s1"}},
+})
+series_tmp_file = gp_plot.cfg.data[1][1]
+assert(type(series_tmp_file) == "string" and io.open(series_tmp_file, "r") != nil,
+    "expected series temp file to exist after gnuplot.create")
+gp_out = os.tmpname()
+_, _, gp_script = gnuplot.savefig(gp_plot, gp_out)
+os.remove(gp_out)
+assert(io.open(series_tmp_file, "r") == nil, "gnuplot.savefig must clean up series temp data files")
+assert(io.open(gp_script, "r") == nil, "gnuplot.savefig must clean up temporary gnuplot script")
 
 print("PASS test_web_stack.lua")
