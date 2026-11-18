@@ -127,12 +127,51 @@ if ok then
     assert(tonumber(tx_kept[1].n) == 2, "committed nested transaction rows must persist")
 
     -- 5. Advisory with_lock & inode-aware cache_key (Seam 5)
+    luam_bin = "bin/luam"
+    probe_bin = io.open(luam_bin, "r")
+    if probe_bin != nil then
+        io.close(probe_bin)
+    else
+        luam_bin = "luam"
+    end
     k1 = database.cache_key(tmp_db)
+    function locked_inner()
+        return 456
+    end
     function locked_return_123()
+        -- Re-entrant same-name lock in the same process must not self-deadlock
+        inner_val = database.with_lock(tmp_db, "test_lock", 0, locked_inner)
+        assert(inner_val == 456, "re-entrant SQLite with_lock failed")
+
+        -- Cross-process contention: a separate OS process attempting the same
+        -- lock with timeout = 0 must fail instead of running unlocked
+        child_cmd = string.format(
+            "LUA_PATH=%q LUA_CPATH=%q " ..
+            "%s -e \"db = require('database'); ok, err = pcall(db.with_lock, '%s', 'test_lock', 0, function() return 1 end); if ok then os.exit(1) end; if string.find(tostring(err), 'could not acquire database lock', 1, true) == nil then os.exit(2) end; os.exit(0)\"",
+            package.path, package.cpath, luam_bin, tmp_db
+        )
+        rc_child = os.execute(child_cmd)
+        assert(rc_child == 0, "expected contending child process with_lock to time out cleanly, got rc=" .. tostring(rc_child))
         return 123
     end
     lock_res = database.with_lock(tmp_db, "test_lock", 5, locked_return_123)
     assert(lock_res == 123 and type(k1) == "string" and string.find(k1, "sqlite:", 1, true) == 1, "with_lock/cache_key failed")
+
+    -- Lock must be released even when fn raises, so a subsequent child process succeeds
+    function locked_raise()
+        error("lock_body_failed")
+    end
+    function call_locked_raise()
+        database.with_lock(tmp_db, "test_lock", 1, locked_raise)
+    end
+    ok_lerr = pcall(call_locked_raise)
+    assert(ok_lerr == false, "expected error inside with_lock to propagate")
+    after_cmd = string.format(
+        "LUA_PATH=%q LUA_CPATH=%q " ..
+        "%s -e \"db = require('database'); v = db.with_lock('%s', 'test_lock', 1, function() return 99 end); if v != 99 then os.exit(1) end\"",
+        package.path, package.cpath, luam_bin, tmp_db
+    )
+    assert(os.execute(after_cmd) == 0, "expected SQLite lock to be released after raising fn")
 
     os.remove(tmp_db)
 else

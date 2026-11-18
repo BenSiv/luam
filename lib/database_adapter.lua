@@ -489,11 +489,17 @@ end
 -- outlive a single request, without needing to change this code.
 _mariadb_connections = {}
 _mariadb_last_used = {}
+_mariadb_pin_depth = {}
 MARIADB_PING_INTERVAL_SECS = 5
 
 function mariadb_connection_key(descriptor)
     return tostring(descriptor.host) .. ":" .. tostring(descriptor.port) ..
         ":" .. tostring(descriptor.user) .. ":" .. tostring(descriptor.database)
+end
+
+function is_mariadb_pinned(key)
+    depth = _mariadb_pin_depth[key]
+    return depth != nil and depth > 0
 end
 
 -- True when a sql_mode string (as read back from @@SESSION.sql_mode,
@@ -518,6 +524,7 @@ end
 function get_mariadb_connection_internal(descriptor, force_reconnect)
     native = get_mariadb_native()
     key = mariadb_connection_key(descriptor)
+    pinned = is_mariadb_pinned(key)
     now = os.time()
     cached = _mariadb_connections[key]
     if cached != nil and force_reconnect != true then
@@ -538,6 +545,9 @@ function get_mariadb_connection_internal(descriptor, force_reconnect)
         end
         _mariadb_connections[key] = nil
         _mariadb_last_used[key] = nil
+    end
+    if pinned then
+        return nil, "MariaDB connection dropped while holding an active transaction or advisory lock"
     end
 
     conn, err = native.connect(
@@ -583,6 +593,37 @@ end
 
 function get_mariadb_connection(descriptor)
     return get_mariadb_connection_internal(descriptor, false)
+end
+
+-- Pins (delta = +1) or unpins (delta = -1) the cached MariaDB session for
+-- `descriptor` while an open transaction or session-scoped advisory lock
+-- (`GET_LOCK`) is active. While pinned, a dropped socket MUST raise an
+-- error rather than transparently opening a fresh connection (which would
+-- silently drop the lock or run subsequent writes in autocommit mode).
+function mariadb_pin_connection(descriptor, delta)
+    native = get_mariadb_native()
+    key = mariadb_connection_key(descriptor)
+    cur = _mariadb_pin_depth[key]
+    if cur == nil then
+        cur = 0
+    end
+    if delta > 0 and cur == 0 then
+        conn, err = get_mariadb_connection_internal(descriptor, false)
+        if conn == nil then
+            error("Error connecting to MariaDB: " .. tostring(err))
+        end
+    end
+    next_depth = cur + delta
+    if next_depth <= 0 then
+        _mariadb_pin_depth[key] = nil
+        cached = _mariadb_connections[key]
+        if cached != nil and native.isopen(cached) == false then
+            _mariadb_connections[key] = nil
+            _mariadb_last_used[key] = nil
+        end
+    else
+        _mariadb_pin_depth[key] = next_depth
+    end
 end
 
 -- Real mysql_real_escape_string (connection/charset-aware), not a naive
@@ -631,6 +672,14 @@ function mariadb_query(descriptor, query, ...)
     formatted_query = format_mariadb_sql(native, conn, query, raw_args)
     rows, err = native.query(conn, formatted_query)
     if rows == nil and was_cached and (native.isopen(conn) == false or native.ping(conn) == false) then
+        if is_mariadb_pinned(key) then
+            if native.isopen(conn) == true then
+                native.close(conn)
+            end
+            _mariadb_connections[key] = nil
+            _mariadb_last_used[key] = nil
+            error("MariaDB connection dropped while holding an active transaction or advisory lock: " .. tostring(err))
+        end
         conn, reconn_err = get_mariadb_connection_internal(descriptor, true)
         if conn == nil then
             error("Error connecting to MariaDB: " .. tostring(reconn_err))
@@ -672,6 +721,14 @@ function mariadb_update(descriptor, statement, ...)
     formatted_stmt = format_mariadb_sql(native, conn, statement, raw_args)
     affected, insert_id = native.exec(conn, formatted_stmt)
     if affected == nil and was_cached and (native.isopen(conn) == false or native.ping(conn) == false) then
+        if is_mariadb_pinned(key) then
+            if native.isopen(conn) == true then
+                native.close(conn)
+            end
+            _mariadb_connections[key] = nil
+            _mariadb_last_used[key] = nil
+            error("MariaDB connection dropped while holding an active transaction or advisory lock: " .. tostring(insert_id))
+        end
         conn, reconn_err = get_mariadb_connection_internal(descriptor, true)
         if conn == nil then
             error("Error connecting to MariaDB: " .. tostring(reconn_err))
@@ -699,6 +756,93 @@ function mariadb_close_all()
         end
         _mariadb_connections[key] = nil
         _mariadb_last_used[key] = nil
+    end
+    _mariadb_pin_depth = {}
+end
+
+_lfs_lock_checked = false
+_lfs_lock_mod = nil
+
+function get_lfs_for_lock()
+    if not _lfs_lock_checked then
+        _lfs_lock_checked = true
+        ok, mod = pcall(require, "lfs")
+        if ok and type(mod) == "table" then
+            _lfs_lock_mod = mod
+        end
+    end
+    return _lfs_lock_mod
+end
+
+function canonical_sqlite_path(db_path)
+    p = tostring(db_path)
+    if string.sub(p, 1, 1) != "/" then
+        lfs_mod = get_lfs_for_lock()
+        if lfs_mod != nil and lfs_mod.currentdir != nil then
+            cwd = lfs_mod.currentdir()
+            if cwd != nil and cwd != "" then
+                p = cwd .. "/" .. p
+            end
+        end
+    end
+    p = string.gsub(p, "/%./", "/")
+    p = string.gsub(p, "//+", "/")
+    return p
+end
+
+function sqlite_lock_file_path(db_path, lock_name)
+    raw_key = canonical_sqlite_path(db_path) .. "\0" .. tostring(lock_name)
+    h1 = 5381
+    h2 = 2166136261
+    for i = 1, string.len(raw_key) do
+        b = string.byte(raw_key, i)
+        h1 = (h1 * 33 + b) % 4294967296
+        h2 = (h2 * 131 + b) % 4294967296
+    end
+    tmpdir = os.getenv("TMPDIR")
+    if tmpdir == nil or tmpdir == "" then
+        tmpdir = "/tmp"
+    end
+    tmpdir = string.gsub(tmpdir, "/+$", "")
+    return string.format("%s/luam_dblock_%08x%08x.lck", tmpdir, h1, h2)
+end
+
+-- Acquires a cross-process advisory lock for a SQLite database by opening a
+-- dedicated companion SQLite lock file in /tmp and entering `BEGIN EXCLUSIVE`
+-- under `PRAGMA busy_timeout`. Kernel file locks release automatically if a
+-- worker crashes or is SIGKILLed, and keeping the companion handle separate
+-- from `db_path` allows `fn()` to freely open/close connections or run DDL on
+-- `db_path` itself without self-contention.
+function sqlite_acquire_lock(db_path, lock_name, timeout_secs)
+    path_str = tostring(db_path)
+    if path_str == ":memory:" or (string.sub(path_str, 1, 5) == "file:" and string.find(path_str, "mode=memory", 1, true) != nil) then
+        return nil
+    end
+    t_secs = tonumber(timeout_secs)
+    if t_secs == nil or t_secs < 0 then
+        t_secs = 0
+    end
+    timeout_ms = math.floor(t_secs * 1000)
+    lock_path = sqlite_lock_file_path(db_path, lock_name)
+    lock_conn = sqlite.open(lock_path)
+    if lock_conn == nil then
+        error("could not open SQLite advisory lock file: " .. tostring(lock_path))
+    end
+    sqlite.exec(lock_conn, string.format("PRAGMA busy_timeout = %d;", timeout_ms))
+    rc = sqlite.exec(lock_conn, "BEGIN EXCLUSIVE;")
+    if rc != sqlite.OK then
+        err_msg = tostring(sqlite.errmsg(lock_conn))
+        sqlite.close(lock_conn)
+        error(string.format("could not acquire database lock %s within %ss (%s)",
+            tostring(lock_name), tostring(t_secs), err_msg), 0)
+    end
+    return {conn = lock_conn, path = lock_path}
+end
+
+function sqlite_release_lock(handle)
+    if handle != nil and handle.conn != nil and sqlite.isopen(handle.conn) then
+        sqlite.exec(handle.conn, "ROLLBACK;")
+        sqlite.close(handle.conn)
     end
 end
 
@@ -889,6 +1033,8 @@ database_adapter.sqlite_close_all = sqlite_close_all
 database_adapter.sqlite_connection_count = sqlite_connection_count
 database_adapter.acquire_sqlite_connection = acquire_sqlite_connection
 database_adapter.release_sqlite_connection = release_sqlite_connection
+database_adapter.sqlite_acquire_lock = sqlite_acquire_lock
+database_adapter.sqlite_release_lock = sqlite_release_lock
 database_adapter.import_delimited = import_delimited
 database_adapter.export_delimited = export_delimited
 database_adapter.load_df = load_df
@@ -900,6 +1046,7 @@ database_adapter.mariadb_update = mariadb_update
 database_adapter.escape_mariadb = escape_mariadb
 database_adapter.mariadb_close_all = mariadb_close_all
 database_adapter.mariadb_connection_count = mariadb_connection_count
+database_adapter.mariadb_pin_connection = mariadb_pin_connection
 
 -- Export the module
 return database_adapter

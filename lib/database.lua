@@ -410,6 +410,7 @@ function database.connection_id(db_path)
 end
 
 _active_transactions = {}
+_active_locks = {}
 
 function pack_varargs(...)
     return {n = select("#", ...), ...}
@@ -433,9 +434,10 @@ end
 -- * SQLite: pins a kept-open connection if needed and opens BEGIN
 --   IMMEDIATE so concurrent writers wait on busy_timeout at entry
 --   rather than deadlocking mid-transaction on lock upgrade.
--- * MariaDB: verifies CONNECTION_ID() has not changed before COMMIT
---   (and passes a `check_alive()` helper to `fn` for per-row checks on
---   large batches).
+-- * MariaDB: pins the cached connection (forbidding transparent
+--   mid-transaction reconnect) and verifies CONNECTION_ID() has not
+--   changed before COMMIT (passing a `check_alive()` helper to `fn` for
+--   per-row checks on large batches).
 -- If `fn(check_alive)` raises an error, rolls back and re-raises it.
 -- If `fn` returns `false, ...` (explicit abort without throwing), rolls
 -- back and returns `fn`'s return values; otherwise commits and returns
@@ -446,8 +448,11 @@ function database.transaction(db_path, fn)
         return fn(_active_transactions[tx_key])
     end
 
+    mariadb_mode = is_mariadb(db_path)
     opened_sqlite = false
-    if not is_mariadb(db_path) then
+    if mariadb_mode then
+        database_adapter.mariadb_pin_connection(db_path, 1)
+    else
         already_open = database_adapter.is_sqlite_keep_open() == true or
             database_adapter.sqlite_connection_count() > 0
         if not already_open then
@@ -456,19 +461,43 @@ function database.transaction(db_path, fn)
         end
     end
 
-    conn_before = database.connection_id(db_path)
+    ok_conn_before, conn_before = pcall(database.connection_id, db_path)
+    if not ok_conn_before then
+        if mariadb_mode then
+            database_adapter.mariadb_pin_connection(db_path, -1)
+        elseif opened_sqlite then
+            database_adapter.sqlite_keep_open(false)
+        end
+        error(conn_before, 0)
+    end
+
     function check_alive()
-        if conn_before != nil and database.connection_id(db_path) != conn_before then
-            return false
+        if conn_before != nil then
+            ok_now, now_id = pcall(database.connection_id, db_path)
+            if not ok_now or now_id != conn_before then
+                return false
+            end
         end
         return true
     end
 
-    if is_mariadb(db_path) then
-        database.exec(db_path, "START TRANSACTION;")
-    else
-        database.exec(db_path, "BEGIN IMMEDIATE;")
+    function begin_tx()
+        if mariadb_mode then
+            database.exec(db_path, "START TRANSACTION;")
+        else
+            database.exec(db_path, "BEGIN IMMEDIATE;")
+        end
     end
+    ok_begin, begin_err = pcall(begin_tx)
+    if not ok_begin then
+        if mariadb_mode then
+            database_adapter.mariadb_pin_connection(db_path, -1)
+        elseif opened_sqlite then
+            database_adapter.sqlite_keep_open(false)
+        end
+        error(begin_err, 0)
+    end
+
     _active_transactions[tx_key] = check_alive
 
     results = nil
@@ -482,55 +511,115 @@ function database.transaction(db_path, fn)
     should_commit = ok and (results == nil or results[1] != false)
     if should_commit and not check_alive() then
         pcall(database.exec, db_path, "ROLLBACK;")
-        if opened_sqlite then
+        if mariadb_mode then
+            database_adapter.mariadb_pin_connection(db_path, -1)
+        elseif opened_sqlite then
             database_adapter.sqlite_keep_open(false)
         end
         error("database connection dropped during transaction; rolled back", 0)
     end
 
+    commit_ok = true
+    commit_err = nil
     if should_commit then
-        database.exec(db_path, "COMMIT;")
+        commit_ok, commit_err = pcall(database.exec, db_path, "COMMIT;")
     else
         pcall(database.exec, db_path, "ROLLBACK;")
     end
 
-    if opened_sqlite then
+    if mariadb_mode then
+        database_adapter.mariadb_pin_connection(db_path, -1)
+    elseif opened_sqlite then
         database_adapter.sqlite_keep_open(false)
     end
 
     if not ok then
         error(err, 0)
     end
+    if not commit_ok then
+        error(commit_err, 0)
+    end
     return unpack_varargs(results)
 end
 
 -- Named advisory lock across concurrent processes (for schema DDL /
 -- migrations, which implicitly commit transactions on MariaDB/MySQL and
--- therefore cannot rely on database.transaction). On MariaDB, acquires
--- GET_LOCK(lock_name, timeout_secs) and guarantees RELEASE_LOCK even if
--- `fn` raises; on SQLite, WAL + busy_timeout already serialize file DDL.
+-- therefore cannot rely on database.transaction).
+-- * Re-entrant within the same process for the same (store, lock_name).
+-- * MariaDB: pins the session so a socket drop cannot transparently
+--   reconnect unlocked, verifies GET_LOCK(...) == 1 (raising on timeout
+--   got == 0 or NULL rather than running unlocked!), checks the session
+--   stayed alive, and guarantees RELEASE_LOCK only when acquired.
+-- * SQLite: acquires a cross-process EXCLUSIVE lock on a companion lock
+--   handle via sqlite_acquire_lock so multi-statement DDL/migrations
+--   cannot interleave across concurrent CGI/CLI workers.
 function database.with_lock(db_path, lock_name, timeout_secs, fn)
     if timeout_secs == nil then
         timeout_secs = 120
     end
-    locked = is_mariadb(db_path)
-    if locked then
-        database.query(db_path, string.format(
+    lock_key = database.cache_key(db_path) .. "\0" .. tostring(lock_name)
+    if _active_locks[lock_key] == true then
+        return fn()
+    end
+
+    mariadb_mode = is_mariadb(db_path)
+    sqlite_handle = nil
+    conn_before = nil
+
+    if mariadb_mode then
+        database_adapter.mariadb_pin_connection(db_path, 1)
+        ok_id, cid = pcall(database.connection_id, db_path)
+        if not ok_id then
+            database_adapter.mariadb_pin_connection(db_path, -1)
+            error(cid, 0)
+        end
+        conn_before = cid
+        ok_lock, lock_rows = pcall(database.query, db_path, string.format(
             "SELECT GET_LOCK(%s, %d) AS got;", database.quote(lock_name), tonumber(timeout_secs)
         ))
+        if not ok_lock then
+            database_adapter.mariadb_pin_connection(db_path, -1)
+            error(lock_rows, 0)
+        end
+        got_lock = (lock_rows != nil and lock_rows[1] != nil and tonumber(lock_rows[1].got) == 1)
+        if not got_lock then
+            database_adapter.mariadb_pin_connection(db_path, -1)
+            error(string.format("could not acquire database lock %s within %ds",
+                tostring(lock_name), tonumber(timeout_secs)), 0)
+        end
+    else
+        sqlite_handle = database_adapter.sqlite_acquire_lock(db_path, lock_name, timeout_secs)
     end
+
+    _active_locks[lock_key] = true
     results = nil
     function run_locked()
         results = pack_varargs(fn())
     end
     ok, err = pcall(run_locked)
-    if locked then
-        pcall(database.query, db_path, string.format(
-            "SELECT RELEASE_LOCK(%s) AS released;", database.quote(lock_name)
-        ))
+    _active_locks[lock_key] = nil
+
+    alive_after = true
+    if mariadb_mode then
+        ok_after, cid_after = pcall(database.connection_id, db_path)
+        if not ok_after or (conn_before != nil and cid_after != conn_before) then
+            alive_after = false
+        end
+        if alive_after then
+            pcall(database.query, db_path, string.format(
+                "SELECT RELEASE_LOCK(%s) AS released;", database.quote(lock_name)
+            ))
+        end
+        database_adapter.mariadb_pin_connection(db_path, -1)
+    else
+        database_adapter.sqlite_release_lock(sqlite_handle)
     end
+
     if not ok then
         error(err, 0)
+    end
+    if not alive_after then
+        error("database connection dropped while holding advisory lock " .. tostring(lock_name), 0)
     end
     return unpack_varargs(results)
 end

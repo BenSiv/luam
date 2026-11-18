@@ -109,8 +109,55 @@ assert(commit_res == "ok_mdb", "expected MariaDB transaction commit")
 commit_rows = db_mod.query(descriptor, "SELECT * FROM luam_mariadb_wrapper_test WHERE val = 'tx_commit';")
 assert(commit_rows != nil and #commit_rows == 1, "committed MariaDB transaction row must persist")
 
-lock_val = db_mod.with_lock(descriptor, "luam_test_lock", 5, function() return 77 end)
+lock_val = db_mod.with_lock(descriptor, "luam_test_lock", 5, function()
+    -- Re-entrant same-name lock on same store joins without round-trip deadlock
+    nested_v = db_mod.with_lock(descriptor, "luam_test_lock", 0, function() return 88 end)
+    assert(nested_v == 88, "nested MariaDB with_lock failed")
+    return 77
+end)
 assert(lock_val == 77, "database.with_lock failed on MariaDB")
+
+-- Contended GET_LOCK timeout (got == 0): a second raw connection holding
+-- 'luam_contended_lock' must cause database.with_lock(..., 0, ...) to raise
+-- rather than running unlocked, and must NOT release the holder's lock.
+mariadb_native = require("mariadb")
+holder_conn, holder_err = mariadb_native.connect(host, port, user, password, database_name)
+assert(holder_conn != nil, "holder connect failed: " .. tostring(holder_err))
+h_rows = mariadb_native.query(holder_conn, "SELECT GET_LOCK('luam_contended_lock', 5) AS got;")
+assert(h_rows != nil and tonumber(h_rows[1].got) == 1, "holder failed to acquire GET_LOCK")
+
+ran_unlocked = false
+ok_contend, contend_err = pcall(db_mod.with_lock, descriptor, "luam_contended_lock", 0, function()
+    ran_unlocked = true
+    return "bad"
+end)
+assert(ok_contend == false and ran_unlocked == false, "expected with_lock to raise on GET_LOCK timeout rather than run unlocked")
+assert(string.find(tostring(contend_err), "could not acquire database lock", 1, true) != nil,
+    "unexpected lock timeout error: " .. tostring(contend_err))
+
+still_held = mariadb_native.query(holder_conn, "SELECT IS_USED_LOCK('luam_contended_lock') = CONNECTION_ID() AS held;")
+assert(still_held != nil and tonumber(still_held[1].held) == 1, "timed-out waiter must not disturb holder lock")
+mariadb_native.query(holder_conn, "SELECT RELEASE_LOCK('luam_contended_lock');")
+mariadb_native.close(holder_conn)
+
+-- Pinned session protection: killing the server-side session mid-transaction
+-- must raise an error rather than transparently reconnecting into autocommit.
+killer_conn = mariadb_native.connect(host, port, user, password, database_name)
+assert(killer_conn != nil, "killer connect failed")
+leaked_after_kill = false
+ok_kill_tx, kill_tx_err = pcall(db_mod.transaction, descriptor, function()
+    db_mod.exec(descriptor, "INSERT INTO luam_mariadb_wrapper_test (val) VALUES ('before_kill');")
+    target_id = db_mod.connection_id(descriptor)
+    mariadb_native.exec(killer_conn, "KILL " .. tostring(target_id) .. ";")
+    db_mod.exec(descriptor, "INSERT INTO luam_mariadb_wrapper_test (val) VALUES ('after_kill_must_not_autocommit');")
+    leaked_after_kill = true
+end)
+mariadb_native.close(killer_conn)
+assert(ok_kill_tx == false and leaked_after_kill == false,
+    "expected killed MariaDB session inside transaction to fail instead of reconnecting into autocommit")
+after_kill_rows = db_mod.query(descriptor,
+    "SELECT * FROM luam_mariadb_wrapper_test WHERE val IN ('before_kill', 'after_kill_must_not_autocommit');")
+assert(after_kill_rows == nil, "neither pre-kill uncommitted row nor post-kill statement may persist")
 
 fn_rows = db_mod.query(descriptor,
     "SELECT EXP(1.0) AS e1, LN(EXP(2.5)) AS l25, CHAR_LENGTH('שלום') AS ulen, GREATEST(2, 9, 4) AS g, DATEDIFF('2024-03-01', '2024-02-01') AS dd;"
