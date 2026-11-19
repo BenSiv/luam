@@ -1,29 +1,22 @@
-yaml = require "yaml"
-print("Loaded yaml module")
+yaml = require("yaml")
 
 data = {
-    name = "Lua-ML est",
+    name = "Luam YAML Test",
     version = 1.0,
+    enabled = true,
     list = {1, 2, 3, "four"},
     nested = {
-        key = "value"
-    }
+        key = "value",
+    },
 }
 
-print("Dumping data...")
 encoded = yaml.dump(data)
-print("Encoded ML:")
-print(encoded)
-
-print("Loading data...")
 decoded = yaml.load(encoded)
 
-if decoded.name == data.name and
-   decoded.version == data.version and
-   decoded.list[4] == data.list[4] and
-   decoded.nested.key == data.nested.key then
-   print("PSSED: Data round-tripped successfully")
-else
-   print("FLED: Data mismatch")
-   print("Expected name:", data.name, "ot:", decoded.name)
-end
+assert(decoded.name == data.name, "YAML name mismatch")
+assert(decoded.version == data.version, "YAML version mismatch")
+assert(decoded.enabled == true, "YAML boolean mismatch")
+assert(decoded.list[4] == "four", "YAML list mismatch")
+assert(decoded.nested.key == "value", "YAML nested mismatch")
+
+print("PASS test_yaml.lua")

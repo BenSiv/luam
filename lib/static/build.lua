@@ -111,7 +111,7 @@ MODULES = {
 -- project's own build.sh already did by hand. "static" is deliberately
 -- excluded -- that's this tool itself, never a runtime dependency of
 -- the project being built.
-FLATTEN_MODULES = {"dkjson", "ltn12", "mime", "socket", "ssl"}
+FLATTEN_MODULES = {"dkjson"}
 
 -- ---- CLI ----
 
@@ -217,7 +217,7 @@ function run_cmd(command)
         full_command = command .. " >> " .. BUILD_LOG .. " 2>&1"
     end
     ok = os.execute(full_command)
-    return ok == 0
+    return ok == true or ok == 0
 end
 
 function fail(message)

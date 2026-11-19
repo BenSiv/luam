@@ -22,6 +22,10 @@
 
 #include "lauxlib.h"
 
+#if defined(LUA_USE_POSIX)
+#include <sys/wait.h>
+#endif
+
 #define FREELIST_REF 0 /* free list of references */
 
 /* convert a stack index to positive */
@@ -594,4 +598,27 @@ LUALIB_API lua_State *luaL_newstate(void) {
   if (L)
     lua_atpanic(L, &panic);
   return L;
+}
+
+LUALIB_API int luaL_execresult(lua_State *L, int stat) {
+  const char *what = "exit";
+  if (stat == -1) {
+    int en = errno;
+    lua_pushboolean(L, 0);
+    lua_pushstring(L, strerror(en));
+    lua_pushinteger(L, en);
+    return 3;
+  }
+#if defined(LUA_USE_POSIX)
+  if (WIFEXITED(stat)) {
+    stat = WEXITSTATUS(stat);
+  } else if (WIFSIGNALED(stat)) {
+    stat = WTERMSIG(stat);
+    what = "signal";
+  }
+#endif
+  lua_pushboolean(L, (*what == 'e' && stat == 0));
+  lua_pushstring(L, what);
+  lua_pushinteger(L, stat);
+  return 3;
 }

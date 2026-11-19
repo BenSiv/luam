@@ -35,8 +35,14 @@ static int os_pushresult(lua_State *L, int i, const char *filename) {
 
 
 static int os_execute(lua_State *L) {
-  lua_pushinteger(L, system(luaL_optstring(L, 1, NULL)));
-  return 1;
+  const char *cmd = luaL_optstring(L, 1, NULL);
+  int stat = system(cmd);
+  if (cmd != NULL)
+    return luaL_execresult(L, stat);
+  else {
+    lua_pushboolean(L, stat != 0);
+    return 1;
+  }
 }
 
 

@@ -331,7 +331,7 @@ encode2 = function (value, indent, level, buffer, buflen, tables, globalorder, s
         end
         newbuflen = buflen + 1
         buffer[newbuflen] = s
-      elseif valtype == "boolean" or valtype == "flag" then
+      elseif valtype == "boolean" then
           newbuflen = buflen + 1
           if value == true then
             buffer[newbuflen] = "true"

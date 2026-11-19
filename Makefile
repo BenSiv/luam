@@ -52,7 +52,7 @@ LB= ranlib
 PLS= aix ansi bsd freebsd generic linux macosx mingw posix solaris
 
 # What to install.
-O_B= ../bld/luam ../bld/luamc
+O_B= ../bin/luam ../bin/luamc
 O_C= lua.h luaconf.h lualib.h lauxlib.h ../etc/lua.hpp
 O_LB= ../obj/liblua.a
 O_M= lua.1 luac.1
@@ -90,11 +90,7 @@ local:
 	$(MAKE) all MYCFLAGS=-DLUA_USE_LINUX MYLIBS="-Wl,-E -ldl -lreadline -lhistory -lncurses"
 
 test:
-	LUA_PATH="lib/?.lua;lib/lua-sqlite3/?.lua;tst/?.lua" LUA_CPATH="bld/?.so;lib/luafilesystem/src/?.so;lib/lua-yaml/?.so;;" ./bld/luam tst/run_tests.lua
-	@echo "   make PLATFORM"
-	@echo "where PLATFORM is one of these:"
-	@echo "   $(PLS)"
-	@echo "See doc/install.md for complete instructions."
+	LUA_PATH="lib/?.lua;lib/?/init.lua;tst/?.lua;;" LUA_CPATH="lib/?.so;lib/?/?.so;bin/?.so;;" ./bin/luam tst/run_tests.lua
 
 none:
 	@echo "Please do"

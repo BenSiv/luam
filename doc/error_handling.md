@@ -120,11 +120,6 @@ function get_config(key)
     return default_configs[key]
   end
 end
-
--- Short form using 'or' operator
-function get_config_short(key)
-  return config_table[key] or default_configs[key]
-end
 ```
 
 ### 6. Chained Operations

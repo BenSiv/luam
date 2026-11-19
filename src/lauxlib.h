@@ -144,6 +144,8 @@ LUALIB_API void(luaL_addstring)(luaL_Buffer *B, const char *s);
 LUALIB_API void(luaL_addvalue)(luaL_Buffer *B);
 LUALIB_API void(luaL_pushresult)(luaL_Buffer *B);
 
+LUALIB_API int(luaL_execresult)(lua_State *L, int stat);
+
 
 /* }====================================================== */
 

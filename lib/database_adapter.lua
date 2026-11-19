@@ -1,6 +1,4 @@
 utils = require("utils")
-delimited_files = require("delimited_files")
-dataframes = require("dataframes")
 sqlite = require("sqlite3")
 _G.sqlite3 = nil
 
@@ -874,6 +872,7 @@ function get_sql_values(row, col_names)
 end
 
 function import_delimited(db_path, file_path, table_name, delimiter)    
+    delimited_files = require("delimited_files")
     db, owned = acquire_sqlite_connection(db_path)
 
     content = delimited_files.readdlm(file_path, delimiter, true)
@@ -918,11 +917,13 @@ function export_delimited(db_path, query, file_path, delimiter, header)
         return nil
     end
 
+    delimited_files = require("delimited_files")
     delimited_files.writedlm(results, file_path, delimiter, header, false, col_names)
     return true
 end
 
 function load_df_rows(db_path, table_name, dataframe)
+    dataframes = require("dataframes")
     -- Validate dataframe
     if (not dataframes.is_dataframe(dataframe)) then
         error("The provided table is not a valid dataframe.")
@@ -968,6 +969,7 @@ function load_df_rows(db_path, table_name, dataframe)
 end
 
 function load_df(db_path, table_name, dataframe)
+    dataframes = require("dataframes")
     -- Check if the provided dataframe is valid
     if (not dataframes.is_dataframe(dataframe)) then
         error("The provided table is not a valid dataframe.")

@@ -171,7 +171,7 @@ os.exit(0)
             return os.execute(child_cmd), nil
         end
         rc_child, _ = external_tool.with_temp_file(contend_script, "w", run_contend_child)
-        assert(rc_child == 0, "expected contending child process with_lock to time out cleanly, got rc=" .. tostring(rc_child))
+        assert(rc_child == true, "expected contending child process with_lock to time out cleanly, got rc=" .. tostring(rc_child))
         return 123
     end
     lock_res = database.with_lock(tmp_db, "test_lock", 5, locked_return_123)
@@ -209,7 +209,7 @@ os.exit(0)
         return os.execute(after_cmd), nil
     end
     rc_after, _ = external_tool.with_temp_file(after_script, "w", run_after_child)
-    assert(rc_after == 0, "expected SQLite lock to be released after raising fn")
+    assert(rc_after == true, "expected SQLite lock to be released after raising fn")
 
     os.remove(tmp_db)
 else

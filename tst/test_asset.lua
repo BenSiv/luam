@@ -72,7 +72,7 @@ io.close(f_main)
 luam_root = lfs.currentdir()
 build_cmd = "cd \"" .. tmp_root .. "\" && \"" .. paths.joinpath(luam_root, "bin", "luam") .. "\" \"" ..
     paths.joinpath(luam_root, "lib", "static", "build.lua") .. "\" --entry main.lua --bin asset_app --luamdir \"" .. luam_root .. "\" > /dev/null"
-assert(os.execute(build_cmd) == 0, "static build with valid assets failed")
+assert(os.execute(build_cmd), "static build with valid assets failed")
 
 -- Remove src/ completely to prove zero runtime filesystem dependency.
 os.remove(paths.joinpath(tmp_root, "src", "ui", "widget.js"))
@@ -83,7 +83,7 @@ lfs.rmdir(paths.joinpath(tmp_root, "src"))
 
 out_file = paths.joinpath(tmp_root, "out.txt")
 run_bin_cmd = "\"" .. paths.joinpath(tmp_root, "bin", "asset_app") .. "\" > \"" .. out_file .. "\""
-assert(os.execute(run_bin_cmd) == 0, "compiled asset binary failed when src/ was removed")
+assert(os.execute(run_bin_cmd), "compiled asset binary failed when src/ was removed")
 
 out_handle = io.open(out_file, "rb")
 out_text = io.read(out_handle, "*all")
@@ -99,7 +99,7 @@ io.close(f_bad)
 
 bad_build_cmd = "cd \"" .. tmp_root .. "\" && \"" .. paths.joinpath(luam_root, "bin", "luam") .. "\" \"" ..
     paths.joinpath(luam_root, "lib", "static", "build.lua") .. "\" --src bad_src --entry main.lua --bin bad_app --luamdir \"" .. luam_root .. "\" > /dev/null 2>&1"
-assert(os.execute(bad_build_cmd) != 0, "static build should fail when an asset.read target does not exist")
+assert(not os.execute(bad_build_cmd), "static build should fail when an asset.read target does not exist")
 
 -- 5. Non-literal asset.read(var) fails the static build at compile time
 --    instead of hiding an unbundled asset until runtime.
@@ -110,7 +110,7 @@ io.close(f_dyn)
 
 dyn_build_cmd = "cd \"" .. tmp_root .. "\" && \"" .. paths.joinpath(luam_root, "bin", "luam") .. "\" \"" ..
     paths.joinpath(luam_root, "lib", "static", "build.lua") .. "\" --src dyn_src --entry main.lua --bin dyn_app --luamdir \"" .. luam_root .. "\" > /dev/null 2>&1"
-assert(os.execute(dyn_build_cmd) != 0, "static build should fail on non-literal asset.read(var)")
+assert(not os.execute(dyn_build_cmd), "static build should fail on non-literal asset.read(var)")
 
 os.execute("rm -rf \"" .. tmp_root .. "\"")
 print("PASS test_asset.lua")

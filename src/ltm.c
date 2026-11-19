@@ -17,9 +17,9 @@
 #include "ltable.h"
 #include "ltm.h"
 
-const char *const luaT_typenames[] = {"nil",    "flag",  "userdata", "number",
-                                      "string", "table", "function", "userdata",
-                                      "thread", "proto", "upval"};
+const char *const luaT_typenames[] = {"nil",    "boolean", "userdata", "number",
+                                      "string", "table",   "function", "userdata",
+                                      "thread", "proto",   "upval"};
 
 void luaT_init(lua_State *L) {
   static const char *const luaT_eventname[] = {
@@ -55,7 +55,8 @@ const TValue *luaT_gettmbyobj(lua_State *L, const TValue *o, TMS event) {
     mt = hvalue(o)->metatable;
     break;
   case LUA_TUSERDATA:
-    /* metatable field removed - metatables disabled in LuaM */
+    /* Userdata stays strictly procedural in Luam (no OOP __index methods);
+     * internal C __gc and luaL_checkudata read uvalue(o)->metatable directly. */
     return luaO_nilobject;
   default:
     mt = G(L)->mt[ttype(o)];

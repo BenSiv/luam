@@ -77,21 +77,6 @@ $(LUAC_T): $(LUAC_O) $(LUA_A)
 	$(Q)$(MKDIR) $(BIN_DIR)
 	$(Q)$(CC) -o $@ $(MYLDFLAGS) $(LUAC_O) $(LUA_A) $(LIBS) $(REDIRECT)
 
-$(OBJ_DIR)/sqlite3.o: ../lib/sqlite/sqlite3.c ../lib/sqlite/sqlite3.h
-	@echo "  CC    $@"
-	$(Q)$(MKDIR) $(OBJ_DIR)
-	$(Q)$(CC) $(CFLAGS) -DSQLITE_ENABLE_FTS3 -DSQLITE_ENABLE_RTREE -fPIC -c -o $@ $< $(REDIRECT)
-
-$(OBJ_DIR)/libluasqlite3.o: ../lib/sqlite/lsqlite3.c
-	@echo "  CC    $@"
-	$(Q)$(MKDIR) $(OBJ_DIR)
-	$(Q)$(CC) $(CFLAGS) -I../lib/sqlite -I. -fPIC -c -o $@ $< $(REDIRECT)
-
-$(BIN_DIR)/sqlite3.so: $(OBJ_DIR)/libluasqlite3.o $(OBJ_DIR)/sqlite3.o
-	@echo "  LINK  $@"
-	$(Q)$(MKDIR) $(BIN_DIR)
-	$(Q)$(CC) -shared -o $@ $^ -lpthread -ldl $(REDIRECT)
-
 $(OBJ_DIR)/bit.o: ../lib/bit/bit.c
 	@echo "  CC    $@"
 	$(Q)$(MKDIR) $(OBJ_DIR)
@@ -147,7 +132,6 @@ generic:
 
 linux:
 	$(Q)$(MAKE) all MYCFLAGS=-DLUA_USE_LINUX MYLIBS="-Wl,-E -ldl -lreadline -lhistory -lncurses"
-	$(Q)$(MAKE) $(BIN_DIR)/sqlite3.so
 
 macosx:
 	$(Q)$(MAKE) all MYCFLAGS=-DLUA_USE_LINUX MYLIBS="-lreadline"

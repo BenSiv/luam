@@ -1,92 +1,31 @@
-
 database = require("database")
-utils = require("utils")
-lfs = require("lfs")
-sqlite = require("sqlite3")
 
-print("Running database integrity integrity test...")
-
--- 1. Verify String Constants (Indirectly via function usage)
--- If strings like "SELECT" were corrupted to "SELEC", preparing a query would fail.
-
--- Setup temp db
-tmp_db = "integrity_test.db"
+tmp_db = os.tmpname()
 os.remove(tmp_db)
 
--- Open DB to ensure sqlite works
-db = sqlite.open(tmp_db)
-if not db then
-    error("Failed to create temp db")
-end
-sqlite.close(db)
+database.exec(tmp_db, "CREATE TABLE test_table (id INTEGER PRIMARY KEY, content TEXT, active INTEGER);")
+database.query_params(tmp_db, "INSERT INTO test_table (content, active) VALUES (?, ?);", {"hello world", true})
 
--- 2. Test sqlite_update (INSERT)
--- This uses "INSERT INTO..." or similar. If the string is corrupted in the library, this will fail.
-print("Testing sqlite_update...")
-status, err = pcall(function() 
-    return database.sqlite_update(tmp_db, "CREATE TABLE test_table (id INTEGER PRIMARY KEY, content TEXT);") 
-end)
+rows = database.query(tmp_db, "SELECT id, content, active FROM test_table;")
+assert(rows != nil and #rows == 1, "Query returned wrong number of rows")
+assert(rows[1].content == "hello world", "Unexpected content: " .. tostring(rows[1].content))
+assert(tonumber(rows[1].active) == 1, "Boolean true param must normalize to integer 1, got " .. tostring(rows[1].active))
 
-if not status then
-    error("failed to create table: " .. tostring(err))
-end
-
-status, err = pcall(function()
-    return database.sqlite_update(tmp_db, "INSERT INTO test_table (content) VALUES ('hello world');")
-end)
-
-if not status then
-    error("failed to insert data: " .. tostring(err))
-end
-
-
--- 3. Test sqlite_query (SELECT)
--- This uses "SELECT ..." inside. If "SELECT" is corrupted in the library? 
--- Actually sqlite_query takes the query string as arg, but `get_tables` or `get_schema` use internal queries.
--- Let's test a simple query first.
-print("Testing sqlite_query...")
-rows = database.sqlite_query(tmp_db, "SELECT * FROM test_table;")
-if rows == nil or #rows != 1 then
-    error("Query failed or returned wrong number of rows")
-end
-
-if rows[1].content != "hello world" then
-    error("Query returned wrong content: " .. tostring(rows[1].content))
-end
-
--- 4. Test internal queries in helper functions
--- `get_tables` uses "SELECT name FROM sqlite_master ..."
-print("Testing get_tables...")
-tables = database.get_tables(tmp_db)
-if tables == nil or not utils.in_table("test_table", tables) then
-    error("get_tables failed to find test_table")
-end
-
--- 5. Test get_columns / get_schema which uses "PRAGMA table_info"
-print("Testing get_columns...")
+assert(database.table_exists(tmp_db, "test_table") == true, "table_exists failed")
 cols = database.get_columns(tmp_db, "test_table")
-if cols == nil or not utils.in_table("content", cols) then
-    error("get_columns failed to find content column")
+found_content = false
+for _, c in ipairs(cols) do
+    if c == "content" then
+        found_content = true
+    end
 end
+assert(found_content == true, "get_columns failed to find content column")
 
--- 6. Test Error Handling
--- We want to ensure that an invalid query raises a clear error, not a cryptic one or a crash.
-print("Testing error handling...")
-status, err = pcall(function()
-    database.sqlite_query(tmp_db, "SELECT * FROM non_existent_table;")
-end)
-
-if status then
-    error("Expected error for non-existent table, but got success")
+function bad_select()
+    database.query(tmp_db, "SELECT * FROM non_existent_table;")
 end
+ok, err = pcall(bad_select)
+assert(ok == false and string.contains(tostring(err), "no such table"), "Expected error for missing table")
 
-if not string.find(err, "no such table") and not string.find(err, "Generic error") then 
-    -- "Generic error" sometimes comes from older sqlite wrappers, but we expect "no such table" usually.
-    -- luam/database.lua now appends db error message.
-    print("Warning: Error message might be vague: " .. tostring(err))
-end
-print("Caught expected error: " .. err)
-
--- Cleanup
 os.remove(tmp_db)
-print("Database integrity check passed!")
+print("PASS test_integrity.lua")

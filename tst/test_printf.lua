@@ -4,7 +4,7 @@ function printf(...)
  io.write(string.format(...))
 end
 
-username = os.getenv"USE"
+username = os.getenv("USER")
 if username == nil then
 	username = "there"
 end

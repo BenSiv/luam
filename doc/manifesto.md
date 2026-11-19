@@ -14,7 +14,7 @@ Lua's own "vivid expression of its simplicity," in its creators' words, is that 
 
 ## 3. Meta-mechanisms over built-in policy
 
-Metatables, `getfenv`, and `setfenv` stay fully enabled in Luam -- not despite the drive toward simplicity, but because of it. Sandboxing untrusted code and supporting vendored libraries that expect Lua 5.1 semantics are needs Lua's own meta-mechanisms already meet; inventing a second, Luam-specific sandboxing primitive on top would be exactly the "host of features" Lua's design explicitly avoided. A real need gets met with the mechanism that's already there before anyone reaches for a new one.
+`getfenv` and `setfenv` stay fully enabled in Luam -- not despite the drive toward simplicity, but because of it. Sandboxing untrusted code is a need Lua's own environment mechanism already meets; inventing a second, Luam-specific sandboxing primitive on top would be exactly the "host of features" Lua's design explicitly avoided. Meanwhile, userdata stays strictly procedural (`mod.fn(handle, ...)` rather than OOP `handle:fn()` / `handle.fn()`), while keeping internal C `__gc` finalizers and `luaL_checkudata` pointer safety intact. A real need gets met with the mechanism that's already there before anyone reaches for a new one.
 
 ## 4. Subtraction is allowed to be the feature
 

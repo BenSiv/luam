@@ -93,9 +93,9 @@ static int io_noclose(lua_State *L) {
 */
 static int io_pclose(lua_State *L) {
   FILE **p = tofilep(L);
-  int ok = lua_pclose(L, *p);
+  int stat = lua_pclose(L, *p);
   *p = NULL;
-  return pushresult(L, ok, NULL);
+  return luaL_execresult(L, stat);
 }
 
 /*

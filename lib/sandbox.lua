@@ -92,17 +92,9 @@ end
 -- Builds an environment for an extension hook body, from its manifest's
 -- declared capabilities. `ctx` is the set of already-capability-checked
 -- callback functions (e.g. ctx.query, ctx.create_entity) the caller
--- assembles per-invocation; this just decides what else, if anything,
--- gets added to the global environment (e.g. networking libraries).
-function sandbox.extension_env(capabilities)
-    env = base_env()
-    if capabilities == nil then
-        capabilities = {}
-    end
-    if capabilities.net == "outbound" then
-        env.socket = copy_table(require("socket"))
-    end
-    return env
+-- assembles per-invocation.
+function sandbox.extension_env(_capabilities)
+    return base_env()
 end
 
 -- Loads `source` (a string of Luam code) bound to `env`, without

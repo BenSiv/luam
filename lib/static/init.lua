@@ -36,7 +36,8 @@ function shellout(command)
 	-- Fallback to os.execute and temp file
 	tmpfile = os.tmpname()
 	cmd = command .. " > " .. tmpfile
-	if os.execute(cmd) == 0 then
+	ok_exec = os.execute(cmd)
+	if ok_exec == true or ok_exec == 0 then
 		file = io.open(tmpfile, "r")
 		if file != nil then
 			stdout = io.read(file, "*all")

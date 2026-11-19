@@ -167,7 +167,7 @@ assert(string.contains("hello %d+ world", "%d+") == true)
 assert(string.contains("hello", "") == true)
 assert(string.contains("hello", "xyz") == false)
 assert(string.contains("a\0b", "\0b") == true)
-assert(type(string.contains("a", "b")) == "flag")
+assert(type(string.contains("a", "b")) == "boolean")
 
 assert(string.starts_with("file.lua", "file") == true)
 assert(string.starts_with("file.lua", "") == true)

@@ -7,7 +7,7 @@ ok, lfs = pcall(require, "lfs")
 if ((ok == nil or ok == false)) then lfs = nil end
 ok_yaml, yaml = pcall(require, "yaml")
 if ((ok_yaml == nil or ok_yaml == false)) then yaml = nil end
-ok_json, json = pcall(require, "json.json")
+ok_json, json = pcall(require, "dkjson")
 if ((ok_json == nil or ok_json == false)) then json = nil end
 
 -- Function to merge one module into another
@@ -686,7 +686,8 @@ function get_line_length()
     end
     -- Fallback via temp file
     tmpfile = os.tmpname()
-    if (os.execute("stty size > " .. tmpfile .. " 2>/dev/null") == 0) then
+    ok_stty = os.execute("stty size > " .. tmpfile .. " 2>/dev/null")
+    if (ok_stty == true or ok_stty == 0) then
         file = io.open(tmpfile, "r")
         if (file != nil) then
              result = io.read(file, "*a")
@@ -870,7 +871,7 @@ function write_log_file(log_dir, filename, header, entries)
         return nil
     end
 
-    current_datetime = os.date("%-%m-%d-%H-%M-%S")
+    current_datetime = os.date("%Y-%m-%d-%H-%M-%S")
     io.write(file, header .. "\n")
     io.write(file, "-- ime stamp: " .. current_datetime .. "\n\n")
 
@@ -953,7 +954,7 @@ function help(func_name)
     --
     -- Returns:
     -- - nil
-    func = _[func_name]
+    func = _G[func_name]
     if (type(func) != "function") then
         print("No function named '" .. tostring(func_name) .. "'")
         return

@@ -1,6 +1,5 @@
-utils = require("utils")
+-- FASTA sequence reader, single-ID lookup, and writer.
 
--- Define a module table
 bioinfo = {}
 
 function read_fasta(filename)
@@ -9,21 +8,18 @@ function read_fasta(filename)
     seq = {}
 
     for line in io.lines(filename) do
-        if (utils.starts_with(line, ">")) then
-            -- Save the previous sequence if it exists
-            if ((seq_id != nil and seq_id != false)) then
+        if string.starts_with(line, ">") then
+            if seq_id != nil and seq_id != false then
                 sequences[seq_id] = table.concat(seq)
             end
-            -- Start a new sequence
-            seq_id = utils.match(utils.slice(line, 2), "%S+")  -- emove ">" and take first word as D
-            seq = {}  -- eset sequence storage
+            seq_id = string.match(string.sub(line, 2), "%S+")
+            seq = {}
         else
             table.insert(seq, line)
         end
     end
 
-    -- Save the last sequence
-    if ((seq_id != nil and seq_id != false)) then
+    if seq_id != nil and seq_id != false then
         sequences[seq_id] = table.concat(seq)
     end
 
@@ -35,46 +31,43 @@ function query_fasta(filename, target_id)
     seq = {}
 
     for line in io.lines(filename) do
-        if (utils.starts_with(line, ">")) then
-            if (seq_id == target_id) then
+        if string.starts_with(line, ">") then
+            if seq_id == target_id then
                 return table.concat(seq)
             end
-            seq_id = utils.match(utils.slice(line, 2), "%S+")  -- emove ">" and take first word as D
-            seq = {}  -- eset sequence storage
-        elseif (seq_id == target_id) then
+            seq_id = string.match(string.sub(line, 2), "%S+")
+            seq = {}
+        elseif seq_id == target_id then
             table.insert(seq, line)
         end
     end
 
-    -- Return the last sequence if it was the target
-    if (seq_id == target_id) then
+    if seq_id == target_id then
         return table.concat(seq)
     end
 
-    return nil  -- Sequence not found
+    return nil
 end
 
 function write_fasta(filename, data)
     file, err = io.open(filename, "w")
-    if (file == nil) then
-        error("Could not open file for writing: " .. err)
+    if file == nil then
+        error("Could not open file for writing: " .. tostring(err))
     end
 
     for _, entry in ipairs(data) do
-        file.write(file, ">" .. entry.name .. "\n")
-        -- Wrap sequence at 60 characters per line (FS convention)
+        io.write(file, ">" .. entry.name .. "\n")
         seq = entry.seq
         for i = 1, #seq, 60 do
-            file.write(file, seq.sub(seq, i, i+59) .. "\n")
+            io.write(file, string.sub(seq, i, i + 59) .. "\n")
         end
     end
 
-    file.close(file)
+    io.close(file)
 end
 
 bioinfo.read_fasta = read_fasta
 bioinfo.query_fasta = query_fasta
 bioinfo.write_fasta = write_fasta
 
--- Export the module
 return bioinfo

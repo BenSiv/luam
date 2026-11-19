@@ -1,18 +1,12 @@
--- current_time = os.time()
--- current_date = os.date("%-%m-%d")
--- converted_date = os.date("%-%m-%d", os.time{year=2024, month=1, day=10})
+-- Timestamp normalization, validation, and date range helpers.
 
-utils = require("utils")
-
--- Define a module table
 dates = {}
 
 function pad_to_length(input, total_length, pad_char)
-    input = input
-    if (pad_char == nil) then
+    if pad_char == nil then
         pad_char = "0"
     end
-    while (utils.length(input) < total_length) do
+    while #input < total_length do
         input = input .. pad_char
     end
     return input
@@ -144,13 +138,13 @@ function date_range(first_date, last_date, unit, interval)
 	while (current_date != last_date) do
 		year, month, day = string.match(current_date, "(%d+)-(%d+)-(%d+)")
         if (unit == "day") then
-		    current_date = os.date("%-%m-%d", os.time({year=year, month=month, day=day+interval}))
+		    current_date = os.date("%Y-%m-%d", os.time({year=tonumber(year), month=tonumber(month), day=tonumber(day)+interval}))
         elseif (unit == "month") then
-		    current_date = os.date("%-%m-%d", os.time({year=year, month=month+interval, day=day}))
+		    current_date = os.date("%Y-%m-%d", os.time({year=tonumber(year), month=tonumber(month)+interval, day=tonumber(day)}))
         elseif (unit == "year") then
-		    current_date = os.date("%-%m-%d", os.time({year=year+interval, month=month, day=day}))
+		    current_date = os.date("%Y-%m-%d", os.time({year=tonumber(year)+interval, month=tonumber(month), day=tonumber(day)}))
         else
-            print("Unknown time unit")
+            error("Unknown time unit: " .. tostring(unit))
         end
 		table.insert(full_date_range, current_date)
 	end
@@ -185,6 +179,7 @@ end
 dates.normalize_datetime = normalize_datetime
 dates.is_valid_timestamp = is_valid_timestamp
 dates.convert_date_format = convert_date_format
+dates.date_range = date_range
 dates.disect_date = disect_date
 dates.disect_datetime = disect_datetime
 dates.get_day = get_day
