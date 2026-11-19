@@ -1,8 +1,10 @@
--- Shared shape behind every "shell out to an external binary" call
--- site in this codebase (cmark-gfm, pdftotext/pandoc, curl, etc.)
--- Quoting, temp-file lifecycle, and capturing a command's stdout.
+-- Process execution, shell quoting, and guaranteed-cleanup temp files.
+--
+-- Relies on Luam's C `luaL_execresult` in `io.close(popen_handle)` and
+-- `os.execute(cmd)`, which return `(ok_bool, why, code)` directly without
+-- needing stdout exit-code markers.
 
-external_tool = {}
+const external_tool = {}
 
 function pack_varargs(...)
     return {n = select("#", ...), ...}
@@ -12,41 +14,79 @@ function unpack_varargs(packed)
     if packed == nil or packed.n == 0 then
         return
     end
-    if unpack != nil then
-        return unpack(packed, 1, packed.n)
-    end
     return table.unpack(packed, 1, packed.n)
 end
 
 function external_tool.shell_quote(s)
-    return "'" .. string.gsub(s, "'", "'\\''") .. "'"
+    return "'" .. string.gsub(tostring(s), "'", "'\\''") .. "'"
 end
 
--- Runs `cmd` (a fully-built shell command string -- every interpolated
--- value already shell_quote'd by the caller) and returns all of its
--- stdout, or nil, err if the popen itself failed or produced no
--- output. stderr is never captured -- a caller that wants it
--- suppressed adds " 2>/dev/null" to `cmd` itself.
+-- Runs `cmd` and captures stdout. Returns `output, nil, code` when non-empty
+-- stdout was produced, or `nil, err, code` when empty/failed (preserving
+-- backward compatibility with existing callers expecting nil on empty output).
 function external_tool.capture(cmd)
     handle = io.popen(cmd, "r")
-    output = nil
-    if handle != nil then
-        output = io.read(handle, "*all")
-        io.close(handle)
+    if handle == nil then
+        return nil, "popen failed", -1
     end
+    output = io.read(handle, "*all")
+    ok, _, code = io.close(handle)
     if output == nil or output == "" then
-        return nil, "no output"
+        if not ok then
+            return nil, "command exited with status " .. tostring(code), code
+        end
+        return nil, "no output", code
     end
-    return output
+    return output, nil, code
 end
 
--- True if `binary` resolves on PATH. Lets a caller check up front for
--- a clean, specific "X is not installed" error instead of io.popen's
--- underlying shell silently reporting "command not found" on stderr
--- while stdout comes back empty or garbled.
+-- Runs `cmd` with combined stdout+stderr and returns `output, ok, code`
+-- where `output` is always a string ("" when silent), `ok` is boolean,
+-- and `code` is the numeric exit status or signal.
+function external_tool.exec(cmd)
+    handle = io.popen("{ " .. cmd .. "\n} 2>&1", "r")
+    if handle == nil then
+        return "", false, -1
+    end
+    output = io.read(handle, "*all")
+    if output == nil then
+        output = ""
+    end
+    ok, _, code = io.close(handle)
+    return output, ok == true, code
+end
+
+function external_tool.ok(cmd)
+    _, ok, _ = external_tool.exec(cmd)
+    return ok
+end
+
+-- Runs `cmd` via `exec`, raising `what .. " failed:\n" .. out` at level 0
+-- when `cmd` exits non-zero.
+function external_tool.must(cmd, what)
+    out, ok, _ = external_tool.exec(cmd)
+    if not ok then
+        label = what
+        if label == nil or label == "" then
+            label = cmd
+        end
+        error(label .. " failed:\n" .. out, 0)
+    end
+    return out
+end
+
+-- Runs `cmd` streaming directly to the terminal via `os.execute`.
+-- Returns `ok, why, code`.
+function external_tool.run(cmd)
+    return os.execute(cmd)
+end
+
+-- True if `binary` resolves on PATH.
 function external_tool.available(binary)
-    found, _ = external_tool.capture("command -v " .. external_tool.shell_quote(binary) .. " 2>/dev/null")
-    return found != nil
+    if type(binary) != "string" or binary == "" then
+        return false
+    end
+    return external_tool.ok("command -v " .. external_tool.shell_quote(binary))
 end
 
 -- Writes `content` to a fresh temp file (`mode` "w" or "wb"), calls

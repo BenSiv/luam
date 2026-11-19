@@ -140,19 +140,8 @@ Unknown escapes (such as `"\d"` or `"\s"`) and legacy decimal escapes (`"\27"`, 
 #### `__len` Metamethod
 Tables support the `__len` metamethod (backported from Lua 5.2), enabling custom length semantics.
 
-#### Metatables
-Metatables and tag methods (`setmetatable`, `getmetatable`, `__index`,
-`__newindex`, `__call`, ...) work the same as Lua 5.1's. This is a deliberate
-tradeoff, not an oversight: Luam discourages OOP-style programming at the
-*syntax* layer — colon method-call and method-definition sugar
-(`obj:method()`, `function obj:method() ... end`) are removed, so any
-metatable-based object still has to be called and defined the long way
-(`obj.method(obj, ...)`). The underlying `setmetatable`/`__index` mechanism
-itself stays fully enabled, because vendored libraries under `lib/`
-(LuaSocket, the sqlite test framework, ...) are ordinary upstream Lua code
-that relies on it — disabling it at the primitive level would mean rewriting
-every vendored library rather than just declining to add ergonomic sugar for
-new code.
+#### Procedural C Handles & Metatables
+Colon method-call and method-definition sugar (`obj:method()`, `function obj:method() ... end`) are removed, and userdata `__index` dispatch is disabled in the VM so C bindings (`io`, `sqlite3`, `mariadb`, `lfs`, `crypto`, `vec`) expose flat procedural functions (`mod.fn(handle, ...)`), while retaining internal C `__gc` finalizers and `luaL_checkudata` pointer safety. Table metatables currently remain available for passive serialization markers (such as `dkjson`'s container hints).
 
 ---
 
@@ -177,53 +166,31 @@ xpcall(func, handler, arg1, arg2)
 
 #### System & Package Improvements
 - `os.exit(boolean)` supports `true` for success and `false` for failure.
+- `os.execute(cmd)` and `io.close(popen_handle)` return `(ok_bool, why, code)` so strict boolean conditionals (`if os.execute(cmd) then`) work directly and `io.popen` callers inspect real exit/signal codes.
 - `package.searchers` is provided as an alias for `package.loaders` for Lua 5.2 compatibility.
 
 ---
 
 ## Build & Install
 
-Luam provides a simplified build process via a dedicated shell script.
-
-### Building
+### Building Luam & `lib/` C Extensions
 
 ```sh
-chmod +x bld/build_lang.sh
-./bld/build_lang.sh
+./bld/build_lang.sh   # builds obj/liblua.a, bin/luam, and bin/luamc
+./bld/build_libs.sh   # builds C extensions in lib/ (lfs, sqlite3, mariadb, bcrypt, crypto, vec, yaml)
+make test             # runs the full core & stdlib test suite
+./bld/test_stack.sh   # verifies luam plus sibling Luam stack checkouts
 ```
 
-Build artifacts are placed in the `bin/` directory:
+### Building a Static Binary for a Downstream Project
 
-- `bin/luam` — Interactive interpreter
-- `bin/luamc` — Bytecode compiler
-- `bin/sqlite3.so` — SQLite3 module
-
-### Building a static binary for a downstream project
-
-`bld/build_lang.sh` above builds Luam itself. A separate project written
-*in* Luam that wants to ship as one standalone native executable (no
-Luam installation required on the target machine) uses
-`lib/static/build.lua` instead:
+A downstream Luam project declares a data-only `bld/package.lua` manifest (`bin`, `entry`, `luam` minimum ancestor commit, `with`, `always_include`, optional `define_git_commit`, `symlinks`, and `native` C/C++ sources) and invokes `lib/static/build.lua` (which also accepts direct CLI flags):
 
 ```sh
-luam lib/static/build.lua --entry main.lua --bin myproject --with sqlite3,lfs
+luam "$LUAM_DIR/lib/static/build.lua"
 ```
 
-It flattens the project's own source together with Luam's stdlib, then
-bundles only what's actually reachable by a real `require()` from
-`--entry` -- not every file that happens to be present -- so an unused
-stdlib module never ends up compiled into the binary for no reason. A
-module loaded by a *computed* `require()` (a provider facade picking
-its real implementation by name from a config value at runtime, say)
-can't be seen by that kind of static scan; `--always_include` names a
-directory to bundle in full regardless, for exactly that case. It also
-compiles and preload-registers whatever C extensions are requested
-(see `MODULES` in that file for the full list), and links everything
-into one binary in `./bin/`. Run it with `--help` for the full option
-list. This replaces hand-rolling the same temp-dir/flatten/compile/link
-logic in a project's own `bld/build.sh` independently each time -- see
-`daat`'s and `brain-ex`'s own `bld/build.sh` for the (now very thin)
-delegation this leaves behind.
+It validates `bld/package.lua` in `sandbox.data_env()`, verifies `LUAM_DIR` contains the required `luam` commit, traces reachable literal `require()` and `asset.read()` calls from `entry` (plus `always_include` directories), precompiles all reachable `.lua` modules into `.rodata` bytecode, compiles requested C/C++ extensions, and links one standalone native executable into `./bin/`.
 
 ---
 

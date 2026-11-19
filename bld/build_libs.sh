@@ -91,7 +91,7 @@ else
     echo "Skipping bcrypt (source not found)"
 fi
 
-# 5. hmac -- thin binding over OpenSSL libcrypto HMAC-SHA256
+# 5. hmac -- thin binding over OpenSSL libcrypto HMAC-SHA256 (retained alias)
 if [ -d "lib/hmac" ]; then
     echo "Compiling hmac.so"
     run_cmd gcc -O2 -shared -fPIC -Isrc/ -o lib/hmac/hmac.so lib/hmac/hmac.c -lcrypto
@@ -104,7 +104,33 @@ else
     echo "Skipping hmac (source not found)"
 fi
 
-# 6. mariadb -- thin binding over MariaDB Connector/C (libmariadb)
+# 6. crypto -- SHA-256, HMAC-SHA256, and CSPRNG random bytes/hex over -lcrypto
+if [ -d "lib/crypto" ]; then
+    echo "Compiling crypto.so"
+    run_cmd gcc -O2 -shared -fPIC -Isrc/ -o lib/crypto/crypto.so lib/crypto/crypto.c -lcrypto
+    if [ $? -eq 0 ]; then
+        echo "crypto.so built successfully"
+    else
+        fail "crypto.so (-lcrypto / libssl-dev missing?)"
+    fi
+else
+    echo "Skipping crypto (source not found)"
+fi
+
+# 7. vec -- dense little-endian float32 vector operations
+if [ -d "lib/vec" ]; then
+    echo "Compiling vec.so"
+    run_cmd gcc -O2 -shared -fPIC -Isrc/ -o lib/vec/vec.so lib/vec/vec.c -lm
+    if [ $? -eq 0 ]; then
+        echo "vec.so built successfully"
+    else
+        fail "vec.so"
+    fi
+else
+    echo "Skipping vec (source not found)"
+fi
+
+# 8. mariadb -- thin binding over MariaDB Connector/C (libmariadb)
 if [ -d "lib/mariadb" ]; then
     echo "Compiling mariadb.so"
     run_cmd gcc -O2 -shared -fPIC -Isrc/ -I/usr/include/mariadb -I/usr/include/mariadb/mysql \
