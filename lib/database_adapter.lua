@@ -1,4 +1,3 @@
-utils = require("utils")
 sqlite = require("sqlite3")
 _G.sqlite3 = nil
 
@@ -881,7 +880,12 @@ function import_delimited(db_path, file_path, table_name, delimiter)
         error("Error reading delimited file")
     end
     
-    col_names = utils.keys(content[1]) -- problematic if first row does not have all the columns
+    col_names = {}
+    if type(content[1]) == "table" then
+        for k, _ in pairs(content[1]) do
+            table.insert(col_names, k)
+        end
+    end
     col_row = table.concat(col_names, "', '")
     insert_statement = string.format("INSERT INTO %s ('%s') VALUES ", table_name, col_row)
 
@@ -912,7 +916,7 @@ function export_delimited(db_path, query, file_path, delimiter, header)
         return nil
     end
     
-    if (utils.length(results) == 0) then
+    if (#results == 0) then
         print("No data found")
         return nil
     end

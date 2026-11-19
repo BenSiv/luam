@@ -1,6 +1,6 @@
 -- mygnuplot_procedural.lua
 
-utils = require("utils")
+const ext = require("external_tool")
 
 gnuplot = {}
 
@@ -173,7 +173,8 @@ function savefig(plot, output_path)
     tmp = write_temp_file(code)
 
     function run_gnuplot()
-        return utils.exec_command("gnuplot " .. tmp)
+        out, ok, _ = ext.exec("gnuplot " .. tmp)
+        return out, ok
     end
     call_ok, output, cmd_ok = pcall(run_gnuplot)
 

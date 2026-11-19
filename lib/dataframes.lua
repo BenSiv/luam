@@ -1,4 +1,78 @@
-utils = require("utils")
+function tbl_length(tbl)
+    if type(tbl) != "table" then return 0 end
+    cnt = 0
+    for _, _ in pairs(tbl) do
+        cnt = cnt + 1
+    end
+    return cnt
+end
+
+function tbl_isempty(tbl)
+    return type(tbl) != "table" or next(tbl) == nil
+end
+
+function tbl_keys(tbl)
+    ks = {}
+    for k, _ in pairs(tbl) do
+        table.insert(ks, k)
+    end
+    return ks
+end
+
+copy_table = nil
+function copy_table(source)
+    if type(source) != "table" then
+        return source
+    end
+    out = {}
+    for k, v in pairs(source) do
+        if type(v) == "table" then
+            out[k] = copy_table(v)
+        else
+            out[k] = v
+        end
+    end
+    return out
+end
+
+function sorted_indices(array)
+    indexed = {}
+    for idx, val in ipairs(array) do
+        table.insert(indexed, {index = idx, val = val})
+    end
+    table.sort(indexed, function(a, b)
+        if a.val == b.val then
+            return a.index < b.index
+        end
+        return a.val < b.val
+    end)
+    indices = {}
+    for _, item in ipairs(indexed) do
+        table.insert(indices, item.index)
+    end
+    return indices
+end
+
+function detect_line_length()
+    cols = os.getenv("COLUMNS")
+    if cols != nil and tonumber(cols) != nil then
+        return tonumber(cols)
+    end
+    if io.popen != nil then
+        ok, handle = pcall(io.popen, "stty size 2>/dev/null")
+        if ok and handle != nil then
+            res = io.read(handle, "*a")
+            io.close(handle)
+            if res != nil then
+                _, c = string.match(res, "(%d+)%s+(%d+)")
+                if c != nil and tonumber(c) != nil then
+                    return tonumber(c)
+                end
+            end
+        end
+    end
+    return 80
+end
 
 function strip_ansi(str)
     if str == nil then return "" end
@@ -23,7 +97,7 @@ function is_dataframe(tbl)
         return false
     end
 
-    if (utils.length(tbl) == 0) then
+    if (tbl_length(tbl) == 0) then
         return false
     end
 
@@ -93,7 +167,7 @@ function transpose(data_table)
 
     -- Transpose the table
     -- Transpose the table
-    first_key = utils.keys(data_table)[1]
+    first_key = tbl_keys(data_table)[1]
     for col_index, col_data in pairs(data_table[first_key]) do
         transposed_table[col_index] = {}
         for row_index, row_data in pairs(data_table) do
@@ -106,7 +180,7 @@ end
 
 function df_get_columns(data_table)
     -- Check if the data table is empty or not a valid dataframe
-    if (utils.isempty(data_table) != nil and utils.isempty(data_table) != false) then
+    if tbl_isempty(data_table) then
         print("Empty table")
         return ({})
     elseif not is_dataframe(data_table) then
@@ -116,7 +190,7 @@ function df_get_columns(data_table)
 
     -- Retrieve the column names from the first row
     columns = {}
-    first_key = utils.keys(data_table)[1]
+    first_key = tbl_keys(data_table)[1]
     for col_name, _ in pairs(data_table[first_key]) do
         table.insert(columns, col_name)
     end
@@ -231,7 +305,7 @@ function df_render_lines(data_table, args)
     if (args == nil) then
         args = {}
     end
-    if (utils.isempty(data_table) != nil and utils.isempty(data_table) != false) then
+    if tbl_isempty(data_table) then
         return ({"Empty table"})
     elseif not is_dataframe(data_table) then
         return ({"Not a valid dataframe"})
@@ -245,7 +319,7 @@ function df_render_lines(data_table, args)
     limit = args.limit
     line_length = args.line_length
     if (line_length == nil) then
-        line_length = utils.get_line_length()
+        line_length = detect_line_length()
     end
 
     column_widths = df_get_column_widths(data_table, columns, limit)
@@ -387,7 +461,7 @@ function sort_by(tbl, col)
         table.insert(to_sort, value)
     end
 
-    indices = utils.get_sorted_indices(to_sort)
+    indices = sorted_indices(to_sort)
     sorted_table = {}
     for _, row_index in pairs(indices) do
         table.insert(sorted_table, tbl[row_index])
@@ -470,7 +544,7 @@ end
 
 -- Function to generate new column based on a transformation of pair columns
 function generate_column(tbl, new_col, col1, op, col2)
-    new_tbl = utils.copy(tbl)
+    new_tbl = copy_table(tbl)
     for row, values in pairs(new_tbl) do
         v1, v2 = values[col1], values[col2]
         if ((v1 != nil and v1 != false) and (v2 != nil and v2 != false)) then
@@ -486,7 +560,7 @@ end
 
 -- Function to generate new column based on a transformation of pair columns
 function transform(tbl, new_col, col1, col2, transform_fn)
-    new_tbl = utils.copy(tbl)
+    new_tbl = copy_table(tbl)
     for row, values in pairs(new_tbl) do
         v1, v2 = values[col1], values[col2]
         if ((v1 != nil and v1 != false) and (v2 != nil and v2 != false)) then

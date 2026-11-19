@@ -68,6 +68,18 @@ function database.mariadb_close_all()
     return database_adapter.mariadb_close_all()
 end
 
+function database.import_delimited(db_path, file_path, table_name, delimiter)
+    return database_adapter.import_delimited(db_path, file_path, table_name, delimiter)
+end
+
+function database.export_delimited(db_path, query, file_path, delimiter, header)
+    return database_adapter.export_delimited(db_path, query, file_path, delimiter, header)
+end
+
+function database.load_df(db_path, table_name, dataframe)
+    return database_adapter.load_df(db_path, table_name, dataframe)
+end
+
 -- database_adapter.get_tables/get_columns go through a different sqlite
 -- binding entry point (sqlite.rows(db, query), a db-level convenience
 -- call) than sqlite_query's sqlite.prepare + stmt.rows/nrows -- and
