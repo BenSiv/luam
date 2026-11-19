@@ -447,7 +447,7 @@ end
 
 function extract_requires(source)
     names = {}
-    for quote, name in string.gmatch(source, "require%s*%(%s*([\"'])([%w_./]+)%1%s*%)") do
+    for quote, name in string.gmatch(source, "require%s*%(%s*([\"'])([%w_./%-]+)%1%s*%)") do
         table.insert(names, name)
     end
     return names
@@ -588,11 +588,18 @@ visit(ENTRY)
 
 for _, dir in ipairs(ALWAYS_INCLUDE_DIRS) do
     dir_path = paths.joinpath(TMPDIR, dir)
-    if paths.file_exists(dir_path) then
+    if paths.is_dir(dir_path) then
         dir_files = {}
         list_lua_tree(dir_path, dir, dir_files)
         for _, relpath in ipairs(dir_files) do
             visit(relpath)
+        end
+    elseif paths.file_exists(dir_path) then
+        visit(dir)
+    else
+        mod_rel = module_name_to_relpath(dir)
+        if paths.file_exists(paths.joinpath(TMPDIR, mod_rel)) then
+            visit(mod_rel)
         end
     end
 end
