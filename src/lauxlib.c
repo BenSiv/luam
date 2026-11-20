@@ -502,7 +502,8 @@ static int errfile(lua_State *L, const char *what, int fnameindex) {
   return LUA_ERRFILE;
 }
 
-LUALIB_API int luaL_loadfile(lua_State *L, const char *filename) {
+LUALIB_API int luaL_loadfilex(lua_State *L, const char *filename,
+                              const char *mode) {
   LoadF lf;
   int status, readstatus;
   int c;
@@ -535,7 +536,7 @@ LUALIB_API int luaL_loadfile(lua_State *L, const char *filename) {
     lf.extraline = 0;
   }
   ungetc(c, lf.f);
-  status = lua_load(L, getF, &lf, lua_tostring(L, -1));
+  status = lua_loadx(L, getF, &lf, lua_tostring(L, -1), mode);
   readstatus = ferror(lf.f);
   if (filename)
     fclose(lf.f); /* close file (even in case of errors) */
@@ -545,6 +546,10 @@ LUALIB_API int luaL_loadfile(lua_State *L, const char *filename) {
   }
   lua_remove(L, fnameindex);
   return status;
+}
+
+LUALIB_API int luaL_loadfile(lua_State *L, const char *filename) {
+  return luaL_loadfilex(L, filename, NULL);
 }
 
 typedef struct LoadS {
@@ -562,12 +567,17 @@ static const char *getS(lua_State *L, void *ud, size_t *size) {
   return ls->s;
 }
 
-LUALIB_API int luaL_loadbuffer(lua_State *L, const char *buff, size_t size,
-                               const char *name) {
+LUALIB_API int luaL_loadbufferx(lua_State *L, const char *buff, size_t size,
+                                const char *name, const char *mode) {
   LoadS ls;
   ls.s = buff;
   ls.size = size;
-  return lua_load(L, getS, &ls, name);
+  return lua_loadx(L, getS, &ls, name, mode);
+}
+
+LUALIB_API int luaL_loadbuffer(lua_State *L, const char *buff, size_t size,
+                               const char *name) {
+  return luaL_loadbufferx(L, buff, size, name, NULL);
 }
 
 LUALIB_API int(luaL_loadstring)(lua_State *L, const char *s) {

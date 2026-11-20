@@ -13,7 +13,10 @@
 
 #define pcRel(pc, p) (cast(int, (pc) - (p)->code) - 1)
 
-#define get_line_info(f, pc) (((f)->lineinfo) ? (f)->lineinfo[pc] : 0)
+#define get_line_info(f, pc)                                                   \
+  (((f)->lineinfo && (pc) >= 0 && (pc) < (f)->sizelineinfo)                    \
+       ? (f)->lineinfo[pc]                                                     \
+       : 0)
 
 #define resethookcount(L) (L->hookcount = L->basehookcount)
 

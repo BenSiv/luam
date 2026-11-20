@@ -43,6 +43,7 @@ tests = {
     "test_laws.lua",
     "test_phase1.lua",
     "test_phase2.lua",
+    "test_security_hardening.lua",
 }
 
 failed = 0

@@ -131,7 +131,7 @@ generic:
 	$(Q)$(MAKE) all MYCFLAGS=
 
 linux:
-	$(Q)$(MAKE) all MYCFLAGS=-DLUA_USE_LINUX MYLIBS="-Wl,-E -ldl -lreadline -lhistory -lncurses"
+	$(Q)$(MAKE) all MYCFLAGS="-DLUA_USE_LINUX -fstack-protector-strong -U_FORTIFY_SOURCE -D_FORTIFY_SOURCE=2" MYLDFLAGS="-Wl,-z,relro,-z,now" MYLIBS="-Wl,-E -ldl -lreadline -lhistory -lncurses"
 
 macosx:
 	$(Q)$(MAKE) all MYCFLAGS=-DLUA_USE_LINUX MYLIBS="-lreadline"

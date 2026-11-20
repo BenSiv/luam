@@ -459,8 +459,14 @@ static Instruction symbexec (const Proto *pt, int lastpc, int reg) {
         nup = pt->p[b]->nups;
         check(pc + nup < pt->sizecode);
         for (j = 1; j <= nup; j++) {
-          OpCode op1 = GET_OPCODE(pt->code[pc + j]);
+          Instruction in = pt->code[pc + j];
+          OpCode op1 = GET_OPCODE(in);
           check(op1 == OP_GETUPVAL || op1 == OP_MOVE);
+          if (op1 == OP_MOVE) {
+            checkreg(pt, GETARG_B(in));
+          } else {
+            check(GETARG_B(in) < pt->nups);
+          }
         }
         if (reg != NO_REG)  /* tracing? */
           pc += nup;  /* do not 'execute' these pseudo-instructions */

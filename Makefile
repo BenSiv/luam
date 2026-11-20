@@ -87,10 +87,16 @@ ranlib:
 	cd src && cd $(SLL_LB) && $(LB) $(O_LB)
 
 local:
-	$(MAKE) all MYCFLAGS=-DLUA_USE_LINUX MYLIBS="-Wl,-E -ldl -lreadline -lhistory -lncurses"
+	$(MAKE) all MYCFLAGS="-DLUA_USE_LINUX -fstack-protector-strong -U_FORTIFY_SOURCE -D_FORTIFY_SOURCE=2" MYLDFLAGS="-Wl,-z,relro,-z,now" MYLIBS="-Wl,-E -ldl -lreadline -lhistory -lncurses"
 
 test:
 	LUA_PATH="lib/?.lua;lib/?/init.lua;tst/?.lua;;" LUA_CPATH="lib/?.so;lib/?/?.so;bin/?.so;;" ./bin/luam tst/run_tests.lua
+
+test-asan:
+	$(MAKE) clean V=1
+	cd src && $(MAKE) all V=1 MYCFLAGS="-DLUA_USE_LINUX -DLUA_USE_APICHECK -g -fsanitize=address,undefined -fno-omit-frame-pointer" MYLDFLAGS="-fsanitize=address,undefined" MYLIBS="-Wl,-E -ldl -lreadline -lhistory -lncurses"
+	LUAM_STATIC_LDFLAGS="-fsanitize=address,undefined" ASAN_OPTIONS="detect_leaks=0:verify_asan_link_order=0" UBSAN_OPTIONS="print_stacktrace=1:halt_on_error=1" $(MAKE) test
+	bash bld/build_lang.sh
 
 none:
 	@echo "Please do"

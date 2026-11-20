@@ -78,14 +78,17 @@ typedef struct Header {
   int align;
 } Header;
 
-static int getnum(const char **fmt, int df) {
-  if (!isdigit(**fmt)) /* no number? */
-    return df;         /* return default value */
+static int getnum(lua_State *L, const char **fmt, int df) {
+  if (!isdigit((unsigned char)**fmt)) /* no number? */
+    return df;                        /* return default value */
   else {
     int a = 0;
     do {
-      a = a * 10 + *((*fmt)++) - '0';
-    } while (isdigit(**fmt));
+      int d = *((*fmt)++) - '0';
+      if (a > (INT_MAX - d) / 10)
+        luaL_error(L, "integral size overflow");
+      a = a * 10 + d;
+    } while (isdigit((unsigned char)**fmt));
     return a;
   }
 }
@@ -112,12 +115,12 @@ static size_t optsize(lua_State *L, char opt, const char **fmt) {
   case 'x':
     return 1;
   case 'c':
-    return getnum(fmt, 1);
+    return getnum(L, fmt, 1);
   case 'i':
   case 'I': {
-    int sz = getnum(fmt, sizeof(int));
-    if (sz > MAXINTSIZE)
-      luaL_error(L, "integral size %d is larger than limit of %d", sz,
+    int sz = getnum(L, fmt, sizeof(int));
+    if (sz <= 0 || sz > MAXINTSIZE)
+      luaL_error(L, "integral size %d is out of range [1, %d]", sz,
                  MAXINTSIZE);
     return sz;
   }
@@ -152,7 +155,7 @@ static void controloptions(lua_State *L, int opt, const char **fmt, Header *h) {
     h->endian = LITTLE;
     return;
   case '!': {
-    int a = getnum(fmt, MAXALIGN);
+    int a = getnum(L, fmt, MAXALIGN);
     if (!isp2(a))
       luaL_error(L, "alignment %d is not a power of 2", a);
     h->align = a;
@@ -316,14 +319,19 @@ static int b_unpack(lua_State *L) {
   const char *fmt = luaL_checkstring(L, 1);
   size_t ld;
   const char *data = luaL_checklstring(L, 2, &ld);
-  size_t pos = (size_t)luaL_optinteger(L, 3, 1) - 1;
+  lua_Integer init_pos = luaL_optinteger(L, 3, 1);
+  size_t pos;
   int n = 0; /* number of results */
-  luaL_argcheck(L, pos <= ld, 3, "initial position out of string");
+  luaL_argcheck(L, init_pos >= 1 && (size_t)(init_pos - 1) <= ld, 3,
+                "initial position out of string");
+  pos = (size_t)(init_pos - 1);
   defaultoptions(&h);
   while (*fmt) {
     int opt = *fmt++;
     size_t size = optsize(L, opt, &fmt);
-    pos += gettoalign(pos, &h, opt, size);
+    size_t toalign = (size_t)gettoalign(pos, &h, opt, size);
+    luaL_argcheck(L, toalign <= ld - pos, 2, "data string too short");
+    pos += toalign;
     luaL_argcheck(L, size <= ld - pos, 2, "data string too short");
     /* stack space for item + next position */
     luaL_checkstack(L, 2, "too many results");
@@ -364,20 +372,25 @@ static int b_unpack(lua_State *L) {
     }
     case 'c': {
       if (size == 0) {
+        lua_Number ns;
         if (n == 0 || !lua_isnumber(L, -1))
           luaL_error(L, "format 'c0' needs a previous size");
-        size = lua_tonumber(L, -1);
+        ns = lua_tonumber(L, -1);
         lua_pop(L, 1);
         n--;
-        luaL_argcheck(L, size <= ld - pos, 2, "data string too short");
+        luaL_argcheck(L, ns >= 0 && ns <= (lua_Number)(ld - pos), 2,
+                      "data string too short");
+        size = (size_t)ns;
       }
       lua_pushlstring(L, data + pos, size);
       n++;
       break;
     }
     case 's': {
-      size_t l = (size_t)getinteger(data + pos, h.endian, 0, 4);
-      luaL_argcheck(L, l <= ld - pos - 4, 2, "data string too short");
+      size_t l;
+      luaL_argcheck(L, ld - pos >= 4, 2, "data string too short");
+      l = (size_t)getinteger(data + pos, h.endian, 0, 4);
+      luaL_argcheck(L, l <= (ld - pos) - 4, 2, "data string too short");
       lua_pushlstring(L, data + pos + 4, l);
       n++;
       size = l + 4;

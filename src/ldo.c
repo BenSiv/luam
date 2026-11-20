@@ -198,7 +198,7 @@ static StkId adjust_varargs(lua_State *L, Proto *p, int actual) {
     int nvar = actual - nfixargs;       /* number of extra arguments */
     lua_assert(p->is_vararg & VARARG_HASARG);
     luaC_checkGC(L);
-    luaD_checkstack(L, p->maxstacksize);
+    luaD_checkstack(L, p->maxstacksize + p->numparams);
     htab = luaH_new(L, nvar, 1); /* create `arg' table */
     for (i = 0; i < nvar; i++)   /* put extra arguments into `arg' table */
       setobj2n(L, luaH_setnum(L, htab, i + 1), L->top - nvar + i);
@@ -253,14 +253,17 @@ int luaD_precall(lua_State *L, StkId func, int nresults) {
     CallInfo *ci;
     StkId st, base;
     Proto *p = cl->p;
-    luaD_checkstack(L, p->maxstacksize);
-    func = restorestack(L, funcr);
     if (!p->is_vararg) { /* no varargs? */
+      luaD_checkstack(L, p->maxstacksize);
+      func = restorestack(L, funcr);
       base = func + 1;
       if (L->top > base + p->numparams)
         L->top = base + p->numparams;
     } else { /* vararg function */
-      int nargs = cast_int(L->top - func) - 1;
+      int nargs;
+      luaD_checkstack(L, p->maxstacksize + p->numparams);
+      func = restorestack(L, funcr);
+      nargs = cast_int(L->top - func) - 1;
       base = adjust_varargs(L, p, nargs);
       func = restorestack(L, funcr); /* previous call may change the stack */
     }
@@ -451,7 +454,16 @@ struct SParser { /* data to `f_parser' */
   ZIO *z;
   Mbuffer buff; /* buffer to be used by the scanner */
   const char *name;
+  const char *mode;
 };
+
+static void checkmode(lua_State *L, const char *mode, const char *x) {
+  if (mode && strchr(mode, x[0]) == NULL) {
+    luaO_pushfstring(L, "attempt to load a %s chunk (mode is " LUA_QS ")", x,
+                     mode);
+    luaD_throw(L, LUA_ERRSYNTAX);
+  }
+}
 
 static void f_parser(lua_State *L, void *ud) {
   int i;
@@ -460,23 +472,35 @@ static void f_parser(lua_State *L, void *ud) {
   struct SParser *p = cast(struct SParser *, ud);
   int c = luaZ_lookahead(p->z);
   luaC_checkGC(L);
-  tf = ((c == LUA_SIGNATURE[0]) ? luaU_undump : luaY_parser)(L, p->z, &p->buff,
-                                                             p->name);
+  if (c == LUA_SIGNATURE[0]) {
+    checkmode(L, p->mode, "binary");
+    tf = luaU_undump(L, p->z, &p->buff, p->name);
+  } else {
+    checkmode(L, p->mode, "text");
+    tf = luaY_parser(L, p->z, &p->buff, p->name);
+  }
+  setptvalue2s(L, L->top, tf); /* anchor Proto across closure allocation */
+  incr_top(L);
   cl = luaF_newLclosure(L, tf->nups, hvalue(gt(L)));
   cl->l.p = tf;
+  setclvalue(L, L->top - 1, cl); /* replace Proto anchor with Closure */
   for (i = 0; i < tf->nups; i++) /* initialize eventual upvalues */
     cl->l.upvals[i] = luaF_newupval(L);
-  setclvalue(L, L->top, cl);
-  incr_top(L);
 }
 
-int luaD_protectedparser(lua_State *L, ZIO *z, const char *name) {
+int luaD_protectedparser_mode(lua_State *L, ZIO *z, const char *name,
+                              const char *mode) {
   struct SParser p;
   int status;
   p.z = z;
   p.name = name;
+  p.mode = mode;
   luaZ_initbuffer(L, &p.buff);
   status = luaD_pcall(L, f_parser, &p, savestack(L, L->top), L->errfunc);
   luaZ_freebuffer(L, &p.buff);
   return status;
+}
+
+int luaD_protectedparser(lua_State *L, ZIO *z, const char *name) {
+  return luaD_protectedparser_mode(L, z, name, NULL);
 }

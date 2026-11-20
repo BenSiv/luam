@@ -531,9 +531,11 @@ reentry: /* entry point */
     case OP_NOT: {
       TValue *rb = RB(i);
       /* Runtime type check: 'not' only works on boolean values */
-      if (!ttisboolean(rb))
+      if (!ttisboolean(rb)) {
+        L->savedpc = pc;
         luaG_runerror(L, "'not' operator requires a boolean value, got %s",
                       lua_typename(L, ttype(rb)));
+      }
       int res = l_isfalse(rb); /* next assignment may change this value */
       setbvalue(ra, res);
       continue;
@@ -593,9 +595,11 @@ reentry: /* entry point */
       int strict = c_op & 2; /* Bit 1 is strict flag */
       int cond = c_op & 1;   /* Bit 0 is condition */
 
-      if (strict && !ttisboolean(ra))
+      if (strict && !ttisboolean(ra)) {
+        L->savedpc = pc;
         luaG_runerror(L, "conditional requires a boolean value, got %s",
                       lua_typename(L, ttype(ra)));
+      }
 
       if (l_isfalse(ra) != cond)
         dojump(L, pc, GETARG_sBx(*pc));
@@ -612,9 +616,11 @@ reentry: /* entry point */
       int strict = c_op & 2; /* Bit 1 is strict flag */
       int cond = c_op & 1;   /* Bit 0 is condition */
 
-      if (strict && !ttisboolean(rb))
+      if (strict && !ttisboolean(rb)) {
+        L->savedpc = pc;
         luaG_runerror(L, "conditional requires a boolean value, got %s",
                       lua_typename(L, ttype(rb)));
+      }
 
       if (l_isfalse(rb) != cond) {
         setobjs2s(L, ra, rb);

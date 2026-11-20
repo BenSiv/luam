@@ -706,7 +706,7 @@ for _, module in ipairs(WITH_MODULES) do
         obj_counter = obj_counter + 1
         object_name = string.format("mod_%d_%s.o", obj_counter, string.gsub(paths.get_file_name(source), "%.[^.]+$", ""))
         ok = run_cmd(
-            "cc -c -O2 -I" .. ext.shell_quote(paths.joinpath(LUAM_ABS, "src")) .. extra_includes ..
+            "cc -c -O2 -fstack-protector-strong -U_FORTIFY_SOURCE -D_FORTIFY_SOURCE=2 -I" .. ext.shell_quote(paths.joinpath(LUAM_ABS, "src")) .. extra_includes ..
             " " .. ext.shell_quote(paths.joinpath(LUAM_ABS, source)) .. " -o " .. object_name
         )
         if not ok then
@@ -797,10 +797,15 @@ if #OBJECT_FILES > 0 then
     obj_list = obj_list .. " " .. table.concat(OBJECT_FILES, " ")
 end
 
+env_static_ldflags = os.getenv("LUAM_STATIC_LDFLAGS")
+if env_static_ldflags != nil and env_static_ldflags != "" then
+    extra_links = extra_links .. " " .. env_static_ldflags
+end
+
 ok = run_cmd(
     linker .. " -Os " .. obj_list .. " " .. ext.shell_quote(LUAM_LIB_ABS) ..
     " -lm -ldl -lreadline -lpthread" .. extra_links ..
-    " -Wl,--export-dynamic -o " .. ext.shell_quote(BIN_NAME)
+    " -Wl,-z,relro,-z,now -Wl,--export-dynamic -o " .. ext.shell_quote(BIN_NAME)
 )
 if not ok then
     fail("final link failed")

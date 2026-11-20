@@ -9,6 +9,25 @@ function default_val(val, fallback)
     return val
 end
 
+function check_header_value(val, label)
+    s = tostring(val)
+    if string.find(s, "[\r\n%z]") != nil then
+        error("invalid CR/LF/NUL in HTTP " .. label, 2)
+    end
+    return s
+end
+
+function check_cookie_part(val, label, forbid_equals)
+    s = tostring(val)
+    if string.find(s, "[\r\n%z;]") != nil then
+        error("invalid character in cookie " .. label, 2)
+    end
+    if forbid_equals and (s == "" or string.find(s, "=", 1, true) != nil) then
+        error("invalid cookie name", 2)
+    end
+    return s
+end
+
 -- True if currently executing under a CGI server environment.
 function cgi.is_cgi()
     gateway = os.getenv("GATEWAY_INTERFACE")
@@ -58,11 +77,17 @@ function cgi.parse_cookies(cookie_header)
 end
 
 -- Builds one Set-Cookie header line. Marks Secure automatically whenever
--- the request itself arrived over HTTPS (HTTPS env var).
+-- the request itself arrived over TLS (HTTPS env var).
 function cgi.set_cookie_header(name, value, max_age_seconds, http_only)
-    parts = {name .. "=" .. value, "Path=/", "SameSite=Lax"}
+    safe_name = check_cookie_part(name, "name", true)
+    safe_value = check_cookie_part(value, "value", false)
+    parts = {safe_name .. "=" .. safe_value, "Path=/", "SameSite=Lax"}
     if max_age_seconds != nil then
-        table.insert(parts, "Max-Age=" .. tostring(max_age_seconds))
+        age_num = tonumber(max_age_seconds)
+        if age_num == nil then
+            error("cookie max_age_seconds must be a number", 2)
+        end
+        table.insert(parts, "Max-Age=" .. tostring(math.floor(age_num)))
     end
     if http_only == true then
         table.insert(parts, "HttpOnly")
@@ -74,28 +99,29 @@ function cgi.set_cookie_header(name, value, max_age_seconds, http_only)
 end
 
 function cgi.clear_cookie_header(name)
-    return "Set-Cookie: " .. name .. "=; Path=/; Max-Age=0"
+    safe_name = check_cookie_part(name, "name", true)
+    return "Set-Cookie: " .. safe_name .. "=; Path=/; Max-Age=0"
 end
 
 -- Write standard CGI HTTP response headers and body to stdout.
 -- `opts.headers` may contain either a list of raw "Name: value" header lines
 -- (needed when emitting multiple Set-Cookie headers) or key/value pairs.
 function cgi.respond(opts)
-    status = default_val(opts.status, "200 OK")
-    content_type = default_val(opts.content_type, "text/html; charset=utf-8")
+    status = check_header_value(default_val(opts.status, "200 OK"), "status")
+    content_type = check_header_value(default_val(opts.content_type, "text/html; charset=utf-8"), "content_type")
     body = default_val(opts.body, "")
 
     io.write("Status: " .. status .. "\r\n")
     io.write("Content-Type: " .. content_type .. "\r\n")
     if opts.cache_control != nil then
-        io.write("Cache-Control: " .. opts.cache_control .. "\r\n")
+        io.write("Cache-Control: " .. check_header_value(opts.cache_control, "cache_control") .. "\r\n")
     end
     if opts.headers != nil then
         for k, v in pairs(opts.headers) do
             if type(k) == "number" then
-                io.write(v .. "\r\n")
+                io.write(check_header_value(v, "header") .. "\r\n")
             else
-                io.write(k .. ": " .. v .. "\r\n")
+                io.write(check_header_value(k, "header name") .. ": " .. check_header_value(v, "header value") .. "\r\n")
             end
         end
     end

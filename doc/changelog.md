@@ -110,7 +110,9 @@ A bare (unprefixed) global -- `function name(...) ... end` or `name = value` at 
 All spot-checked against the built interpreter:
 
 - `xpcall(func, handler, arg1, ...)` — extra arguments forwarded to `func` (backported from 5.2).
-- `load(chunk)` — accepts both a function and a string, replacing `loadstring`.
+- `load(chunk [, chunkname [, mode [, env]]])` — accepts both a function and a string (replacing `loadstring`), plus Lua 5.2's `mode` (`"t"`, `"b"`, `"bt"`) and optional `env` table (`loadstring` and `loadfile` also accept `mode`/`env`).
+- Procedural string isolation — global string metatable (`("").__index = string`) is removed alongside userdata `__index`, preventing sandboxed code from reaching the host `string` table through string literals.
+- VM & stdlib security hardening — per-VM CSPRNG string hash seeding (`G(L)->seed`), parser/loader GC stack anchoring (`CVE-2025-49844`), vararg stack reservation (`CVE-2014-5461`), bounds-checked `struct`/`string.unpack`, `crypto.timing_safe_equal`, and CRLF/cookie header guards in `lib/cgi.lua`.
 - `math.log(x, base)` — optional base argument.
 - `table.pack(...)` / `table.unpack(t)` — as in 5.2.
 - `os.exit(true|false)` — boolean accepted alongside the integer status code.

@@ -55,8 +55,10 @@ const TValue *luaT_gettmbyobj(lua_State *L, const TValue *o, TMS event) {
     mt = hvalue(o)->metatable;
     break;
   case LUA_TUSERDATA:
-    /* Userdata stays strictly procedural in Luam (no OOP __index methods);
-     * internal C __gc and luaL_checkudata read uvalue(o)->metatable directly. */
+  case LUA_TSTRING:
+    /* Userdata and strings stay strictly procedural in Luam (no OOP __index
+     * methods or shared global string metatable); internal C __gc and
+     * luaL_checkudata read uvalue(o)->metatable directly. */
     return luaO_nilobject;
   default:
     mt = G(L)->mt[ttype(o)];

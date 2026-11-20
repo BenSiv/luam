@@ -11,12 +11,14 @@
 */
 
 #include <errno.h>
+#include <limits.h>
 #include <stdio.h>
 #include <string.h>
 
 #include <lauxlib.h>
 #include <lua.h>
 #include <lualib.h>
+#include <openssl/crypto.h>
 #include <openssl/evp.h>
 #include <openssl/hmac.h>
 #include <openssl/rand.h>
@@ -108,12 +110,25 @@ static int l_hmac_sha256(lua_State *L) {
   unsigned int digest_len = 0;
   char hex[EVP_MAX_MD_SIZE * 2];
 
+  luaL_argcheck(L, key_len <= (size_t)INT_MAX, 1, "key too long");
   if (HMAC(EVP_sha256(), key, (int)key_len, (const unsigned char *)msg, msg_len,
            digest, &digest_len) == NULL) {
     return luaL_error(L, "HMAC-SHA256 failed");
   }
   bytes_to_hex(digest, digest_len, hex);
   lua_pushlstring(L, hex, digest_len * 2);
+  return 1;
+}
+
+static int l_timing_safe_equal(lua_State *L) {
+  size_t len_a = 0, len_b = 0;
+  const char *a = luaL_checklstring(L, 1, &len_a);
+  const char *b = luaL_checklstring(L, 2, &len_b);
+  if (len_a != len_b) {
+    lua_pushboolean(L, 0);
+    return 1;
+  }
+  lua_pushboolean(L, CRYPTO_memcmp(a, b, len_a) == 0);
   return 1;
 }
 
@@ -163,6 +178,7 @@ static const struct luaL_Reg cryptolib[] = {
     {"sha256", l_sha256},
     {"sha256_file", l_sha256_file},
     {"hmac_sha256", l_hmac_sha256},
+    {"timing_safe_equal", l_timing_safe_equal},
     {"random_bytes", l_random_bytes},
     {"random_hex", l_random_hex},
     {NULL, NULL},

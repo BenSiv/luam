@@ -191,6 +191,8 @@ static void LoadHeader(LoadState *S) {
 */
 Proto *luaU_undump(lua_State *L, ZIO *Z, Mbuffer *buff, const char *name) {
   LoadState S;
+  TString *defname;
+  Proto *f;
   if (*name == '@' || *name == '=')
     S.name = name + 1;
   else if (*name == LUA_SIGNATURE[0])
@@ -200,8 +202,13 @@ Proto *luaU_undump(lua_State *L, ZIO *Z, Mbuffer *buff, const char *name) {
   S.L = L;
   S.Z = Z;
   S.b = buff;
+  defname = luaS_newliteral(L, "=?");
+  setsvalue2s(L, L->top, defname);
+  incr_top(L);
   LoadHeader(&S);
-  return LoadFunction(&S, luaS_newliteral(L, "=?"));
+  f = LoadFunction(&S, defname);
+  --L->top;
+  return f;
 }
 
 /*

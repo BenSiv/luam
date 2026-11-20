@@ -141,7 +141,7 @@ Unknown escapes (such as `"\d"` or `"\s"`) and legacy decimal escapes (`"\27"`, 
 Tables support the `__len` metamethod (backported from Lua 5.2), enabling custom length semantics.
 
 #### Procedural C Handles & Metatables
-Colon method-call and method-definition sugar (`obj:method()`, `function obj:method() ... end`) are removed, and userdata `__index` dispatch is disabled in the VM so C bindings (`io`, `sqlite3`, `mariadb`, `lfs`, `crypto`, `vec`) expose flat procedural functions (`mod.fn(handle, ...)`), while retaining internal C `__gc` finalizers and `luaL_checkudata` pointer safety. Table metatables currently remain available for passive serialization markers (such as `dkjson`'s container hints).
+Colon method-call and method-definition sugar (`obj:method()`, `function obj:method() ... end`) are removed, and both userdata and string `__index` dispatch are disabled in the VM so C bindings (`io`, `sqlite3`, `mariadb`, `lfs`, `crypto`, `vec`) and `string` expose flat procedural functions (`mod.fn(handle, ...)` / `string.fn(s, ...)`), eliminating shared global string-metatable leaks across sandboxes while retaining internal C `__gc` finalizers and `luaL_checkudata` pointer safety. Table metatables currently remain available for passive serialization markers (such as `dkjson`'s container hints).
 
 ---
 
@@ -154,8 +154,8 @@ Colon method-call and method-definition sugar (`obj:method()`, `function obj:met
 xpcall(func, handler, arg1, arg2)
 ```
 
-#### Unified `load`
-`load(chunk)` handles both functions and strings, replacing the need for `loadstring`.
+#### Unified `load` with `mode` and `env`
+`load(chunk [, chunkname [, mode [, env]]])` handles both functions and strings, supports Lua 5.2's `mode` guard (`"t"` text-only, `"b"` binary-only, `"bt"` default) and chunk `env` table binding, and `lib/sandbox.lua` enforces `"t"` so untrusted code cannot load precompiled bytecode.
 
 #### Math, String & Table Enhancements
 - Plain-text `string.*` helpers (100% literal bytes, no `%` pattern magic): `contains`, `starts_with`, `ends_with`, `index_of`, `count`, `replace`, `trim`, `ltrim`, `rtrim`, `strip_prefix`, `strip_suffix`, `dedent`, `split`, `lines`, `words`, and `template` (`{{}}` / `{{key}}`).

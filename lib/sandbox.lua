@@ -18,6 +18,7 @@
 sandbox = {}
 
 sandbox.DEFAULT_MAX_INSTRUCTIONS = 5000000
+sandbox.DEFAULT_MAX_STRING_BYTES = 1048576
 SANDBOX_LIMIT_MESSAGE = "sandbox execution exceeded instruction limit"
 
 function copy_table(src)
@@ -31,11 +32,37 @@ function copy_table(src)
     return out
 end
 
+HOST_RAW_REP = string.rep
 HOST_STRING = copy_table(string)
+HOST_STRING.dump = nil
+HOST_STRING.pack = nil
+HOST_STRING.unpack = nil
 HOST_TABLE = copy_table(table)
 HOST_MATH = copy_table(math)
 HOST_PCALL = pcall
 HOST_ERROR = error
+HOST_LOAD = load
+HOST_BYTE = string.byte
+
+function sandbox_string_rep(s, n)
+    if type(s) != "string" then
+        HOST_ERROR("bad argument #1 to 'rep' (string expected)", 2)
+    end
+    num = tonumber(n)
+    if num == nil then
+        HOST_ERROR("bad argument #2 to 'rep' (number expected)", 2)
+    end
+    count = math.floor(num)
+    if count <= 0 or #s == 0 then
+        return ""
+    end
+    if #s * count > sandbox.DEFAULT_MAX_STRING_BYTES then
+        HOST_ERROR("sandbox string.rep exceeded maximum byte limit", 2)
+    end
+    return HOST_RAW_REP(s, count)
+end
+
+HOST_STRING.rep = sandbox_string_rep
 
 _limit_tripped_depth = 0
 
@@ -97,10 +124,17 @@ function sandbox.extension_env(_capabilities)
     return base_env()
 end
 
--- Loads `source` (a string of Luam code) bound to `env`, without
--- calling it. Returns the loaded function, or nil + an error message.
+-- Loads `source` (a string of Luam source text; binary bytecode chunks are
+-- rejected) bound to `env`, without calling it. Returns the loaded function,
+-- or nil + an error message.
 function sandbox.load(source, chunkname, env)
-    fn, err = loadstring(source, chunkname)
+    if type(source) != "string" then
+        return nil, "sandbox source must be a string"
+    end
+    if #source > 0 and HOST_BYTE(source, 1) == 0x1b then
+        return nil, "binary chunks are not permitted in sandbox"
+    end
+    fn, err = HOST_LOAD(source, chunkname, "t")
     if fn == nil then
         return nil, err
     end

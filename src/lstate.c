@@ -6,6 +6,8 @@
 
 
 #include <stddef.h>
+#include <stdio.h>
+#include <time.h>
 
 #define lstate_c
 #define LUA_CORE
@@ -146,6 +148,23 @@ void luaE_setreplmode(lua_State *L, int onoff) {
 }
 
 
+static unsigned int makeseed(lua_State *L) {
+  unsigned int seed = 0;
+  FILE *urandom = fopen("/dev/urandom", "rb");
+  if (urandom != NULL) {
+    size_t n = fread(&seed, 1, sizeof(seed), urandom);
+    fclose(urandom);
+    if (n == sizeof(seed))
+      return seed;
+  }
+  seed = cast(unsigned int, time(NULL));
+  seed ^= cast(unsigned int, clock());
+  seed ^= cast(unsigned int, cast(size_t, L));
+  seed ^= cast(unsigned int, cast(size_t, &lua_newstate));
+  return seed;
+}
+
+
 LUA_API lua_State *lua_newstate(lua_Alloc f, void *ud) {
   int i;
   lua_State *L;
@@ -184,6 +203,7 @@ LUA_API lua_State *lua_newstate(lua_Alloc f, void *ud) {
   g->totalbytes = sizeof(LG);
   g->gcpause = LUAI_GCPAUSE;
   g->gcstepmul = LUAI_GCMUL;
+  g->seed = makeseed(L);
   g->gcdept = 0;
   for (i = 0; i < NUM_TAGS; i++)
     g->mt[i] = NULL;
