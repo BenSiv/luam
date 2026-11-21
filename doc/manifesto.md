@@ -6,11 +6,11 @@ Luam doesn't start from a blank page against those goals. It starts by keeping e
 
 ## 1. Borrow the goals before touching the language
 
-Simple, small, portable, fast, embeddable -- Lua's four founding goals are Luam's four founding goals, verbatim. `doc/changelog.md` exists to measure them, not assume them: source size within 0.3% of upstream Lua 5.1, a stripped interpreter binary a few percent larger, checked against the real built artifact rather than estimated. Any change to Luam gets checked against those same numbers before it ships. If it can't be measured, it isn't done.
+Simple, small, portable, fast, embeddable -- Lua's five founding goals are Luam's five founding goals, verbatim. `doc/changelog.md` exists to measure them, not assume them: C/H source size +5.5% (`17,898` vs `16,963` lines in upstream Lua 5.1) and a stripped interpreter binary +11.9% (`231,648 B` vs `207,072 B`), checked against the real built artifact rather than estimated. Any change to Luam gets checked against those same numbers before it ships. If it can't be measured, it isn't done.
 
 ## 2. One mechanism, not a feature per need
 
-Lua's own "vivid expression of its simplicity," in its creators' words, is that it offers a single data structure -- the table -- instead of a separate built-in for arrays, records, sets, and objects. Luam applies the identical instinct to syntax rather than data: one loop construct (`while`, no `repeat`/`until`), one way to introduce a variable (bare assignment, no `local`), one way to call a function on a table (`obj.method(obj, ...)`, no colon sugar). Where Lua unified data structures, Luam unifies the grammar around them.
+Lua's own "vivid expression of its simplicity," in its creators' words, is that it offers a single data structure -- the table -- instead of a separate built-in for arrays, records, sets, and objects. Luam applies the identical instinct to syntax rather than data: one loop construct (`while`, no `repeat`/`until`), one default scope for variables (bare assignment introduces a mutable local with no `local` keyword, while `const` locks a local binding at compile time), one way to call a function on a table (`obj.method(obj, ...)`, no colon sugar). Where Lua unified data structures, Luam unifies the grammar around them.
 
 ## 3. Meta-mechanisms over built-in policy
 
@@ -30,8 +30,8 @@ Implicit locals aren't a style-guide line that says "always write `local`" -- th
 
 ## 7. Extend the library, not the language
 
-New capability -- `bcrypt`, `sqlite`, `mariadb`, sockets, `yaml`, and the rest of `lib/` -- is added as a library, written in Lua/Luam and C, the same extension path Lua itself has always offered through its C API. It is never added as new syntax. The language core stays the fixed, small thing everyone can hold in their head; the surface area that's allowed to grow lives one layer up, opt-in per file that `require`s it.
+New capability -- `bcrypt`, `sqlite`, `mariadb`, `crypto`, `vec`, `markdown`, `yaml`, and the rest of `lib/` -- is added as a library, written in Lua/Luam and C, the same extension path Lua itself has always offered through its C API. It is never added as new syntax. The language core stays the fixed, small thing everyone can hold in their head; the surface area that's allowed to grow lives one layer up, opt-in per file that `require`s it.
 
 ## 8. One real need is the only justification for a change
 
-Lua grew when its creators' own projects ran into genuine gaps, not because a feature seemed generally useful. Luam holds itself to the same standard, at the same source: no change lands speculatively, on the strength of "a general-purpose language should probably have this." It lands because a real, currently-blocked need -- daat's, or an equivalent -- demonstrated the gap first.
+Lua grew when its creators' own projects ran into genuine gaps, not because a feature seemed generally useful. Luam holds itself to the same standard, at the same source: no change lands speculatively, on the strength of "a general-purpose language should probably have this." It lands because a real, currently-blocked need -- daat's (see [why-luam](../../daat/doc/why-luam.md)), or an equivalent -- demonstrated the gap first.

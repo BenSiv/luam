@@ -61,7 +61,7 @@ In Lua 5.1, `string.find`, `string.match`, `string.gsub`, and `string.gmatch` in
 
 Luam keeps `%` exclusively as the runtime specifier for `string.format` and pattern matching (`match`, `find`, `gsub`, `gmatch`) — avoiding double-backslash `"\\s+"` noise inside `"..."` — and adds literal plain-text functions directly to `string.*` in `src/lstrlib.c`. Every substring, separator, prefix, suffix, and replacement argument in the functions below is treated as **100% literal bytes**:
 
-### Predicates (Return `flag`: `true` / `false`)
+### Predicates (Return `boolean`: `true` / `false`)
 - `string.contains(s, sub)` — `true` if `sub` occurs anywhere in `s` (`""` is contained in every string).
 - `string.starts_with(s, prefix)` — `true` if `s` begins with `prefix`.
 - `string.ends_with(s, suffix)` — `true` if `s` ends with `suffix`.
@@ -73,7 +73,7 @@ Luam keeps `%` exclusively as the runtime specifier for `string.format` and patt
 ### Literal Transformations
 - `string.replace(s, old, new [, max])` — replaces non-overlapping occurrences of non-empty literal `old` with literal `new` (up to `max` replacements when given); returns `result, count`. Neither `old` nor `new` interprets `%` or `\`.
 - `string.trim(s [, chars])`, `string.ltrim(s [, chars])`, `string.rtrim(s [, chars])` — strips leading and/or trailing characters. When `chars` is omitted, strips ASCII whitespace (`' '`, `\t`, `\n`, `\r`, `\v`, `\f`); when `chars` is a string, strips any byte present in `chars` (e.g. `string.rtrim(url, "/")`).
-- `string.strip_prefix(s, prefix)` / `string.strip_suffix(s, suffix)` — removes `prefix` / `suffix` if present; returns `stripped, did_strip` (`flag`).
+- `string.strip_prefix(s, prefix)` / `string.strip_suffix(s, suffix)` — removes `prefix` / `suffix` if present; returns `stripped, did_strip` (`boolean`).
 - `string.dedent(s)` — strips a leading newline (if the first line is empty/whitespace-only) and trailing whitespace-only final line, then removes the common leading space/tab indentation shared by all non-empty lines:
 
 ```lua

@@ -1,11 +1,13 @@
-hese are simple tests for Lua.  Some of them contain useful code.
-hey are meant to be run to make sure Lua is built correctly and also
-to be read, to see how Lua programs look.
+These are simple tests for Luam (including classic Lua 5.1 sample programs
+ported to Luam syntax under `test_*.lua`, alongside regression suites for
+Luam's language rules, VM hardening, and `lib/` modules). They are meant to
+be run via `make test` (`./bin/luam tst/run_tests.lua`) to verify that Luam
+is built correctly, and also to be read to see how Luam programs look.
 
-Here is a one-line summary of each program:
+Classic sample programs (`test_<name>.lua`):
 
    bisect.lua		bisection method for solving non-linear equations
-   cf.lua		temperature conversion table (celsius to farenheit)
+   cf.lua		temperature conversion table (celsius to fahrenheit)
    echo.lua             echo command line arguments
    env.lua              environment variables as automatic global variables
    factorial.lua	factorial without recursion
@@ -13,14 +15,13 @@ Here is a one-line summary of each program:
    fibfor.lua		fibonacci numbers with coroutines and generators
    globals.lua		report global variable usage
    hello.lua		the first program in every language
-   life.lua		Conway's ame of Life
+   life.lua		Conway's Game of Life
    luac.lua	 	bare-bones luac
    printf.lua		an implementation of printf
    readonly.lua		make global variables readonly
-   sieve.lua		the sieve of of Eratosthenes programmed with coroutines
+   sieve.lua		the sieve of Eratosthenes programmed with coroutines
    sort.lua		two implementations of a sort function
    table.lua		make table, grouping all data for the same item
    trace-calls.lua	trace calls
-   trace-globals.lua	trace assigments to global variables
+   trace-globals.lua	trace assignments to global variables
    xd.lua		hex dump
-

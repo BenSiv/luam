@@ -157,9 +157,10 @@ xpcall(func, handler, arg1, arg2)
 #### Unified `load` with `mode` and `env`
 `load(chunk [, chunkname [, mode [, env]]])` handles both functions and strings, supports Lua 5.2's `mode` guard (`"t"` text-only, `"b"` binary-only, `"bt"` default) and chunk `env` table binding, and `lib/sandbox.lua` enforces `"t"` so untrusted code cannot load precompiled bytecode.
 
-#### Math, String & Table Enhancements
+#### Math, String, Bitwise & Table Enhancements
 - Plain-text `string.*` helpers (100% literal bytes, no `%` pattern magic): `contains`, `starts_with`, `ends_with`, `index_of`, `count`, `replace`, `trim`, `ltrim`, `rtrim`, `strip_prefix`, `strip_suffix`, `dedent`, `split`, `lines`, `words`, and `template` (`{{}}` / `{{key}}`).
 - `string.format("%q", s)` emits `\x00` for NUL bytes so arbitrary binary strings round-trip cleanly through `load`.
+- Built-in bitwise and binary packing libraries linked directly into the VM: `bit` (`band`, `bor`, `bxor`, `bnot`, `lshift`, `rshift`) and `struct` (`struct.pack`, `struct.unpack`, `struct.size`), with `string.pack` and `string.unpack` wired to `struct.pack` / `struct.unpack`.
 - `math.log(x, base)` supports an optional base argument.
 - `table.pack(...)` creates a table from arguments and includes an `n` field.
 - `table.unpack(t)` is standardized (renamed from `unpack`).
@@ -171,26 +172,53 @@ xpcall(func, handler, arg1, arg2)
 
 ---
 
+## `lib/` Shared Standard Library
+
+Beyond the core VM, `lib/` hosts the shared pure-Luam and C modules used across downstream Luam projects:
+
+- **Database (`database`, `database_adapter`, `sqlite3`, `mariadb`):** Unified SQLite and MariaDB query/transaction layer over `lsqlite3` and `libmariadb`.
+- **Sandboxing & Declarative Data (`sandbox`, `data`, `dkjson`, `yaml`):** Capability-scoped execution (`sandbox.data_env()`), canonical Luam table serialization, `${var}` interpolation, and declarative schema validation, plus JSON (`dkjson`) and LibYAML (`yaml`).
+- **Static Bundler & Assets (`static/build`, `asset`):** Single-binary ahead-of-time bundler (`lib/static/build.lua`) and dev/static embedded asset loader (`lib/asset.lua`).
+- **CLI, Filesystem & Process Tooling (`cli`, `paths`, `external_tool`, `git`, `lfs`):** Zero-dependency flag/subcommand parser, atomic file/path helpers over `lfs`, shell-quoted process execution and temp files, and Git plumbing wrappers.
+- **Testing & Property Checking (`test`, `laws`):** Unit assertion runner and zero-dependency property-based / stateful law-checking library.
+- **Web, Templates & Safe Markdown (`markdown`, `html`, `render`, `cgi`, `multipart`):** Safe CommonMark/GFM rendering via `cmark-gfm` (raw HTML stripped), context-aware HTML/JS escaping, `{{ expr }}` interpolation templates, CGI request/header/cookie handling, and multipart form parsing.
+- **Cryptography & Dense Vectors (`crypto`, `bcrypt`, `hmac`, `vec`):** SHA-256, HMAC-SHA256, CSPRNG, and constant-time comparison (`crypto` / `hmac` over `-lcrypto`), password hashing (`bcrypt` over `-lcrypt`), and dense little-endian `float32` vector math (`vec`).
+- **Data & Domain Utilities (`dates`, `dataframes`, `delimited_files`, `graphs`, `bioinfo`, `gnuplot`, `prettyprint`):** Timestamp normalization, tabular/CSV/TSV helpers, graph utilities, FASTA I/O, Gnuplot wrappers, and ANSI terminal formatting.
+
+---
+
 ## Build & Install
 
 ### Building Luam & `lib/` C Extensions
 
 ```sh
 ./bld/build_lang.sh   # builds obj/liblua.a, bin/luam, and bin/luamc
-./bld/build_libs.sh   # builds C extensions in lib/ (lfs, sqlite3, mariadb, bcrypt, crypto, vec, yaml)
+./bld/build_libs.sh   # builds C extensions in lib/ (lfs, sqlite3, mariadb, bcrypt, crypto, hmac, vec, yaml)
 make test             # runs the full core & stdlib test suite
 ./bld/test_stack.sh   # verifies luam plus sibling Luam stack checkouts
 ```
 
 ### Building a Static Binary for a Downstream Project
 
-A downstream Luam project declares a data-only `bld/package.lua` manifest (`bin`, `entry`, `luam` minimum ancestor commit, `with`, `always_include`, optional `define_git_commit`, `symlinks`, and `native` C/C++ sources) and invokes `lib/static/build.lua` (which also accepts direct CLI flags):
+A downstream Luam project declares a data-only `bld/package.lua` manifest (`bin`, `entry`, optional `src`, `luam` minimum ancestor commit, optional `luam_pin`, `with`, `always_include`, optional `define_git_commit`, `symlinks`, and `native` C/C++ sources) and invokes `lib/static/build.lua` (requires `obj/liblua.a` and `lib/lfs/lfs.so`; also accepts direct CLI flags):
 
 ```sh
 luam "$LUAM_DIR/lib/static/build.lua"
 ```
 
 It validates `bld/package.lua` in `sandbox.data_env()`, verifies `LUAM_DIR` contains the required `luam` commit, traces reachable literal `require()` and `asset.read()` calls from `entry` (plus `always_include` directories), precompiles all reachable `.lua` modules into `.rodata` bytecode, compiles requested C/C++ extensions, and links one standalone native executable into `./bin/`.
+
+---
+
+## Ecosystem Consumers
+
+Core applications and infrastructure built on Luam and `lib/`:
+
+- [daat](../daat/doc/architecture.md) — knowledge base, LIMS, and agent platform (see also [why-luam](../daat/doc/why-luam.md))
+- [brain-ex](../brain-ex/README.md) — `brex` CLI for personal notes, tasks, and two-way `daat` knowledge sync
+- [teken](../teken/doc/design.md) — `tkn` atomic generation builder and switcher for home environments and Podman dev containers
+- [seder](../seder/doc/architecture.md) — declarative Linux host configuration engine
+- [automations](../automations/README.md) — multicall developer workflow CLI (`rd`, `edit`, `luam-find`, `repo`, `pkg`, `code`, `view`)
 
 ---
 

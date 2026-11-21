@@ -120,6 +120,7 @@ All spot-checked against the built interpreter:
 - `package.searchers` — alias for `package.loaders`.
 - Plain-text `string.*` helpers ([strings_and_escapes.md](strings_and_escapes.md)): `contains`, `starts_with`, `ends_with`, `index_of`, `count`, `replace`, `trim`, `ltrim`, `rtrim`, `strip_prefix`, `strip_suffix`, `dedent`, `split`, `lines`, `words`, and `template` (`{{}}` positional and `{{key}}` named).
 - `string.format("%q", s)` — emits `\x00` rather than `\000` for NUL bytes so binary strings round-trip cleanly under strict escapes.
+- Built-in bitwise and binary packing libraries registered directly in the VM (`src/linit.c`): `bit` (`band`, `bor`, `bxor`, `bnot`, `lshift`, `rshift`), `struct` (`struct.pack`, `struct.unpack`, `struct.size`), and `string.pack` / `string.unpack` (aliases for `struct.pack` / `struct.unpack`).
 
 ## Size, measured
 
@@ -130,8 +131,8 @@ machine, same `-O2`, both built with their own `make linux`:
 
 | Metric | Lua 5.1 | Luam | Diff |
 |---|---|---|---|
-| Source lines (`src/*.c` + `*.h`) | 16,963 | 17,779 | +816 (+4.8%) |
-| Interpreter binary, stripped | 207,072 B | 227,552 B | **+20,480 B (+9.9%, larger)** |
+| Source lines (`src/*.c` + `*.h`) | 16,963 | 17,898 | +935 (+5.5%) |
+| Interpreter binary, stripped | 207,072 B | 231,648 B | **+24,576 B (+11.9%, larger)** |
 
 Luam is *not* smaller than Lua 5.1 — this doc previously claimed the
 opposite. Source size is close (clang-format reformatting offset most of the
