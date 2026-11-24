@@ -104,7 +104,7 @@ function database.get_tables(db_path)
 end
 
 function database.get_columns(db_path, table_name)
-    query = "PRAGMA table_info(" .. table_name .. ");"
+    query = "PRAGMA table_info(" .. database.quote_ident(table_name) .. ");"
     if is_mariadb(db_path) then
         query = string.format(
             "SELECT column_name AS name FROM information_schema.columns WHERE table_schema = DATABASE() AND table_name = %s ORDER BY ordinal_position;",
@@ -251,10 +251,11 @@ end
 -- be a syntax error there), so this can't be unified into one string
 -- the way VARCHAR(255) unified the primary-key case -- has to branch.
 function database.text_index_column(db_path, column_name)
+    quoted = database.quote_ident(column_name)
     if is_mariadb(db_path) then
-        return column_name .. "(255)"
+        return quoted .. "(255)"
     end
-    return column_name
+    return quoted
 end
 
 -- Stable per-store cache key across both backends. Includes the SQLite

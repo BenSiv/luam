@@ -211,6 +211,13 @@ os.exit(0)
     rc_after, _ = external_tool.with_temp_file(after_script, "w", run_after_child)
     assert(rc_after == true, "expected SQLite lock to be released after raising fn")
 
+    -- 6. Reserved-word identifier quoting in get_columns and text_index_column
+    database.exec(tmp_db, "CREATE TABLE `order` (id INTEGER PRIMARY KEY, `select` TEXT);")
+    ord_cols = database.get_columns(tmp_db, "order")
+    assert(#ord_cols == 2 and ord_cols[1] == "id" and ord_cols[2] == "select", "get_columns on reserved table `order` failed")
+    assert(database.text_index_column(tmp_db, "order") == "`order`", "SQLite text_index_column should backtick-quote column")
+    assert(database.text_index_column({host = "127.0.0.1"}, "order") == "`order`(255)", "MariaDB text_index_column should backtick-quote column before (255)")
+
     os.remove(tmp_db)
 else
     print("Skipping database functional tests (sqlite3 missing)")
