@@ -167,8 +167,11 @@ xpcall(func, handler, arg1, arg2)
 
 #### System & Package Improvements
 - `os.exit(boolean)` supports `true` for success and `false` for failure.
+- `os.clock_ms()`, `os.time_ms()`, and `os.sleep(ms)` provide monotonic/wall-clock milliseconds and `EINTR`-safe sub-second sleep.
 - `os.execute(cmd)` and `io.close(popen_handle)` return `(ok_bool, why, code)` so strict boolean conditionals (`if os.execute(cmd) then`) work directly and `io.popen` callers inspect real exit/signal codes.
 - `package.searchers` is provided as an alias for `package.loaders` for Lua 5.2 compatibility.
+- POSIX executable-relative module discovery (`!` and `!/..` in `LUA_PATH_DEFAULT`/`LUA_CPATH_DEFAULT`, plus `package.exec_dir` and `package.luam_root`) resolves `lib/` automatically without requiring `LUA_PATH`, `LUA_CPATH`, or `LUAM_DIR`.
+- Integrated CLI toolchain subcommands: `luam build`, `luam run`, `luam check`, and `luam test`.
 
 ---
 
@@ -178,12 +181,12 @@ Beyond the core VM, `lib/` hosts the shared pure-Luam and C modules used across 
 
 - **Database (`database`, `database_adapter`, `sqlite3`, `mariadb`):** Unified SQLite and MariaDB query/transaction layer over `lsqlite3` and `libmariadb`.
 - **Sandboxing & Declarative Data (`sandbox`, `data`, `dkjson`, `yaml`):** Capability-scoped execution (`sandbox.data_env()`), canonical Luam table serialization, `${var}` interpolation, and declarative schema validation, plus JSON (`dkjson`) and LibYAML (`yaml`).
-- **Static Bundler & Assets (`static/build`, `asset`):** Single-binary ahead-of-time bundler (`lib/static/build.lua`) and dev/static embedded asset loader (`lib/asset.lua`).
-- **CLI, Filesystem & Process Tooling (`cli`, `paths`, `external_tool`, `git`, `lfs`):** Zero-dependency flag/subcommand parser, atomic file/path helpers over `lfs`, shell-quoted process execution and temp files, and Git plumbing wrappers.
+- **Static Bundler, Toolchain & Assets (`static/build`, `cmd/{run,check,test}`, `asset`):** Single-binary ahead-of-time bundler with `obj/ext/` C object caching (`luam build`), zero-compile project runner (`luam run`), static syntax/manifest/asset verifier (`luam check`), test runner (`luam test`), and dev/static embedded asset loader (`lib/asset.lua`).
+- **CLI, Filesystem & Process Tooling (`cli`, `paths`, `proc`, `external_tool`, `git`, `lfs`):** Zero-dependency flag/subcommand parser, atomic file/path helpers over `lfs`, argv-safe POSIX subprocess execution without `/bin/sh` (`proc`), shell-quoted process helpers (`external_tool`), and Git plumbing wrappers.
 - **Testing & Property Checking (`test`, `laws`):** Unit assertion runner and zero-dependency property-based / stateful law-checking library.
-- **Web, Templates & Safe Markdown (`markdown`, `html`, `render`, `cgi`, `multipart`):** Safe CommonMark/GFM rendering via `cmark-gfm` (raw HTML stripped), context-aware HTML/JS escaping, `{{ expr }}` interpolation templates, CGI request/header/cookie handling, and multipart form parsing.
-- **Cryptography & Dense Vectors (`crypto`, `bcrypt`, `hmac`, `vec`):** SHA-256, HMAC-SHA256, CSPRNG, and constant-time comparison (`crypto` / `hmac` over `-lcrypto`), password hashing (`bcrypt` over `-lcrypt`), and dense little-endian `float32` vector math (`vec`).
-- **Data & Domain Utilities (`dates`, `dataframes`, `delimited_files`, `graphs`, `bioinfo`, `gnuplot`, `prettyprint`):** Timestamp normalization, tabular/CSV/TSV helpers, graph utilities, FASTA I/O, Gnuplot wrappers, and ANSI terminal formatting.
+- **HTTP, Web, Templates & Safe Markdown (`http`, `cgi`, `cgi_serve`, `multipart`, `markdown`, `html`, `render`):** Outbound HTTP/JSON/download client and RFC 3986 URL helpers (`http`), CGI request/header/cookie handling (`cgi`), local HTTP-to-CGI dev/test server (`cgi_serve`), multipart form parsing (`multipart`), safe CommonMark/GFM rendering via `cmark-gfm` (`markdown`), context-aware HTML/JS escaping (`html`), and `{{ expr }}` interpolation templates (`render`).
+- **Cryptography, Encoding & Dense Vectors (`crypto`, `base64`, `bcrypt`, `hmac`, `vec`):** SHA-256, HMAC-SHA256, CSPRNG, hex encode/decode, and constant-time comparison (`crypto` / `hmac` over `-lcrypto`), RFC 4648 standard & URL-safe Base64 (`base64`), password hashing (`bcrypt` over `-lcrypt`), and dense little-endian `float32` vector math (`vec`).
+- **Data & Domain Utilities (`dates`, `dataframes`, `delimited_files`, `graphs`, `bioinfo`, `gnuplot`, `prettyprint`):** Timezone-free Gregorian civil calendar & ISO-8601/RFC 3339 helpers (`dates`), tabular/CSV/TSV helpers, graph utilities, FASTA I/O, Gnuplot wrappers, and ANSI terminal formatting.
 
 ---
 
@@ -193,17 +196,20 @@ Beyond the core VM, `lib/` hosts the shared pure-Luam and C modules used across 
 
 ```sh
 ./bld/build_lang.sh   # builds obj/liblua.a, bin/luam, and bin/luamc
-./bld/build_libs.sh   # builds C extensions in lib/ (lfs, sqlite3, mariadb, bcrypt, crypto, hmac, vec, yaml)
+./bld/build_libs.sh   # builds C extensions in lib/ (lfs, sqlite3, mariadb, bcrypt, crypto, hmac, vec, proc, yaml)
 make test             # runs the full core & stdlib test suite
 ./bld/test_stack.sh   # verifies luam plus sibling Luam stack checkouts
 ```
 
-### Building a Static Binary for a Downstream Project
+### Integrated Project Commands (`luam build`, `luam run`, `luam check`, `luam test`)
 
-A downstream Luam project declares a data-only `bld/package.lua` manifest (`bin`, `entry`, optional `src`, `luam` minimum ancestor commit, optional `luam_pin`, `with`, `always_include`, optional `define_git_commit`, `symlinks`, and `native` C/C++ sources) and invokes `lib/static/build.lua` (requires `obj/liblua.a` and `lib/lfs/lfs.so`; also accepts direct CLI flags):
+A downstream Luam project declares a data-only `bld/package.lua` manifest (`bin`, `entry`, optional `src`, `luam` minimum ancestor commit, optional `luam_pin`, `with`, `always_include`, optional `define_git_commit`, `symlinks`, and `native` C/C++ sources):
 
 ```sh
-luam "$LUAM_DIR/lib/static/build.lua"
+luam check            # validates bld/package.lua, compiles src/ & tst/ chunks, verifies asset.read() paths
+luam run -- [args]    # runs project in-process (or builds & execs when native C/C++ sources are declared)
+luam test             # discovers and runs tst/**/test_*.lua in isolated subprocesses
+luam build            # links standalone native executable into ./bin/<bin> (caching C extension .o files)
 ```
 
 It validates `bld/package.lua` in `sandbox.data_env()`, verifies `LUAM_DIR` contains the required `luam` commit, traces reachable literal `require()` and `asset.read()` calls from `entry` (plus `always_include` directories), precompiles all reachable `.lua` modules into `.rodata` bytecode, compiles requested C/C++ extensions, and links one standalone native executable into `./bin/`.

@@ -5,6 +5,10 @@
 */
 
 
+#if !defined(LUA_ANSI) && !defined(_POSIX_C_SOURCE)
+#define _POSIX_C_SOURCE 200809L
+#endif
+
 #include <errno.h>
 #include <locale.h>
 #include <stdlib.h>
@@ -79,6 +83,71 @@ static int os_getenv(lua_State *L) {
 static int os_clock(lua_State *L) {
   lua_pushnumber(L, ((lua_Number)clock()) / (lua_Number)CLOCKS_PER_SEC);
   return 1;
+}
+
+static int os_clock_ms(lua_State *L) {
+#if defined(LUA_USE_POSIX)
+  struct timespec ts;
+  if (clock_gettime(CLOCK_MONOTONIC, &ts) == 0) {
+    lua_pushnumber(L, (lua_Number)ts.tv_sec * 1000.0 +
+                          (lua_Number)ts.tv_nsec / 1000000.0);
+    return 1;
+  }
+#endif
+  lua_pushnumber(L,
+                 ((lua_Number)clock() * 1000.0) / (lua_Number)CLOCKS_PER_SEC);
+  return 1;
+}
+
+static int os_time_ms(lua_State *L) {
+#if defined(LUA_USE_POSIX)
+  struct timespec ts;
+  if (clock_gettime(CLOCK_REALTIME, &ts) == 0) {
+    lua_pushnumber(L, (lua_Number)ts.tv_sec * 1000.0 +
+                          (lua_Number)ts.tv_nsec / 1000000.0);
+    return 1;
+  }
+#endif
+  lua_pushnumber(L, (lua_Number)time(NULL) * 1000.0);
+  return 1;
+}
+
+static int os_sleep(lua_State *L) {
+  lua_Number ms = luaL_checknumber(L, 1);
+  if (ms <= 0) {
+    lua_pushboolean(L, 1);
+    return 1;
+  }
+#if defined(LUA_USE_POSIX)
+  {
+    struct timespec req, rem;
+    time_t secs = (time_t)(ms / 1000.0);
+    lua_Number rem_ms = ms - (lua_Number)secs * 1000.0;
+    long nsec = (long)(rem_ms * 1000000.0);
+    if (nsec < 0) {
+      nsec = 0;
+    } else if (nsec >= 1000000000L) {
+      secs += 1;
+      nsec -= 1000000000L;
+    }
+    req.tv_sec = secs;
+    req.tv_nsec = nsec;
+    while (nanosleep(&req, &rem) == -1 && errno == EINTR) {
+      req = rem;
+    }
+    lua_pushboolean(L, 1);
+    return 1;
+  }
+#else
+  {
+    clock_t span = (clock_t)((ms / 1000.0) * (lua_Number)CLOCKS_PER_SEC);
+    clock_t start = clock();
+    while ((clock() - start) < span) {
+    }
+    lua_pushboolean(L, 1);
+    return 1;
+  }
+#endif
 }
 
 
@@ -231,12 +300,14 @@ static int os_exit(lua_State *L) {
 }
 
 static const luaL_Reg syslib[] = {
-    {"clock", os_clock},         {"date", os_date},
-    {"difftime", os_difftime},   {"execute", os_execute},
-    {"exit", os_exit},           {"getenv", os_getenv},
-    {"remove", os_remove},       {"rename", os_rename},
-    {"setlocale", os_setlocale}, {"time", os_time},
-    {"tmpname", os_tmpname},     {NULL, NULL}};
+    {"clock", os_clock},         {"clock_ms", os_clock_ms},
+    {"date", os_date},           {"difftime", os_difftime},
+    {"execute", os_execute},     {"exit", os_exit},
+    {"getenv", os_getenv},       {"remove", os_remove},
+    {"rename", os_rename},       {"setlocale", os_setlocale},
+    {"sleep", os_sleep},         {"time", os_time},
+    {"time_ms", os_time_ms},     {"tmpname", os_tmpname},
+    {NULL, NULL}};
 
 /* }====================================================== */
 

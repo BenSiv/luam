@@ -38,7 +38,8 @@ static void laction(int i) {
 static void print_usage(void) {
   fprintf(
       stderr,
-      "usage: %s [options] [script [args]].\n"
+      "usage: %s [options] [script [args]]\n"
+      "   or: %s <build|run|test|check> [args]\n"
       "Available options are:\n"
       "  -e stat  execute string " LUA_QL(
           "stat") "\n"
@@ -52,7 +53,7 @@ static void print_usage(void) {
                                             "  --       stop handling options\n"
                                             "  -        execute stdin and stop "
                                             "handling options\n",
-      progname);
+      progname, progname);
   fflush(stderr);
 }
 
@@ -363,6 +364,85 @@ struct Smain {
   int status;
 };
 
+static const char *subcommand_relpath(const char *cmd) {
+  if (strcmp(cmd, "build") == 0) {
+    return "lib/static/build.lua";
+  }
+  if (strcmp(cmd, "run") == 0) {
+    return "lib/cmd/run.lua";
+  }
+  if (strcmp(cmd, "test") == 0) {
+    return "lib/cmd/test.lua";
+  }
+  if (strcmp(cmd, "check") == 0) {
+    return "lib/cmd/check.lua";
+  }
+  return NULL;
+}
+
+static int dispatch_subcommand(lua_State *L, struct Smain *s, const char *rel) {
+  const char *root = NULL;
+  char *script_path = NULL;
+  char **sub_argv = NULL;
+  FILE *fp = NULL;
+  size_t root_len, rel_len;
+  int i;
+
+  lua_getfield(L, LUA_GLOBALSINDEX, "package");
+  if (lua_istable(L, -1)) {
+    lua_getfield(L, -1, "luam_root");
+    root = lua_tostring(L, -1);
+  }
+  if (root == NULL || root[0] == '\0') {
+    root = getenv("LUAM_DIR");
+  }
+  if (root == NULL || root[0] == '\0') {
+    lua_pop(L, lua_istable(L, -1) ? 1 : 2);
+    l_message(progname, "cannot locate luam root for subcommand (set LUAM_DIR)");
+    s->status = 1;
+    return 0;
+  }
+
+  root_len = strlen(root);
+  rel_len = strlen(rel);
+  script_path = (char *)malloc(root_len + rel_len + 2);
+  sub_argv = (char **)malloc((size_t)(s->argc + 1) * sizeof(char *));
+  if (script_path == NULL || sub_argv == NULL) {
+    free(script_path);
+    free(sub_argv);
+    lua_settop(L, 0);
+    l_message(progname, "out of memory dispatching subcommand");
+    s->status = 1;
+    return 0;
+  }
+  memcpy(script_path, root, root_len);
+  script_path[root_len] = '/';
+  memcpy(script_path + root_len + 1, rel, rel_len + 1);
+  lua_settop(L, 0);
+
+  fp = fopen(script_path, "r");
+  if (fp == NULL) {
+    l_message(progname, script_path);
+    free(script_path);
+    free(sub_argv);
+    s->status = 1;
+    return 0;
+  }
+  fclose(fp);
+
+  sub_argv[0] = s->argv[0];
+  sub_argv[1] = script_path;
+  for (i = 2; i < s->argc; i++) {
+    sub_argv[i] = s->argv[i];
+  }
+  sub_argv[s->argc] = NULL;
+
+  s->status = handle_script(L, sub_argv, 1);
+  free(script_path);
+  free(sub_argv);
+  return 0;
+}
+
 static int pmain(lua_State *L) {
   struct Smain *s = (struct Smain *)lua_touserdata(L, 1);
   char **argv = s->argv;
@@ -377,6 +457,12 @@ static int pmain(lua_State *L) {
   s->status = handle_luainit(L);
   if (s->status != 0)
     return 0;
+  if (s->argc >= 2 && argv[1] != NULL) {
+    const char *sub_rel = subcommand_relpath(argv[1]);
+    if (sub_rel != NULL) {
+      return dispatch_subcommand(L, s, sub_rel);
+    }
+  }
   script = collectargs(argv, &has_i, &has_v, &has_e);
   if (script < 0) { /* invalid args? */
     print_usage();

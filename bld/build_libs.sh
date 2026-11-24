@@ -131,7 +131,20 @@ else
     echo "Skipping vec (source not found)"
 fi
 
-# 8. mariadb -- thin binding over MariaDB Connector/C (libmariadb)
+# 8. proc -- argv-safe POSIX subprocess execution without /bin/sh
+if [ -d "lib/proc" ]; then
+    echo "Compiling proc.so"
+    run_cmd gcc $HARDEN_CFLAGS -Isrc/ -o lib/proc/proc.so lib/proc/proc.c
+    if [ $? -eq 0 ]; then
+        echo "proc.so built successfully"
+    else
+        fail "proc.so"
+    fi
+else
+    echo "Skipping proc (source not found)"
+fi
+
+# 9. mariadb -- thin binding over MariaDB Connector/C (libmariadb)
 if [ -d "lib/mariadb" ]; then
     echo "Compiling mariadb.so"
     run_cmd gcc $HARDEN_CFLAGS -Isrc/ -I/usr/include/mariadb -I/usr/include/mariadb/mysql \

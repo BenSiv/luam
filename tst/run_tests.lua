@@ -44,6 +44,8 @@ tests = {
     "test_phase1.lua",
     "test_phase2.lua",
     "test_security_hardening.lua",
+    "test_stdlib_core.lua",
+    "test_toolchain.lua",
 }
 
 failed = 0

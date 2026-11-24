@@ -6,7 +6,7 @@ Luam doesn't start from a blank page against those goals. It starts by keeping e
 
 ## 1. Borrow the goals before touching the language
 
-Simple, small, portable, fast, embeddable -- Lua's five founding goals are Luam's five founding goals, verbatim. `doc/changelog.md` exists to measure them, not assume them: C/H source size +5.5% (`17,898` vs `16,963` lines in upstream Lua 5.1) and a stripped interpreter binary +11.9% (`231,648 B` vs `207,072 B`), checked against the real built artifact rather than estimated. Any change to Luam gets checked against those same numbers before it ships. If it can't be measured, it isn't done.
+Simple, small, portable, fast, embeddable -- Lua's five founding goals are Luam's five founding goals, verbatim. `doc/changelog.md` exists to measure them, not assume them: C/H source size +7.1% (`18,164` vs `16,963` lines in upstream Lua 5.1) and a stripped interpreter binary +13.8% (`235,744 B` vs `207,072 B`), checked against the real built artifact rather than estimated. Any change to Luam gets checked against those same numbers before it ships. If it can't be measured, it isn't done.
 
 ## 2. One mechanism, not a feature per need
 

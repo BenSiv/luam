@@ -53,6 +53,11 @@ const MODULES = {
         link = {"-lm"},
         luaopen = "luaopen_vec",
     },
+    proc = {
+        sources = {"lib/proc/proc.c"},
+        link = {},
+        luaopen = "luaopen_proc",
+    },
     yaml = {
         sources = {
             "lib/yaml/lyaml.c", "lib/yaml/api.c", "lib/yaml/b64.c",
@@ -121,10 +126,35 @@ const FLAG_SPECS = {
     {short = "b", long = "bin", kind = "string", metavar = "<name>", desc = "Output binary name written to ./bin/<name>"},
     {short = "w", long = "with", kind = "string", metavar = "<mods>", desc = "Comma-separated C extension modules"},
     {short = "s", long = "src", kind = "string", metavar = "<dir>", desc = "Project Lua source directory (default: src)"},
-    {short = "l", long = "luamdir", kind = "string", metavar = "<dir>", desc = "Path to built luam checkout (default: $LUAM_DIR or ../luam)"},
+    {short = "l", long = "luamdir", kind = "string", metavar = "<dir>", desc = "Path to built luam checkout (default: auto-detected or $LUAM_DIR)"},
     {short = "a", long = "always_include", kind = "string", metavar = "<dirs>", desc = "Comma-separated directories force-bundled for dynamic require()"},
+    {short = "C", long = "dir", kind = "string", metavar = "<dir>", desc = "Change to <dir> before building"},
+    {long = "no-cache", kind = "boolean", key = "no_cache", desc = "Rebuild C extension objects instead of reusing obj/ext cache"},
     {short = "v", long = "verbose", kind = "boolean", desc = "Print full compiler commands and output"},
 }
+
+INITIAL_CWD = lfs.currentdir()
+
+function make_abs_from(p, base)
+    if p == nil or p == "" then
+        return p
+    end
+    if string.sub(p, 1, 1) == "/" then
+        return p
+    end
+    return paths.joinpath(base, p)
+end
+
+SCRIPT_LUAM_DIR = nil
+if arg != nil and arg[0] != nil and arg[0] != "" then
+    arg0_abs = make_abs_from(arg[0], INITIAL_CWD)
+    d1 = paths.get_parent_dir(arg0_abs)
+    d2 = paths.get_parent_dir(d1)
+    d3 = paths.get_parent_dir(d2)
+    if paths.file_exists(paths.joinpath(d3, "obj", "liblua.a")) then
+        SCRIPT_LUAM_DIR = d3
+    end
+end
 
 opts, _, parse_err = cli.parse_flags(arg, FLAG_SPECS)
 if parse_err != nil then
@@ -135,6 +165,16 @@ if opts.help == true then
     print(cli.render_help(HELP, FLAG_SPECS))
     os.exit(0)
 end
+
+if opts.dir != nil and opts.dir != "" then
+    ok_cd, err_cd = lfs.chdir(opts.dir)
+    if ok_cd != true then
+        io.write(io.stderr, "Error: cannot change directory to '" .. opts.dir .. "': " .. tostring(err_cd) .. "\n")
+        os.exit(1)
+    end
+end
+
+NO_CACHE = opts.no_cache == true
 
 -- ---- Load optional bld/package.lua manifest ----
 
@@ -201,10 +241,31 @@ if opts.always_include != nil then
 end
 
 LUAM_DIR = opts.luamdir
-if LUAM_DIR == nil then
-    LUAM_DIR = os.getenv("LUAM_DIR")
+if LUAM_DIR != nil and LUAM_DIR != "" and not paths.is_dir(LUAM_DIR) and INITIAL_CWD != nil then
+    alt_luam = make_abs_from(LUAM_DIR, INITIAL_CWD)
+    if paths.is_dir(alt_luam) then
+        LUAM_DIR = alt_luam
+    end
 end
-if LUAM_DIR == nil then
+if LUAM_DIR == nil or LUAM_DIR == "" then
+    env_luam = os.getenv("LUAM_DIR")
+    if env_luam != nil and env_luam != "" then
+        LUAM_DIR = env_luam
+        if not paths.is_dir(LUAM_DIR) and INITIAL_CWD != nil then
+            alt_env = make_abs_from(LUAM_DIR, INITIAL_CWD)
+            if paths.is_dir(alt_env) then
+                LUAM_DIR = alt_env
+            end
+        end
+    end
+end
+if (LUAM_DIR == nil or LUAM_DIR == "") and package.luam_root != nil and package.luam_root != "" then
+    LUAM_DIR = package.luam_root
+end
+if (LUAM_DIR == nil or LUAM_DIR == "") and SCRIPT_LUAM_DIR != nil then
+    LUAM_DIR = SCRIPT_LUAM_DIR
+end
+if LUAM_DIR == nil or LUAM_DIR == "" then
     LUAM_DIR = paths.joinpath("..", "luam")
 end
 LUAM_LIB = paths.joinpath(LUAM_DIR, "obj", "liblua.a")
@@ -691,6 +752,17 @@ OBJECT_FILES = {}
 obj_counter = 0
 NEED_CXX = false
 
+function file_mtime(p)
+    m = lfs.attributes(p, "modification")
+    if type(m) == "number" then
+        return m
+    end
+    return nil
+end
+
+LUA_H_MTIME = file_mtime(paths.joinpath(LUAM_ABS, "src", "lua.h"))
+LUACONF_H_MTIME = file_mtime(paths.joinpath(LUAM_ABS, "src", "luaconf.h"))
+
 for _, module in ipairs(WITH_MODULES) do
     extra_includes = ""
     if module.spec.extra_include != nil then
@@ -702,17 +774,61 @@ for _, module in ipairs(WITH_MODULES) do
             extra_includes = extra_includes .. " -I" .. ext.shell_quote(resolved_dir)
         end
     end
+    cache_dir = paths.joinpath(LUAM_ABS, "obj", "ext", module.name)
+    can_cache = paths.ensure_dir(cache_dir) == true
+
     for _, source in ipairs(module.spec.sources) do
         obj_counter = obj_counter + 1
-        object_name = string.format("mod_%d_%s.o", obj_counter, string.gsub(paths.get_file_name(source), "%.[^.]+$", ""))
-        ok = run_cmd(
-            "cc -c -O2 -fstack-protector-strong -U_FORTIFY_SOURCE -D_FORTIFY_SOURCE=2 -I" .. ext.shell_quote(paths.joinpath(LUAM_ABS, "src")) .. extra_includes ..
-            " " .. ext.shell_quote(paths.joinpath(LUAM_ABS, source)) .. " -o " .. object_name
-        )
-        if not ok then
-            fail("failed compiling " .. source .. " (module '" .. module.name .. "')")
+        stem = string.gsub(paths.get_file_name(source), "%.[^.]+$", "")
+        src_full = paths.joinpath(LUAM_ABS, source)
+        src_mtime = file_mtime(src_full)
+
+        if can_cache then
+            cached_obj = paths.joinpath(cache_dir, stem .. ".o")
+            obj_mtime = file_mtime(cached_obj)
+            is_fresh = (not NO_CACHE) and obj_mtime != nil and src_mtime != nil and obj_mtime >= src_mtime
+            if is_fresh and LUA_H_MTIME != nil and obj_mtime < LUA_H_MTIME then
+                is_fresh = false
+            end
+            if is_fresh and LUACONF_H_MTIME != nil and obj_mtime < LUACONF_H_MTIME then
+                is_fresh = false
+            end
+
+            if is_fresh then
+                if VERBOSE then
+                    print("Using cached " .. cached_obj)
+                else
+                    log_write("Using cached " .. cached_obj)
+                end
+                table.insert(OBJECT_FILES, ext.shell_quote(cached_obj))
+            else
+                tmp_cached = string.format("%s.tmp.%d.%d", cached_obj, os.time(), obj_counter)
+                ok = run_cmd(
+                    "cc -c -O2 -fstack-protector-strong -U_FORTIFY_SOURCE -D_FORTIFY_SOURCE=2 -I" .. ext.shell_quote(paths.joinpath(LUAM_ABS, "src")) .. extra_includes ..
+                    " " .. ext.shell_quote(src_full) .. " -o " .. ext.shell_quote(tmp_cached)
+                )
+                if not ok then
+                    os.remove(tmp_cached)
+                    fail("failed compiling " .. source .. " (module '" .. module.name .. "')")
+                end
+                ok_rn = os.rename(tmp_cached, cached_obj)
+                if ok_rn != nil then
+                    table.insert(OBJECT_FILES, ext.shell_quote(cached_obj))
+                else
+                    table.insert(OBJECT_FILES, ext.shell_quote(tmp_cached))
+                end
+            end
+        else
+            object_name = string.format("mod_%d_%s.o", obj_counter, stem)
+            ok = run_cmd(
+                "cc -c -O2 -fstack-protector-strong -U_FORTIFY_SOURCE -D_FORTIFY_SOURCE=2 -I" .. ext.shell_quote(paths.joinpath(LUAM_ABS, "src")) .. extra_includes ..
+                " " .. ext.shell_quote(src_full) .. " -o " .. object_name
+            )
+            if not ok then
+                fail("failed compiling " .. source .. " (module '" .. module.name .. "')")
+            end
+            table.insert(OBJECT_FILES, object_name)
         end
-        table.insert(OBJECT_FILES, object_name)
     end
 end
 

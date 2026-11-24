@@ -174,6 +174,74 @@ static int l_random_hex(lua_State *L) {
   return 1;
 }
 
+static int hex_nibble(unsigned char c) {
+  if (c >= '0' && c <= '9') {
+    return (int)(c - '0');
+  }
+  if (c >= 'a' && c <= 'f') {
+    return (int)(c - 'a' + 10);
+  }
+  if (c >= 'A' && c <= 'F') {
+    return (int)(c - 'A' + 10);
+  }
+  return -1;
+}
+
+static int l_hex_encode(lua_State *L) {
+  size_t len = 0;
+  const unsigned char *in =
+      (const unsigned char *)luaL_checklstring(L, 1, &len);
+  if (len == 0) {
+    lua_pushliteral(L, "");
+    return 1;
+  }
+  if (len > (size_t)(~(size_t)0) / 2) {
+    return luaL_error(L, "input string too large for hex_encode");
+  }
+  char stack_hex[512];
+  char *hex = stack_hex;
+  if (len * 2 > sizeof(stack_hex)) {
+    hex = (char *)lua_newuserdata(L, len * 2);
+  }
+  bytes_to_hex(in, len, hex);
+  lua_pushlstring(L, hex, len * 2);
+  return 1;
+}
+
+static int l_hex_decode(lua_State *L) {
+  size_t len = 0;
+  const unsigned char *in =
+      (const unsigned char *)luaL_checklstring(L, 1, &len);
+  if ((len & 1) != 0) {
+    lua_pushnil(L);
+    lua_pushliteral(L, "hex string must have even length");
+    return 2;
+  }
+  if (len == 0) {
+    lua_pushliteral(L, "");
+    return 1;
+  }
+  size_t out_len = len / 2;
+  unsigned char stack_out[256];
+  unsigned char *out = stack_out;
+  if (out_len > sizeof(stack_out)) {
+    out = (unsigned char *)lua_newuserdata(L, out_len);
+  }
+  size_t i;
+  for (i = 0; i < out_len; i++) {
+    int hi = hex_nibble(in[i * 2]);
+    int lo = hex_nibble(in[i * 2 + 1]);
+    if (hi < 0 || lo < 0) {
+      lua_pushnil(L);
+      lua_pushliteral(L, "invalid hexadecimal character");
+      return 2;
+    }
+    out[i] = (unsigned char)((hi << 4) | lo);
+  }
+  lua_pushlstring(L, (const char *)out, out_len);
+  return 1;
+}
+
 static const struct luaL_Reg cryptolib[] = {
     {"sha256", l_sha256},
     {"sha256_file", l_sha256_file},
@@ -181,6 +249,8 @@ static const struct luaL_Reg cryptolib[] = {
     {"timing_safe_equal", l_timing_safe_equal},
     {"random_bytes", l_random_bytes},
     {"random_hex", l_random_hex},
+    {"hex_encode", l_hex_encode},
+    {"hex_decode", l_hex_decode},
     {NULL, NULL},
 };
 

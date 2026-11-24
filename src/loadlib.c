@@ -36,6 +36,86 @@
 
 #define setprogdir(L) ((void)0)
 
+#if defined(LUA_USE_POSIX) && !defined(LUA_DL_DLL)
+#include <limits.h>
+#include <unistd.h>
+#if defined(__APPLE__)
+#include <mach-o/dyld.h>
+#endif
+#ifndef PATH_MAX
+#define PATH_MAX 4096
+#endif
+
+static int get_exec_dir(char *buff, size_t size) {
+  char *lb;
+#if defined(__linux__)
+  ssize_t n = readlink("/proc/self/exe", buff, size - 1);
+  if (n <= 0 || (size_t)n >= size - 1) {
+    return 0;
+  }
+  buff[n] = '\0';
+#elif defined(__APPLE__)
+  char raw[PATH_MAX];
+  uint32_t rsize = (uint32_t)sizeof(raw);
+  if (_NSGetExecutablePath(raw, &rsize) != 0) {
+    return 0;
+  }
+  if (realpath(raw, buff) == NULL) {
+    return 0;
+  }
+#else
+  (void)buff;
+  (void)size;
+  return 0;
+#endif
+  lb = strrchr(buff, '/');
+  if (lb == NULL) {
+    return 0;
+  }
+  if (lb == buff) {
+    buff[1] = '\0';
+  } else {
+    *lb = '\0';
+  }
+  return 1;
+}
+
+static void get_parent_of_dir(const char *dir, char *out, size_t size) {
+  char *lb;
+  size_t len = strlen(dir);
+  if (len >= size) {
+    len = size - 1;
+  }
+  memcpy(out, dir, len);
+  out[len] = '\0';
+  lb = strrchr(out, '/');
+  if (lb == NULL || lb == out) {
+    out[0] = '/';
+    out[1] = '\0';
+  } else {
+    *lb = '\0';
+  }
+}
+
+#undef setprogdir
+static void setprogdir(lua_State *L) {
+  char exec_dir[PATH_MAX];
+  char parent_dir[PATH_MAX];
+  if (!get_exec_dir(exec_dir, sizeof(exec_dir))) {
+    return;
+  }
+  get_parent_of_dir(exec_dir, parent_dir, sizeof(parent_dir));
+  if (strcmp(parent_dir, "/") == 0) {
+    luaL_gsub(L, lua_tostring(L, -1), LUA_EXECDIR "/../", "/");
+    lua_remove(L, -2);
+  }
+  luaL_gsub(L, lua_tostring(L, -1), LUA_EXECDIR "/..", parent_dir);
+  lua_remove(L, -2);
+  luaL_gsub(L, lua_tostring(L, -1), LUA_EXECDIR, exec_dir);
+  lua_remove(L, -2);
+}
+#endif
+
 static void ll_unloadlib(void *lib);
 static void *ll_load(lua_State *L, const char *path);
 static lua_CFunction ll_sym(lua_State *L, void *lib, const char *sym);
@@ -601,6 +681,26 @@ LUALIB_API int luaopen_package(lua_State *L) {
   lua_setfield(L, -2, "loaders");   /* put it in field `loaders' */
   setpath(L, "path", LUA_PATH, LUA_PATH_DEFAULT);    /* set field `path' */
   setpath(L, "cpath", LUA_CPATH, LUA_CPATH_DEFAULT); /* set field `cpath' */
+#if defined(LUA_USE_POSIX) && !defined(LUA_DL_DLL)
+  {
+    char exec_dir[PATH_MAX];
+    if (get_exec_dir(exec_dir, sizeof(exec_dir))) {
+      char parent_dir[PATH_MAX];
+      char probe[PATH_MAX + 32];
+      lua_pushstring(L, exec_dir);
+      lua_setfield(L, -2, "exec_dir");
+      get_parent_of_dir(exec_dir, parent_dir, sizeof(parent_dir));
+      if (strlen(parent_dir) + 24 < sizeof(probe)) {
+        sprintf(probe, "%s/lib/static/build.lua",
+                strcmp(parent_dir, "/") == 0 ? "" : parent_dir);
+        if (readable(probe)) {
+          lua_pushstring(L, parent_dir);
+          lua_setfield(L, -2, "luam_root");
+        }
+      }
+    }
+  }
+#endif
   /* store config information */
   lua_pushliteral(L, LUA_DIRSEP "\n" LUA_PATHSEP "\n" LUA_PATH_MARK
                                 "\n" LUA_EXECDIR "\n" LUA_IGMARK);

@@ -116,8 +116,10 @@ All spot-checked against the built interpreter:
 - `math.log(x, base)` — optional base argument.
 - `table.pack(...)` / `table.unpack(t)` — as in 5.2.
 - `os.exit(true|false)` — boolean accepted alongside the integer status code.
+- `os.clock_ms()`, `os.time_ms()`, and `os.sleep(ms)` — sub-millisecond monotonic clock (`CLOCK_MONOTONIC`), Unix epoch milliseconds (`CLOCK_REALTIME`), and `EINTR`-safe `nanosleep`.
 - `os.execute(cmd)` and `io.close(popen_handle)` — return `(ok, why, code)` where `ok` is always a boolean (`true` on exit 0, `false` otherwise), `why` is `"exit"` or `"signal"`, and `code` is the exit status or terminating signal number (`os.execute()` with no arguments returns boolean shell availability).
 - `package.searchers` — alias for `package.loaders`.
+- POSIX executable-relative `lib/` discovery & toolchain subcommands — `loadlib.c` expands `!` and `!/..` on Linux/macOS (`package.exec_dir`, `package.luam_root`), wiring `!/../lib/` into default `package.path`/`package.cpath`, and `lua.c` dispatches `luam <build|run|test|check>` directly to `lib/static/build.lua` and `lib/cmd/*.lua`.
 - Plain-text `string.*` helpers ([strings_and_escapes.md](strings_and_escapes.md)): `contains`, `starts_with`, `ends_with`, `index_of`, `count`, `replace`, `trim`, `ltrim`, `rtrim`, `strip_prefix`, `strip_suffix`, `dedent`, `split`, `lines`, `words`, and `template` (`{{}}` positional and `{{key}}` named).
 - `string.format("%q", s)` — emits `\x00` rather than `\000` for NUL bytes so binary strings round-trip cleanly under strict escapes.
 - Built-in bitwise and binary packing libraries registered directly in the VM (`src/linit.c`): `bit` (`band`, `bor`, `bxor`, `bnot`, `lshift`, `rshift`), `struct` (`struct.pack`, `struct.unpack`, `struct.size`), and `string.pack` / `string.unpack` (aliases for `struct.pack` / `struct.unpack`).
@@ -131,8 +133,8 @@ machine, same `-O2`, both built with their own `make linux`:
 
 | Metric | Lua 5.1 | Luam | Diff |
 |---|---|---|---|
-| Source lines (`src/*.c` + `*.h`) | 16,963 | 17,898 | +935 (+5.5%) |
-| Interpreter binary, stripped | 207,072 B | 231,648 B | **+24,576 B (+11.9%, larger)** |
+| Source lines (`src/*.c` + `*.h`) | 16,963 | 18,164 | +1,201 (+7.1%) |
+| Interpreter binary, stripped | 207,072 B | 235,744 B | **+28,672 B (+13.8%, larger)** |
 
 Luam is *not* smaller than Lua 5.1 — this doc previously claimed the
 opposite. Source size is close (clang-format reformatting offset most of the
