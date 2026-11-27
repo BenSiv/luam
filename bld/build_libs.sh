@@ -144,7 +144,33 @@ else
     echo "Skipping proc (source not found)"
 fi
 
-# 9. mariadb -- thin binding over MariaDB Connector/C (libmariadb)
+# 9. poll -- procedural I/O multiplexing over poll(2) and signal fds
+if [ -d "lib/poll" ]; then
+    echo "Compiling poll.so"
+    run_cmd gcc $HARDEN_CFLAGS -Isrc/ -o lib/poll/poll.so lib/poll/poll.c
+    if [ $? -eq 0 ]; then
+        echo "poll.so built successfully"
+    else
+        fail "poll.so"
+    fi
+else
+    echo "Skipping poll (source not found)"
+fi
+
+# 10. net -- procedural TCP and AF_UNIX domain sockets
+if [ -d "lib/net" ]; then
+    echo "Compiling net.so"
+    run_cmd gcc $HARDEN_CFLAGS -Isrc/ -o lib/net/net.so lib/net/net.c
+    if [ $? -eq 0 ]; then
+        echo "net.so built successfully"
+    else
+        fail "net.so"
+    fi
+else
+    echo "Skipping net (source not found)"
+fi
+
+# 11. mariadb -- thin binding over MariaDB Connector/C (libmariadb)
 if [ -d "lib/mariadb" ]; then
     echo "Compiling mariadb.so"
     run_cmd gcc $HARDEN_CFLAGS -Isrc/ -I/usr/include/mariadb -I/usr/include/mariadb/mysql \

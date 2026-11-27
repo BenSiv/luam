@@ -1,17 +1,20 @@
 /*
 ** proc: argv-safe POSIX subprocess execution without /bin/sh.
 **
-** Functions:
+** Synchronous functions:
 **   proc.exec(argv [, opts]) -> {ok, why, code, stdout, stderr} | nil, err
 **   proc.run(argv [, opts])  -> ok_bool, why, code | nil, err
 **
-** Options table (`opts`):
-**   stdin        : optional byte string written to child stdin (else /dev/null)
-**   cwd          : optional working directory for child
-**   env          : optional {KEY = "val"} environment overrides
-**   clear_env    : boolean; when true, start from empty environment
-**   timeout_ms   : positive number; kills child with SIGKILL on deadline expiry
-**   merge_stderr : boolean; redirects child stderr into stdout pipe
+** Asynchronous procedural child functions:
+**   proc.spawn(argv [, opts])                -> child | nil, err
+**   proc.pid(child)                          -> int
+**   proc.stdin_fd(child) / stdout_fd / stderr_fd -> int | nil
+**   proc.read(child, stream [, max_bytes])   -> bytes, eof_bool | nil, err
+**   proc.write(child, bytes [, start_idx])   -> n_written | nil, err
+**   proc.close_stdin(child)                  -> true
+**   proc.wait(child [, nohang_bool])         -> {done, ok, why, code} | nil, err
+**   proc.kill(child, sig_name [, group_bool])-> ok_bool, err
+**   proc.close(child)                        -> true
 */
 
 #define _POSIX_C_SOURCE 200809L
@@ -836,13 +839,693 @@ static int l_proc_run(lua_State *L) {
   return 3;
 }
 
+/* ---- Asynchronous procedural child handle ---- */
+
+#define LUAM_PROC_CHILD_MT "luam.proc.child"
+
+struct proc_child {
+  pid_t pid;
+  int new_pgid;
+  int stdin_fd;
+  int stdout_fd;
+  int stderr_fd;
+  int waited;
+  int exit_ok;
+  const char *exit_why;
+  int exit_code;
+  int closed;
+};
+
+struct spawn_opts {
+  const char *cwd;
+  int clear_env;
+  int stdin_pipe;
+  int stdout_pipe;
+  int stderr_pipe;
+  int merge_stderr;
+  int new_pgid;
+  struct env_kv *envs;
+  size_t n_env;
+};
+
+static struct proc_child *check_child(lua_State *L, int idx, int allow_closed) {
+  struct proc_child *c =
+      (struct proc_child *)luaL_checkudata(L, idx, LUAM_PROC_CHILD_MT);
+  if (!allow_closed && c->closed) {
+    luaL_error(L, "attempt to use a closed proc.child");
+  }
+  return c;
+}
+
+static void record_wait_status(struct proc_child *c, int status) {
+  c->waited = 1;
+  if (WIFEXITED(status)) {
+    c->exit_why = "exit";
+    c->exit_code = WEXITSTATUS(status);
+    c->exit_ok = (c->exit_code == 0);
+  } else if (WIFSIGNALED(status)) {
+    c->exit_why = "signal";
+    c->exit_code = WTERMSIG(status);
+    c->exit_ok = 0;
+  } else {
+    c->exit_why = "exit";
+    c->exit_code = -1;
+    c->exit_ok = 0;
+  }
+}
+
+static void child_cleanup(struct proc_child *c) {
+  if (!c->closed) {
+    safe_close(&c->stdin_fd);
+    safe_close(&c->stdout_fd);
+    safe_close(&c->stderr_fd);
+    if (!c->waited && c->pid > 0) {
+      int st = 0;
+      pid_t w = waitpid(c->pid, &st, WNOHANG);
+      if (w == c->pid) {
+        record_wait_status(c, st);
+      }
+    }
+    c->closed = 1;
+  }
+}
+
+static void parse_spawn_opts(lua_State *L, int idx, char **argv, size_t argc,
+                             struct spawn_opts *opts) {
+  memset(opts, 0, sizeof(*opts));
+  opts->stdout_pipe = 1;
+  opts->stderr_pipe = 1;
+  if (lua_isnoneornil(L, idx)) {
+    return;
+  }
+  if (!lua_istable(L, idx)) {
+    free_argv_and_env(argv, argc, NULL, 0);
+    luaL_typerror(L, idx, "table");
+  }
+
+  lua_getfield(L, idx, "cwd");
+  if (!lua_isnil(L, -1)) {
+    size_t clen = 0;
+    const char *cstr = lua_tolstring(L, -1, &clen);
+    if (cstr == NULL || memchr(cstr, '\0', clen) != NULL) {
+      lua_pop(L, 1);
+      free_argv_and_env(argv, argc, NULL, 0);
+      luaL_argerror(L, idx, "opts.cwd must be a valid path string");
+    }
+    opts->cwd = cstr;
+  }
+  lua_pop(L, 1);
+
+  lua_getfield(L, idx, "clear_env");
+  opts->clear_env = lua_toboolean(L, -1);
+  lua_pop(L, 1);
+
+  lua_getfield(L, idx, "stdin_pipe");
+  opts->stdin_pipe = lua_toboolean(L, -1);
+  lua_pop(L, 1);
+
+  lua_getfield(L, idx, "stdout_pipe");
+  if (!lua_isnil(L, -1)) {
+    opts->stdout_pipe = lua_toboolean(L, -1);
+  }
+  lua_pop(L, 1);
+
+  lua_getfield(L, idx, "stderr_pipe");
+  if (!lua_isnil(L, -1)) {
+    opts->stderr_pipe = lua_toboolean(L, -1);
+  }
+  lua_pop(L, 1);
+
+  lua_getfield(L, idx, "merge_stderr");
+  opts->merge_stderr = lua_toboolean(L, -1);
+  lua_pop(L, 1);
+
+  lua_getfield(L, idx, "new_pgid");
+  opts->new_pgid = lua_toboolean(L, -1);
+  lua_pop(L, 1);
+
+  lua_getfield(L, idx, "env");
+  if (!lua_isnil(L, -1)) {
+    if (!lua_istable(L, -1)) {
+      lua_pop(L, 1);
+      free_argv_and_env(argv, argc, NULL, 0);
+      luaL_argerror(L, idx, "opts.env must be a table");
+    }
+    size_t cap = 8;
+    size_t cnt = 0;
+    struct env_kv *envs = (struct env_kv *)calloc(cap, sizeof(struct env_kv));
+    if (envs == NULL) {
+      lua_pop(L, 1);
+      free_argv_and_env(argv, argc, NULL, 0);
+      luaL_error(L, "out of memory");
+    }
+    lua_pushnil(L);
+    while (lua_next(L, -2) != 0) {
+      if (lua_type(L, -2) != LUA_TSTRING || lua_type(L, -1) != LUA_TSTRING) {
+        lua_pop(L, 3);
+        free_argv_and_env(argv, argc, envs, cnt);
+        luaL_argerror(L, idx, "opts.env keys and values must be strings");
+      }
+      size_t klen = 0, vlen = 0;
+      const char *k = lua_tolstring(L, -2, &klen);
+      const char *v = lua_tolstring(L, -1, &vlen);
+      if (klen == 0 || memchr(k, '=', klen) != NULL ||
+          memchr(k, '\0', klen) != NULL || memchr(v, '\0', vlen) != NULL) {
+        lua_pop(L, 3);
+        free_argv_and_env(argv, argc, envs, cnt);
+        luaL_argerror(L, idx, "invalid environment variable name or value");
+      }
+      if (cnt == cap) {
+        cap *= 2;
+        struct env_kv *grown =
+            (struct env_kv *)realloc(envs, cap * sizeof(struct env_kv));
+        if (grown == NULL) {
+          lua_pop(L, 3);
+          free_argv_and_env(argv, argc, envs, cnt);
+          luaL_error(L, "out of memory");
+        }
+        envs = grown;
+      }
+      envs[cnt].key = dup_lstring_checked(L, k, klen, "env key");
+      envs[cnt].val = dup_lstring_checked(L, v, vlen, "env value");
+      cnt++;
+      lua_pop(L, 1);
+    }
+    opts->envs = envs;
+    opts->n_env = cnt;
+  }
+  lua_pop(L, 1);
+}
+
+static void redirect_devnull(int target_fd, int flags) {
+  int dn = open("/dev/null", flags);
+  if (dn >= 0) {
+    (void)dup2(dn, target_fd);
+    if (dn != target_fd) {
+      close(dn);
+    }
+  }
+}
+
+static int l_proc_spawn(lua_State *L) {
+  char **argv = NULL;
+  size_t argc = 0;
+  struct spawn_opts opts;
+  parse_argv(L, 1, &argv, &argc);
+  parse_spawn_opts(L, 2, argv, argc, &opts);
+
+  struct proc_child *child =
+      (struct proc_child *)lua_newuserdata(L, sizeof(struct proc_child));
+  memset(child, 0, sizeof(*child));
+  child->pid = -1;
+  child->stdin_fd = -1;
+  child->stdout_fd = -1;
+  child->stderr_fd = -1;
+  child->closed = 1;
+  luaL_getmetatable(L, LUAM_PROC_CHILD_MT);
+  lua_setmetatable(L, -2);
+
+  int err_pipe[2] = {-1, -1};
+  int in_pipe[2] = {-1, -1};
+  int out_pipe[2] = {-1, -1};
+  int stderr_pipe[2] = {-1, -1};
+
+  if (pipe(err_pipe) != 0 || (opts.stdin_pipe && pipe(in_pipe) != 0) ||
+      (opts.stdout_pipe && pipe(out_pipe) != 0) ||
+      (!opts.merge_stderr && opts.stderr_pipe && pipe(stderr_pipe) != 0)) {
+    int en = errno;
+    safe_close(&err_pipe[0]);
+    safe_close(&err_pipe[1]);
+    safe_close(&in_pipe[0]);
+    safe_close(&in_pipe[1]);
+    safe_close(&out_pipe[0]);
+    safe_close(&out_pipe[1]);
+    safe_close(&stderr_pipe[0]);
+    safe_close(&stderr_pipe[1]);
+    free_argv_and_env(argv, argc, opts.envs, opts.n_env);
+    lua_pushnil(L);
+    lua_pushfstring(L, "pipe failed: %s", strerror(en));
+    return 2;
+  }
+  set_cloexec(err_pipe[0]);
+  set_cloexec(err_pipe[1]);
+
+  pid_t pid = fork();
+  if (pid < 0) {
+    int en = errno;
+    safe_close(&err_pipe[0]);
+    safe_close(&err_pipe[1]);
+    safe_close(&in_pipe[0]);
+    safe_close(&in_pipe[1]);
+    safe_close(&out_pipe[0]);
+    safe_close(&out_pipe[1]);
+    safe_close(&stderr_pipe[0]);
+    safe_close(&stderr_pipe[1]);
+    free_argv_and_env(argv, argc, opts.envs, opts.n_env);
+    lua_pushnil(L);
+    lua_pushfstring(L, "fork failed: %s", strerror(en));
+    return 2;
+  }
+
+  if (pid == 0) {
+    static char *empty_environ[] = {NULL};
+    size_t i;
+    signal(SIGPIPE, SIG_DFL);
+    if (opts.new_pgid) {
+      (void)setpgid(0, 0);
+    }
+    close(err_pipe[0]);
+
+    if (opts.stdin_pipe) {
+      close(in_pipe[1]);
+      if (dup2(in_pipe[0], STDIN_FILENO) < 0) {
+        child_ReportAndExit(err_pipe[1], 2, errno);
+      }
+      if (in_pipe[0] != STDIN_FILENO) {
+        close(in_pipe[0]);
+      }
+    } else {
+      redirect_devnull(STDIN_FILENO, O_RDONLY);
+    }
+
+    if (opts.stdout_pipe) {
+      close(out_pipe[0]);
+      if (dup2(out_pipe[1], STDOUT_FILENO) < 0) {
+        child_ReportAndExit(err_pipe[1], 2, errno);
+      }
+    } else {
+      redirect_devnull(STDOUT_FILENO, O_WRONLY);
+    }
+
+    if (opts.merge_stderr) {
+      if (opts.stdout_pipe) {
+        if (dup2(out_pipe[1], STDERR_FILENO) < 0) {
+          child_ReportAndExit(err_pipe[1], 2, errno);
+        }
+      } else {
+        redirect_devnull(STDERR_FILENO, O_WRONLY);
+      }
+    } else if (opts.stderr_pipe) {
+      close(stderr_pipe[0]);
+      if (dup2(stderr_pipe[1], STDERR_FILENO) < 0) {
+        child_ReportAndExit(err_pipe[1], 2, errno);
+      }
+      if (stderr_pipe[1] != STDERR_FILENO) {
+        close(stderr_pipe[1]);
+      }
+    } else {
+      redirect_devnull(STDERR_FILENO, O_WRONLY);
+    }
+
+    if (opts.stdout_pipe && out_pipe[1] != STDOUT_FILENO &&
+        out_pipe[1] != STDERR_FILENO) {
+      close(out_pipe[1]);
+    }
+
+    if (opts.clear_env) {
+      environ = empty_environ;
+    }
+    for (i = 0; i < opts.n_env; i++) {
+      setenv(opts.envs[i].key, opts.envs[i].val, 1);
+    }
+    if (opts.cwd != NULL && chdir(opts.cwd) != 0) {
+      child_ReportAndExit(err_pipe[1], 1, errno);
+    }
+
+    execvp(argv[0], argv);
+    child_ReportAndExit(err_pipe[1], 2, errno);
+  }
+
+  /* Parent: set child pgid before returning to avoid kill(-pgid) races. */
+  if (opts.new_pgid) {
+    (void)setpgid(pid, pid);
+  }
+
+  safe_close(&err_pipe[1]);
+  safe_close(&in_pipe[0]);
+  safe_close(&out_pipe[1]);
+  safe_close(&stderr_pipe[1]);
+
+  struct exec_err_msg child_err;
+  int spawn_failed = read_exec_err(err_pipe[0], &child_err);
+  safe_close(&err_pipe[0]);
+
+  if (spawn_failed) {
+    int st = 0;
+    safe_close(&in_pipe[1]);
+    safe_close(&out_pipe[0]);
+    safe_close(&stderr_pipe[0]);
+    while (waitpid(pid, &st, 0) < 0 && errno == EINTR) {
+    }
+    lua_pushnil(L);
+    if (child_err.stage == 1) {
+      lua_pushfstring(L, "chdir '%s': %s", opts.cwd ? opts.cwd : "",
+                      strerror(child_err.err));
+    } else {
+      lua_pushfstring(L, "%s: %s", argv[0], strerror(child_err.err));
+    }
+    free_argv_and_env(argv, argc, opts.envs, opts.n_env);
+    return 2;
+  }
+
+  free_argv_and_env(argv, argc, opts.envs, opts.n_env);
+
+  /* Parent pipe fds must be CLOEXEC + NONBLOCK so sibling spawns never leak. */
+  if (in_pipe[1] >= 0) {
+    set_cloexec(in_pipe[1]);
+    set_nonblocking(in_pipe[1]);
+  }
+  if (out_pipe[0] >= 0) {
+    set_cloexec(out_pipe[0]);
+    set_nonblocking(out_pipe[0]);
+  }
+  if (stderr_pipe[0] >= 0) {
+    set_cloexec(stderr_pipe[0]);
+    set_nonblocking(stderr_pipe[0]);
+  }
+
+  child->pid = pid;
+  child->new_pgid = opts.new_pgid;
+  child->stdin_fd = in_pipe[1];
+  child->stdout_fd = out_pipe[0];
+  child->stderr_fd = stderr_pipe[0];
+  child->waited = 0;
+  child->closed = 0;
+  return 1;
+}
+
+static int l_proc_pid(lua_State *L) {
+  struct proc_child *c = check_child(L, 1, 0);
+  lua_pushinteger(L, (lua_Integer)c->pid);
+  return 1;
+}
+
+static int l_proc_stdin_fd(lua_State *L) {
+  struct proc_child *c = check_child(L, 1, 0);
+  if (c->stdin_fd < 0) {
+    lua_pushnil(L);
+  } else {
+    lua_pushinteger(L, c->stdin_fd);
+  }
+  return 1;
+}
+
+static int l_proc_stdout_fd(lua_State *L) {
+  struct proc_child *c = check_child(L, 1, 0);
+  if (c->stdout_fd < 0) {
+    lua_pushnil(L);
+  } else {
+    lua_pushinteger(L, c->stdout_fd);
+  }
+  return 1;
+}
+
+static int l_proc_stderr_fd(lua_State *L) {
+  struct proc_child *c = check_child(L, 1, 0);
+  if (c->stderr_fd < 0) {
+    lua_pushnil(L);
+  } else {
+    lua_pushinteger(L, c->stderr_fd);
+  }
+  return 1;
+}
+
+static int l_proc_read(lua_State *L) {
+  struct proc_child *c = check_child(L, 1, 0);
+  const char *stream = luaL_checkstring(L, 2);
+  int max_bytes = luaL_optint(L, 3, 8192);
+  luaL_argcheck(L, max_bytes >= 1 && max_bytes <= 1048576, 3,
+                "max_bytes must be 1..1048576");
+
+  int fd = -1;
+  if (strcmp(stream, "stdout") == 0) {
+    fd = c->stdout_fd;
+  } else if (strcmp(stream, "stderr") == 0) {
+    fd = c->stderr_fd;
+  } else {
+    return luaL_argerror(L, 2, "stream must be 'stdout' or 'stderr'");
+  }
+  if (fd < 0) {
+    lua_pushliteral(L, "");
+    lua_pushboolean(L, 1);
+    return 2;
+  }
+
+  char stack_buf[8192];
+  char *buf = stack_buf;
+  if ((size_t)max_bytes > sizeof(stack_buf)) {
+    buf = (char *)malloc((size_t)max_bytes);
+    if (buf == NULL) {
+      lua_pushnil(L);
+      lua_pushliteral(L, "out of memory");
+      return 2;
+    }
+  }
+
+  ssize_t r;
+  for (;;) {
+    r = read(fd, buf, (size_t)max_bytes);
+    if (r < 0 && errno == EINTR) {
+      continue;
+    }
+    break;
+  }
+
+  if (r > 0) {
+    lua_pushlstring(L, buf, (size_t)r);
+    if (buf != stack_buf) {
+      free(buf);
+    }
+    lua_pushboolean(L, 0);
+    return 2;
+  }
+  if (buf != stack_buf) {
+    free(buf);
+  }
+  if (r == 0) {
+    lua_pushliteral(L, "");
+    lua_pushboolean(L, 1);
+    return 2;
+  }
+  if (errno == EAGAIN || errno == EWOULDBLOCK) {
+    lua_pushliteral(L, "");
+    lua_pushboolean(L, 0);
+    return 2;
+  }
+  int en = errno;
+  lua_pushnil(L);
+  lua_pushstring(L, strerror(en));
+  return 2;
+}
+
+static int l_proc_write(lua_State *L) {
+  struct proc_child *c = check_child(L, 1, 0);
+  size_t len = 0;
+  const char *data = luaL_checklstring(L, 2, &len);
+  int start_idx = luaL_optint(L, 3, 1);
+  luaL_argcheck(L, start_idx >= 1, 3, "start_idx must be >= 1");
+
+  if (c->stdin_fd < 0) {
+    lua_pushnil(L);
+    lua_pushliteral(L, "stdin pipe is closed");
+    return 2;
+  }
+
+  size_t offset = (size_t)(start_idx - 1);
+  if (offset >= len) {
+    lua_pushinteger(L, 0);
+    return 1;
+  }
+
+  struct sigaction sa_ign, sa_old;
+  memset(&sa_ign, 0, sizeof(sa_ign));
+  sa_ign.sa_handler = SIG_IGN;
+  sigemptyset(&sa_ign.sa_mask);
+  int restored = (sigaction(SIGPIPE, &sa_ign, &sa_old) == 0);
+
+  ssize_t w;
+  for (;;) {
+    w = write(c->stdin_fd, data + offset, len - offset);
+    if (w < 0 && errno == EINTR) {
+      continue;
+    }
+    break;
+  }
+  int en = errno;
+  if (restored) {
+    (void)sigaction(SIGPIPE, &sa_old, NULL);
+  }
+
+  if (w >= 0) {
+    lua_pushinteger(L, (lua_Integer)w);
+    return 1;
+  }
+  if (en == EAGAIN || en == EWOULDBLOCK) {
+    lua_pushinteger(L, 0);
+    return 1;
+  }
+  lua_pushnil(L);
+  lua_pushstring(L, strerror(en));
+  return 2;
+}
+
+static int l_proc_close_stdin(lua_State *L) {
+  struct proc_child *c = check_child(L, 1, 0);
+  safe_close(&c->stdin_fd);
+  lua_pushboolean(L, 1);
+  return 1;
+}
+
+static void push_wait_table(lua_State *L, const struct proc_child *c) {
+  lua_createtable(L, 0, 4);
+  lua_pushboolean(L, 1);
+  lua_setfield(L, -2, "done");
+  lua_pushboolean(L, c->exit_ok);
+  lua_setfield(L, -2, "ok");
+  lua_pushstring(L, c->exit_why);
+  lua_setfield(L, -2, "why");
+  lua_pushinteger(L, c->exit_code);
+  lua_setfield(L, -2, "code");
+}
+
+static int l_proc_wait(lua_State *L) {
+  struct proc_child *c = check_child(L, 1, 0);
+  int nohang = 0;
+  if (!lua_isnoneornil(L, 2)) {
+    luaL_checktype(L, 2, LUA_TBOOLEAN);
+    nohang = lua_toboolean(L, 2);
+  }
+
+  if (c->waited) {
+    push_wait_table(L, c);
+    return 1;
+  }
+
+  int status = 0;
+  pid_t w;
+  for (;;) {
+    w = waitpid(c->pid, &status, nohang ? WNOHANG : 0);
+    if (w < 0 && errno == EINTR) {
+      continue;
+    }
+    break;
+  }
+
+  if (w == 0) {
+    lua_createtable(L, 0, 1);
+    lua_pushboolean(L, 0);
+    lua_setfield(L, -2, "done");
+    return 1;
+  }
+  if (w < 0) {
+    int en = errno;
+    lua_pushnil(L);
+    lua_pushstring(L, strerror(en));
+    return 2;
+  }
+
+  record_wait_status(c, status);
+  push_wait_table(L, c);
+  return 1;
+}
+
+static int parse_kill_sig(const char *s) {
+  if (strncmp(s, "SIG", 3) == 0) {
+    s += 3;
+  }
+  if (strcmp(s, "TERM") == 0) return SIGTERM;
+  if (strcmp(s, "KILL") == 0) return SIGKILL;
+  if (strcmp(s, "INT") == 0) return SIGINT;
+  if (strcmp(s, "HUP") == 0) return SIGHUP;
+  if (strcmp(s, "QUIT") == 0) return SIGQUIT;
+  if (strcmp(s, "USR1") == 0) return SIGUSR1;
+  if (strcmp(s, "USR2") == 0) return SIGUSR2;
+  if (strcmp(s, "ALRM") == 0) return SIGALRM;
+  if (strcmp(s, "CONT") == 0) return SIGCONT;
+  if (strcmp(s, "STOP") == 0) return SIGSTOP;
+  if (strcmp(s, "0") == 0) return 0;
+  return -1;
+}
+
+static int l_proc_kill(lua_State *L) {
+  struct proc_child *c = check_child(L, 1, 0);
+  const char *sig_name = luaL_checkstring(L, 2);
+  int group = 0;
+  if (!lua_isnoneornil(L, 3)) {
+    luaL_checktype(L, 3, LUA_TBOOLEAN);
+    group = lua_toboolean(L, 3);
+  }
+  int signo = parse_kill_sig(sig_name);
+  if (signo < 0) {
+    return luaL_argerror(L, 2, "unsupported signal name");
+  }
+
+  /* Never signal a PID that has already been reaped. */
+  if (c->waited) {
+    lua_pushboolean(L, 1);
+    return 1;
+  }
+
+  pid_t target = (group && c->new_pgid) ? -c->pid : c->pid;
+  if (kill(target, signo) == 0 || errno == ESRCH) {
+    lua_pushboolean(L, 1);
+    return 1;
+  }
+  int en = errno;
+  lua_pushboolean(L, 0);
+  lua_pushstring(L, strerror(en));
+  return 2;
+}
+
+static int l_proc_close(lua_State *L) {
+  struct proc_child *c = check_child(L, 1, 1);
+  child_cleanup(c);
+  lua_pushboolean(L, 1);
+  return 1;
+}
+
+static int l_proc_child_gc(lua_State *L) {
+  struct proc_child *c = check_child(L, 1, 1);
+  child_cleanup(c);
+  return 0;
+}
+
+static int l_proc_child_tostring(lua_State *L) {
+  struct proc_child *c = check_child(L, 1, 1);
+  if (c->closed) {
+    lua_pushliteral(L, "proc.child (closed)");
+  } else {
+    lua_pushfstring(L, "proc.child (pid=%d)", (int)c->pid);
+  }
+  return 1;
+}
+
 static const struct luaL_Reg proclib[] = {
     {"exec", l_proc_exec},
     {"run", l_proc_run},
+    {"spawn", l_proc_spawn},
+    {"pid", l_proc_pid},
+    {"stdin_fd", l_proc_stdin_fd},
+    {"stdout_fd", l_proc_stdout_fd},
+    {"stderr_fd", l_proc_stderr_fd},
+    {"read", l_proc_read},
+    {"write", l_proc_write},
+    {"close_stdin", l_proc_close_stdin},
+    {"wait", l_proc_wait},
+    {"kill", l_proc_kill},
+    {"close", l_proc_close},
     {NULL, NULL},
 };
 
 LUALIB_API int luaopen_proc(lua_State *L) {
+  if (luaL_newmetatable(L, LUAM_PROC_CHILD_MT)) {
+    lua_pushcfunction(L, l_proc_child_gc);
+    lua_setfield(L, -2, "__gc");
+    lua_pushcfunction(L, l_proc_child_tostring);
+    lua_setfield(L, -2, "__tostring");
+  }
+  lua_pop(L, 1);
+
   lua_newtable(L);
   luaL_register(L, NULL, proclib);
   return 1;

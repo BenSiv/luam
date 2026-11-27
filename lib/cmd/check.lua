@@ -54,6 +54,8 @@ const KNOWN_WITH_MODULES = {
     crypto = true,
     vec = true,
     proc = true,
+    poll = true,
+    net = true,
     yaml = true,
     mariadb = true,
 }

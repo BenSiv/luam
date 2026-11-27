@@ -58,6 +58,16 @@ const MODULES = {
         link = {},
         luaopen = "luaopen_proc",
     },
+    poll = {
+        sources = {"lib/poll/poll.c"},
+        link = {},
+        luaopen = "luaopen_poll",
+    },
+    net = {
+        sources = {"lib/net/net.c"},
+        link = {},
+        luaopen = "luaopen_net",
+    },
     yaml = {
         sources = {
             "lib/yaml/lyaml.c", "lib/yaml/api.c", "lib/yaml/b64.c",

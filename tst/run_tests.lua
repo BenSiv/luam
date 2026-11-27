@@ -45,6 +45,7 @@ tests = {
     "test_phase2.lua",
     "test_security_hardening.lua",
     "test_stdlib_core.lua",
+    "test_io_primitives.lua",
     "test_toolchain.lua",
 }
 
