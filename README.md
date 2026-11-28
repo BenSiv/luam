@@ -182,7 +182,7 @@ Beyond the core VM, `lib/` hosts the shared pure-Luam and C modules used across 
 - **Database (`database`, `database_adapter`, `sqlite3`, `mariadb`):** Unified SQLite and MariaDB query/transaction layer over `lsqlite3` and `libmariadb`.
 - **Sandboxing & Declarative Data (`sandbox`, `data`, `dkjson`, `yaml`):** Capability-scoped execution (`sandbox.data_env()`), canonical Luam table serialization, `${var}` interpolation, and declarative schema validation, plus JSON (`dkjson`) and LibYAML (`yaml`).
 - **Static Bundler, Toolchain & Assets (`static/build`, `cmd/{run,check,test}`, `asset`):** Single-binary ahead-of-time bundler with `obj/ext/` C object caching (`luam build`), zero-compile project runner (`luam run`), static syntax/manifest/asset verifier (`luam check`), test runner (`luam test`), and dev/static embedded asset loader (`lib/asset.lua`).
-- **CLI, Filesystem, Process & Event I/O Tooling (`cli`, `paths`, `proc`, `poll`, `net`, `task`, `external_tool`, `git`, `lfs`):** Zero-dependency flag/subcommand parser, atomic file/path helpers over `lfs`, synchronous (`proc.exec`/`proc.run`) and asynchronous (`proc.spawn`) argv-safe POSIX subprocess execution without `/bin/sh`, `poll(2)` + signal-fd multiplexing (`poll`), procedural TCP and `AF_UNIX` sockets (`net`), cooperative coroutine scheduling (`task`), shell-quoted process helpers (`external_tool`), and Git plumbing wrappers.
+- **CLI, Filesystem, Process & Event I/O Tooling (`cli`, `paths`, `proc`, `poll`, `net`, `async`, `external_tool`, `git`, `lfs`):** Zero-dependency flag/subcommand parser, atomic file/path helpers over `lfs`, synchronous (`proc.exec`/`proc.run`) and asynchronous (`proc.spawn`) argv-safe POSIX subprocess execution without `/bin/sh`, `poll(2)` + signal-fd multiplexing (`poll`), procedural TCP and `AF_UNIX` sockets (`net`), cooperative coroutine scheduling (`async`), shell-quoted process helpers (`external_tool`), and Git plumbing wrappers.
 - **Testing & Property Checking (`test`, `laws`):** Unit assertion runner and zero-dependency property-based / stateful law-checking library.
 - **HTTP, Web, Templates & Safe Markdown (`http`, `http_serve`, `cgi`, `cgi_serve`, `multipart`, `markdown`, `html`, `render`):** Outbound HTTP/JSON/download client and RFC 3986 URL helpers (`http`), pure-Luam HTTP/1.1 loopback/gateway server (`http_serve`), CGI request/header/cookie handling (`cgi`), zero-Python local HTTP-to-CGI dev/test server (`cgi_serve`), multipart form parsing (`multipart`), safe CommonMark/GFM rendering via `cmark-gfm` (`markdown`), context-aware HTML/JS escaping (`html`), and `{{ expr }}` interpolation templates (`render`).
 - **Cryptography, Encoding & Dense Vectors (`crypto`, `base64`, `bcrypt`, `hmac`, `vec`):** SHA-256, HMAC-SHA256, CSPRNG, hex encode/decode, and constant-time comparison (`crypto` / `hmac` over `-lcrypto`), RFC 4648 standard & URL-safe Base64 (`base64`), password hashing (`bcrypt` over `-lcrypt`), and dense little-endian `float32` vector math (`vec`).
@@ -196,7 +196,7 @@ Beyond the core VM, `lib/` hosts the shared pure-Luam and C modules used across 
 
 ```sh
 ./bld/build_lang.sh   # builds obj/liblua.a, bin/luam, and bin/luamc
-./bld/build_libs.sh   # builds C extensions in lib/ (lfs, sqlite3, mariadb, bcrypt, crypto, hmac, vec, proc, yaml)
+./bld/build_libs.sh   # builds C extensions in lib/ (lfs, sqlite3, mariadb, bcrypt, crypto, hmac, vec, proc, poll, net, yaml)
 make test             # runs the full core & stdlib test suite
 ./bld/test_stack.sh   # verifies luam plus sibling Luam stack checkouts
 ```
@@ -223,6 +223,7 @@ Core applications and infrastructure built on Luam and `lib/`:
 - [daat](../daat/doc/architecture.md) — knowledge base, LIMS, and agent platform (see also [why-luam](../daat/doc/why-luam.md))
 - [brain-ex](../brain-ex/README.md) — `brex` CLI for personal notes, tasks, and two-way `daat` knowledge sync
 - [teken](../teken/doc/design.md) — `tkn` atomic generation builder and switcher for home environments and Podman dev containers
+- [warden](../warden/doc/design.md) — `warden` (`wdn`) process supervisor, overlap-free scheduler, and local HTTP/CGI gateway
 - [seder](../seder/doc/architecture.md) — declarative Linux host configuration engine
 - [automations](../automations/README.md) — multicall developer workflow CLI (`rd`, `edit`, `luam-find`, `repo`, `pkg`, `code`, `view`)
 

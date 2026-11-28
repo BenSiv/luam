@@ -1,19 +1,19 @@
 -- Cooperative coroutine scheduler multiplexed over `lib/poll`.
 --
 -- Functions:
---   task.new([opts])                       -> loop | nil, err
---   task.spawn(loop, fn, ...)              -> handle
---   task.yield()                           -> true
---   task.sleep_ms(ms)                      -> true
---   task.wait_fd(fd, events [, timeout_ms])-> ev_tbl | nil, "timeout"
---   task.active_count(loop)                -> integer
---   task.step(loop [, max_wait_ms])        -> active_count
---   task.run(loop)                         -> true
---   task.close(loop)                       -> true
+--   async.new([opts])                        -> loop | nil, err
+--   async.spawn(loop, fn, ...)               -> handle
+--   async.yield()                            -> true
+--   async.sleep_ms(ms)                       -> true
+--   async.wait_fd(fd, events [, timeout_ms]) -> ev_tbl | nil, "timeout"
+--   async.active_count(loop)                 -> integer
+--   async.step(loop [, max_wait_ms])         -> active_count
+--   async.run(loop)                          -> true
+--   async.close(loop)                        -> true
 
 const poll = require("poll")
 
-const task = {}
+const async = {}
 
 function check_events_str(events)
     if events == "r" then
@@ -25,7 +25,7 @@ function check_events_str(events)
     if events == "rw" or events == "wr" then
         return true, true
     end
-    error("task.wait_fd: events must be \"r\", \"w\", or \"rw\"", 0)
+    error("async.wait_fd: events must be \"r\", \"w\", or \"rw\"", 0)
 end
 
 function sync_poller_fd(loop, fd)
@@ -63,13 +63,13 @@ function sync_poller_fd(loop, fd)
     if prev_mask == nil then
         ok, err = poll.add(loop.poller, fd, mask)
         if ok != true then
-            error("task: poll.add failed for fd " .. tostring(fd) .. ": " .. tostring(err), 0)
+            error("async: poll.add failed for fd " .. tostring(fd) .. ": " .. tostring(err), 0)
         end
         loop.poller_masks[fd] = mask
     elseif prev_mask != mask then
         ok, err = poll.mod(loop.poller, fd, mask)
         if ok != true then
-            error("task: poll.mod failed for fd " .. tostring(fd) .. ": " .. tostring(err), 0)
+            error("async: poll.mod failed for fd " .. tostring(fd) .. ": " .. tostring(err), 0)
         end
         loop.poller_masks[fd] = mask
     end
@@ -79,7 +79,7 @@ function enqueue_ready(loop, handle, a1, a2)
     table.insert(loop.ready, {handle = handle, a1 = a1, a2 = a2})
 end
 
-function task.new(opts)
+function async.new(opts)
     p, err = poll.open()
     if p == nil then
         return nil, err
@@ -101,7 +101,7 @@ function task.new(opts)
     }
 end
 
-function task.close(loop)
+function async.close(loop)
     if loop != nil and not loop.closed then
         loop.closed = true
         poll.close(loop.poller)
@@ -114,16 +114,16 @@ function task.close(loop)
     return true
 end
 
-function task.active_count(loop)
+function async.active_count(loop)
     return loop.live_count
 end
 
-function task.spawn(loop, fn, ...)
+function async.spawn(loop, fn, ...)
     if loop.closed then
-        error("attempt to spawn on a closed task loop", 0)
+        error("attempt to spawn on a closed async loop", 0)
     end
     if type(fn) != "function" then
-        error("task.spawn: fn must be a function", 0)
+        error("async.spawn: fn must be a function", 0)
     end
     init_args = table.pack(...)
     co = coroutine.create(function()
@@ -141,11 +141,11 @@ function task.spawn(loop, fn, ...)
     return handle
 end
 
-function task.yield()
+function async.yield()
     return coroutine.yield("yield")
 end
 
-function task.sleep_ms(ms)
+function async.sleep_ms(ms)
     wait_ms = 0
     if ms != nil and ms > 0 then
         wait_ms = ms
@@ -153,9 +153,9 @@ function task.sleep_ms(ms)
     return coroutine.yield("sleep", os.clock_ms() + wait_ms)
 end
 
-function task.wait_fd(fd, events, timeout_ms)
+function async.wait_fd(fd, events, timeout_ms)
     if type(fd) != "number" or fd < 0 then
-        error("task.wait_fd: fd must be a non-negative integer", 0)
+        error("async.wait_fd: fd must be a non-negative integer", 0)
     end
     want_r, want_w = check_events_str(events)
     deadline = nil
@@ -302,7 +302,7 @@ function wake_expired(loop, now_ms)
     end
 end
 
-function task.step(loop, max_wait_ms)
+function async.step(loop, max_wait_ms)
     if loop.closed then
         return 0
     end
@@ -322,7 +322,7 @@ function task.step(loop, max_wait_ms)
     wait_ms = next_deadline_wait_ms(loop, os.clock_ms(), max_wait_ms)
     events, err = poll.wait(loop.poller, wait_ms)
     if events == nil then
-        error("task: poll.wait failed: " .. tostring(err), 0)
+        error("async: poll.wait failed: " .. tostring(err), 0)
     end
 
     for _, ev in ipairs(events) do
@@ -354,23 +354,22 @@ function task.step(loop, max_wait_ms)
     return loop.live_count
 end
 
-function task.run(loop)
+function async.run(loop)
     while not loop.closed and loop.live_count > 0 and loop.first_err == nil do
-        -- Deadlock guard: live tasks exist, yet nothing is ready, sleeping, or registered on poll.
         has_fd = next(loop.fd_waiters) != nil
         if #loop.ready == 0 and #loop.sleepers == 0 and not has_fd then
-            err_msg = "task.run: deadlock (active tasks waiting on nothing)"
-            task.close(loop)
+            err_msg = "async.run: deadlock (active coroutines waiting on nothing)"
+            async.close(loop)
             error(err_msg, 0)
         end
-        task.step(loop, nil)
+        async.step(loop, nil)
     end
     if loop.first_err != nil then
         err_msg = loop.first_err
-        task.close(loop)
+        async.close(loop)
         error(err_msg, 0)
     end
     return true
 end
 
-return task
+return async

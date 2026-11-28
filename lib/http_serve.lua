@@ -1,15 +1,15 @@
--- Pure-Luam HTTP/1.1 loopback & local-gateway server over `lib/net` and `lib/task`.
+-- Pure-Luam HTTP/1.1 loopback & local-gateway server over `lib/net` and `lib/async`.
 --
 -- Supports:
---   - Cooperative concurrent connections via `lib/task` + `lib/poll`
+--   - Cooperative concurrent connections via `lib/async` + `lib/poll`
 --   - `Content-Length` and incoming `Transfer-Encoding: chunked` request bodies
 --   - `Expect: 100-continue` immediate handshake
 --   - HTTP/1.1 keep-alive with idle timeouts and `Connection: close`
 --   - `port = 0` ephemeral port binding + atomic `port_file` publication
---   - Attaching onto an existing `task` loop (`opts.loop`) for multi-service daemons
+--   - Attaching onto an existing `async` loop (`opts.loop`) for multi-service daemons
 
+const async = require("async")
 const paths = require("paths")
-const task = require("task")
 
 has_net, net = pcall(require, "net")
 has_poll, poll = pcall(require, "poll")
@@ -297,7 +297,7 @@ function write_all(conn, data, timeout_ms)
         if nw > 0 then
             pos = pos + nw
         else
-            ev, why = task.wait_fd(net.fd(conn), "w", timeout_ms)
+            ev, why = async.wait_fd(net.fd(conn), "w", timeout_ms)
             if ev == nil then
                 return false, why
             end
@@ -315,7 +315,7 @@ function read_more(conn, max_bytes, timeout_ms)
         if #chunk > 0 or eof then
             return chunk, eof, nil
         end
-        ev, why = task.wait_fd(net.fd(conn), "r", timeout_ms)
+        ev, why = async.wait_fd(net.fd(conn), "r", timeout_ms)
         if ev == nil then
             return nil, false, why
         end
@@ -627,11 +627,11 @@ end
 function accept_loop(srv)
     while not srv.stopping do
         if srv.active_conns >= srv.max_conns then
-            task.sleep_ms(10)
+            async.sleep_ms(10)
         else
             conn, peer_or_why = net.accept(srv.listener)
             if conn != nil then
-                task.spawn(srv.loop, function(c, p)
+                async.spawn(srv.loop, function(c, p)
                     serve_connection(srv, c, p)
                 end, conn, peer_or_why)
                 if srv.once == true then
@@ -640,10 +640,10 @@ function accept_loop(srv)
                     break
                 end
             elseif peer_or_why == "again" then
-                task.wait_fd(net.fd(srv.listener), "r", 250)
+                async.wait_fd(net.fd(srv.listener), "r", 250)
             else
                 if not srv.stopping then
-                    task.sleep_ms(10)
+                    async.sleep_ms(10)
                 end
             end
         end
@@ -698,7 +698,7 @@ function http_serve.open(opts)
     owns_loop = false
     loop = opts.loop
     if loop == nil then
-        loop, loop_err = task.new({
+        loop, loop_err = async.new({
             on_error = function(err_msg)
                 if opts.quiet != true then
                     io.write(io.stderr, "[http_serve] handler error: " .. tostring(err_msg) .. "\n")
@@ -739,13 +739,13 @@ function http_serve.open(opts)
         if not ok_pf then
             net.close(listener)
             if owns_loop then
-                task.close(loop)
+                async.close(loop)
             end
             return nil, "failed writing port_file: " .. tostring(err_pf)
         end
     end
 
-    task.spawn(loop, function()
+    async.spawn(loop, function()
         accept_loop(srv)
     end)
 
@@ -770,7 +770,7 @@ function http_serve.close(srv)
         srv.stopping = true
         net.close(srv.listener)
         if srv.owns_loop then
-            task.close(srv.loop)
+            async.close(srv.loop)
         end
     end
     return true
@@ -787,7 +787,7 @@ function http_serve.run(opts)
         sh, _ = poll.signal_open({"INT", "TERM"})
         if sh != nil then
             sig_h = sh
-            task.spawn(srv.loop, function()
+            async.spawn(srv.loop, function()
                 sfd = poll.signal_fd(sig_h)
                 while not srv.stopping do
                     sname = poll.signal_read(sig_h)
@@ -795,7 +795,7 @@ function http_serve.run(opts)
                         http_serve.stop(srv)
                         break
                     end
-                    task.wait_fd(sfd, "r", 250)
+                    async.wait_fd(sfd, "r", 250)
                 end
             end)
         end
@@ -805,7 +805,7 @@ function http_serve.run(opts)
         opts.on_ready(srv.actual_port, srv)
     end
 
-    ok_run, run_err = pcall(task.run, srv.loop)
+    ok_run, run_err = pcall(async.run, srv.loop)
     if sig_h != nil then
         poll.signal_close(sig_h)
     end

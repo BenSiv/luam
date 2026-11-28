@@ -26,7 +26,7 @@ for arg in "$@"; do
 done
 
 if [ "${#REPOS[@]}" -eq 0 ]; then
-    REPOS=(daat brain-ex teken seder camopass luametry automations)
+    REPOS=(daat brain-ex teken seder warden camopass luametry automations)
 fi
 
 cd "$LUAM_ROOT"

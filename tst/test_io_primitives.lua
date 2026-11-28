@@ -1,5 +1,5 @@
 -- Test suite for `lib/poll`, `lib/net`, async `lib/proc` (`proc.spawn`),
--- `lib/task` cooperative coroutines, `laws.state_machine` poller model,
+-- `lib/async` cooperative coroutines, `laws.state_machine` poller model,
 -- and standalone `luam check` + `luam build` (`with = {"poll", "net", "proc"}`).
 
 const ext = require("external_tool")
@@ -11,7 +11,7 @@ const paths = require("paths")
 const poll = require("poll")
 const proc = require("proc")
 const t = require("test")
-const task = require("task")
+const async = require("async")
 
 tmp_dir = os.tmpname()
 os.remove(tmp_dir)
@@ -294,9 +294,9 @@ t.run("proc_spawn_and_signals", function()
     poll.signal_close(sig_h)
 end)
 
--- ---- 5. lib/task cooperative coroutine scheduler (full-duplex TCP + timeouts) ----
-t.run("task_coroutine_scheduler", function()
-    loop = task.new()
+-- ---- 5. lib/async cooperative coroutine scheduler (full-duplex TCP + timeouts) ----
+t.run("async_coroutine_scheduler", function()
+    loop = async.new()
     srv, _ = net.listen_tcp("127.0.0.1", 0, {nonblocking = true})
     port = net.local_port(srv)
 
@@ -304,13 +304,13 @@ t.run("task_coroutine_scheduler", function()
     N_CLIENTS = 4
 
     -- Server coroutine accepting N_CLIENTS and spawning per-connection echo handlers
-    task.spawn(loop, function()
+    async.spawn(loop, function()
         accepted = 0
         while accepted < N_CLIENTS do
             conn, why = net.accept(srv)
             if conn != nil then
                 accepted = accepted + 1
-                task.spawn(loop, function(c)
+                async.spawn(loop, function(c)
                     buf = {}
                     while true do
                         chunk, eof = net.read(c, 4096)
@@ -319,7 +319,7 @@ t.run("task_coroutine_scheduler", function()
                         elseif eof then
                             break
                         else
-                            task.wait_fd(net.fd(c), "r", 1000)
+                            async.wait_fd(net.fd(c), "r", 1000)
                         end
                     end
                     reply = "ECHO:" .. table.concat(buf)
@@ -332,13 +332,13 @@ t.run("task_coroutine_scheduler", function()
                         if nw > 0 then
                             pos = pos + nw
                         else
-                            task.wait_fd(net.fd(c), "w", 1000)
+                            async.wait_fd(net.fd(c), "w", 1000)
                         end
                     end
                     net.close(c)
                 end, conn)
             elseif why == "again" then
-                task.wait_fd(net.fd(srv), "r", 1000)
+                async.wait_fd(net.fd(srv), "r", 1000)
             else
                 error(why)
             end
@@ -347,8 +347,8 @@ t.run("task_coroutine_scheduler", function()
     end)
 
     for i = 1, N_CLIENTS do
-        task.spawn(loop, function(idx)
-            task.sleep_ms((idx % 3) * 5)
+        async.spawn(loop, function(idx)
+            async.sleep_ms((idx % 3) * 5)
             c, cerr = net.connect_tcp("127.0.0.1", port, 1000)
             t.eq(cerr, nil, "client connect " .. tostring(idx))
             net.set_nonblocking(c, true)
@@ -360,7 +360,7 @@ t.run("task_coroutine_scheduler", function()
                 if nw > 0 then
                     pos = pos + nw
                 else
-                    task.wait_fd(net.fd(c), "w", 1000)
+                    async.wait_fd(net.fd(c), "w", 1000)
                 end
             end
             -- Half-close not exposed yet; instead test wait_fd timeout on unread socket, then send marker?
@@ -371,31 +371,31 @@ t.run("task_coroutine_scheduler", function()
         end, i)
     end
 
-    -- Also spawn a coroutine testing task.wait_fd timeout expiry
+    -- Also spawn a coroutine testing async.wait_fd timeout expiry
     timeout_observed = false
     idle_srv, _ = net.listen_tcp("127.0.0.1", 0, {nonblocking = true})
-    task.spawn(loop, function()
-        ev, reason = task.wait_fd(net.fd(idle_srv), "r", 20)
+    async.spawn(loop, function()
+        ev, reason = async.wait_fd(net.fd(idle_srv), "r", 20)
         if ev == nil and reason == "timeout" then
             timeout_observed = true
         end
         net.close(idle_srv)
     end)
 
-    t.eq(task.run(loop), true, "task.run drained all coroutines")
-    t.eq(task.active_count(loop), 0, "zero active tasks remaining")
-    t.eq(timeout_observed, true, "task.wait_fd timeout fired cleanly")
+    t.eq(async.run(loop), true, "async.run drained all coroutines")
+    t.eq(async.active_count(loop), 0, "zero active tasks remaining")
+    t.eq(timeout_observed, true, "async.wait_fd timeout fired cleanly")
     for i = 1, N_CLIENTS do
         t.eq(results[i], "sent", "client " .. tostring(i) .. " completed")
     end
-    task.close(loop)
+    async.close(loop)
 
     -- Full bidirectional framing over task coroutines (length-prefixed request/response)
-    loop2 = task.new()
+    loop2 = async.new()
     srv2, _ = net.listen_tcp("127.0.0.1", 0, {nonblocking = true})
     port2 = net.local_port(srv2)
 
-    task.spawn(loop2, function()
+    async.spawn(loop2, function()
         while true do
             c, why = net.accept(srv2)
             if c != nil then
@@ -407,26 +407,26 @@ t.run("task_coroutine_scheduler", function()
                     elseif eof then
                         break
                     else
-                        task.wait_fd(net.fd(c), "r", 1000)
+                        async.wait_fd(net.fd(c), "r", 1000)
                     end
                 end
                 net.write(c, string.upper(got))
                 net.close(c)
                 break
             elseif why == "again" then
-                task.wait_fd(net.fd(srv2), "r", 1000)
+                async.wait_fd(net.fd(srv2), "r", 1000)
             end
         end
         net.close(srv2)
     end)
 
     echo_reply = nil
-    task.spawn(loop2, function()
+    async.spawn(loop2, function()
         c, _ = net.connect_tcp("127.0.0.1", port2, 1000)
         net.set_nonblocking(c, true)
         -- Concurrent reader & writer coroutines sharing the SAME socket fd!
-        task.spawn(loop2, function()
-            task.sleep_ms(5)
+        async.spawn(loop2, function()
+            async.sleep_ms(5)
             net.write(c, "luam")
         end)
         chunks = {}
@@ -437,16 +437,16 @@ t.run("task_coroutine_scheduler", function()
             elseif eof then
                 break
             else
-                task.wait_fd(net.fd(c), "r", 1000)
+                async.wait_fd(net.fd(c), "r", 1000)
             end
         end
         echo_reply = table.concat(chunks)
         net.close(c)
     end)
 
-    task.run(loop2)
+    async.run(loop2)
     t.eq(echo_reply, "LUAM", "full-duplex shared-fd coroutines exchanged request & reply")
-    task.close(loop2)
+    async.close(loop2)
 end)
 
 -- ---- 6. laws.state_machine verification of poll registration & readiness ----
@@ -646,37 +646,37 @@ return {
 const net = require("net")
 const poll = require("poll")
 const proc = require("proc")
-const task = require("task")
+const async = require("async")
 
-loop = task.new()
+loop = async.new()
 srv, err = net.listen_tcp("127.0.0.1", 0, {nonblocking = true})
 if srv == nil then error(err) end
 port = net.local_port(srv)
 
 got = nil
-task.spawn(loop, function()
+async.spawn(loop, function()
     while true do
         c, why = net.accept(srv)
         if c != nil then
             ch, _ = net.read(c, 32)
             while #ch == 0 do
-                task.wait_fd(net.fd(c), "r", 500)
+                async.wait_fd(net.fd(c), "r", 500)
                 ch, _ = net.read(c, 32)
             end
             got = ch
             net.close(c)
             break
         elseif why == "again" then
-            task.wait_fd(net.fd(srv), "r", 500)
+            async.wait_fd(net.fd(srv), "r", 500)
         end
     end
     net.close(srv)
 end)
 
-task.spawn(loop, function()
+async.spawn(loop, function()
     ch_proc, _ = proc.spawn({"printf", "STATIC_OK"})
     while proc.wait(ch_proc, true).done == false do
-        task.sleep_ms(5)
+        async.sleep_ms(5)
     end
     msg, _ = proc.read(ch_proc, "stdout", 64)
     proc.close(ch_proc)
@@ -686,8 +686,8 @@ task.spawn(loop, function()
     net.close(cli)
 end)
 
-task.run(loop)
-task.close(loop)
+async.run(loop)
+async.close(loop)
 io.write(tostring(got))
 """)
 

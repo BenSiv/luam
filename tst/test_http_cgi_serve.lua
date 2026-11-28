@@ -18,7 +18,7 @@ const net = require("net")
 const paths = require("paths")
 const proc = require("proc")
 const t = require("test")
-const task = require("task")
+const async = require("async")
 
 tmp_dir = os.tmpname()
 os.remove(tmp_dir)
@@ -75,7 +75,7 @@ end)
 
 -- ---- 2. HTTP/1.1 keep-alive, chunked request body, 100-continue, HEAD, 413/431 ----
 t.run("http11_wire_features", function()
-    loop = task.new()
+    loop = async.new()
     srv, err = http_serve.open({
         host = "127.0.0.1",
         port = 0,
@@ -108,7 +108,7 @@ t.run("http11_wire_features", function()
             elseif eof then
                 break
             else
-                task.wait_fd(net.fd(conn), "r", 1000)
+                async.wait_fd(net.fd(conn), "r", 1000)
             end
         end
         sep = string.index_of(buf, "\r\n\r\n")
@@ -131,13 +131,13 @@ t.run("http11_wire_features", function()
             elseif eof then
                 break
             else
-                task.wait_fd(net.fd(conn), "r", 1000)
+                async.wait_fd(net.fd(conn), "r", 1000)
             end
         end
         return string.sub(rest, 1, need)
     end
 
-    task.spawn(loop, function()
+    async.spawn(loop, function()
         -- Single TCP connection carrying 3 sequential keep-alive requests:
         --   (a) Expect: 100-continue POST
         --   (b) Transfer-Encoding: chunked PUT with chunk extension
@@ -199,9 +199,9 @@ t.run("http11_wire_features", function()
         http_serve.stop(srv)
     end)
 
-    task.run(loop)
+    async.run(loop)
     http_serve.close(srv)
-    task.close(loop)
+    async.close(loop)
 end)
 
 -- ---- 3. laws.forall HTTP/1.1 loopback round-trip ----
@@ -220,7 +220,7 @@ t.run("laws_http_roundtrip", function()
     })
 
     laws.forall("http_serve loopback preserves decoded path, query, header, and binary body", req_gen, function(case)
-        loop = task.new()
+        loop = async.new()
         captured = nil
         srv, err = http_serve.open({
             host = "127.0.0.1",
@@ -244,7 +244,7 @@ t.run("laws_http_roundtrip", function()
         enc_q = http.build_query({v = case.qval})
 
         wire_resp = ""
-        task.spawn(loop, function()
+        async.spawn(loop, function()
             c, _ = net.connect_tcp("127.0.0.1", pnum, 1000)
             net.set_nonblocking(c, true)
             wire_req = string.format(
@@ -257,7 +257,7 @@ t.run("laws_http_roundtrip", function()
                 if nw > 0 then
                     pos = pos + nw
                 else
-                    task.wait_fd(net.fd(c), "w", 1000)
+                    async.wait_fd(net.fd(c), "w", 1000)
                 end
             end
             parts = {}
@@ -268,16 +268,16 @@ t.run("laws_http_roundtrip", function()
                 elseif eof then
                     break
                 else
-                    task.wait_fd(net.fd(c), "r", 1000)
+                    async.wait_fd(net.fd(c), "r", 1000)
                 end
             end
             wire_resp = table.concat(parts)
             net.close(c)
         end)
 
-        task.run(loop)
+        async.run(loop)
         http_serve.close(srv)
-        task.close(loop)
+        async.close(loop)
 
         sep = string.index_of(wire_resp, "\r\n\r\n")
         if sep == nil or captured == nil then

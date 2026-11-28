@@ -5,10 +5,10 @@
 -- binary (`opts.bin`) or an interpreted Luam CGI entry script (`opts.script`),
 -- forwarding standard RFC 3875 CGI environment variables and `HTTP_*` headers.
 
+const async = require("async")
 const http_serve = require("http_serve")
 const lfs = require("lfs")
 const paths = require("paths")
-const task = require("task")
 
 has_proc, proc_mod = pcall(require, "proc")
 
@@ -169,7 +169,7 @@ function execute_cgi_async(cmd_argv, root, cgi_env, body_bytes, quiet, loop, tim
     deadline_ms = os.clock_ms() + timeout_ms
 
     if has_stdin then
-        task.spawn(loop, function()
+        async.spawn(loop, function()
             pos = 1
             total = #body_bytes
             in_fd = proc_mod.stdin_fd(child)
@@ -185,7 +185,7 @@ function execute_cgi_async(cmd_argv, root, cgi_env, body_bytes, quiet, loop, tim
                     if rem <= 0 then
                         break
                     end
-                    ev, _ = task.wait_fd(in_fd, "w", rem)
+                    ev, _ = async.wait_fd(in_fd, "w", rem)
                     if ev == nil then
                         break
                     end
@@ -195,7 +195,7 @@ function execute_cgi_async(cmd_argv, root, cgi_env, body_bytes, quiet, loop, tim
         end)
     end
 
-    task.spawn(loop, function()
+    async.spawn(loop, function()
         err_fd = proc_mod.stderr_fd(child)
         while err_fd != nil do
             echunk, eeof = proc_mod.read(child, "stderr", 8192)
@@ -213,7 +213,7 @@ function execute_cgi_async(cmd_argv, root, cgi_env, body_bytes, quiet, loop, tim
                 if rem <= 0 then
                     break
                 end
-                ev, _ = task.wait_fd(err_fd, "r", rem)
+                ev, _ = async.wait_fd(err_fd, "r", rem)
                 if ev == nil then
                     break
                 end
@@ -241,7 +241,7 @@ function execute_cgi_async(cmd_argv, root, cgi_env, body_bytes, quiet, loop, tim
                 timed_out = true
                 break
             end
-            ev, why = task.wait_fd(out_fd, "r", rem)
+            ev, why = async.wait_fd(out_fd, "r", rem)
             if ev == nil and why == "timeout" then
                 timed_out = true
                 break
@@ -267,7 +267,7 @@ function execute_cgi_async(cmd_argv, root, cgi_env, body_bytes, quiet, loop, tim
             proc_mod.wait(child, false)
             break
         end
-        task.sleep_ms(2)
+        async.sleep_ms(2)
     end
     proc_mod.close(child)
     return table.concat(out_parts), nil
