@@ -185,9 +185,17 @@ t.run("proc_spawn_and_signals", function()
     t.eq(bad_ch, nil, "missing binary returns nil")
     t.check(bad_err != nil and #bad_err > 0, "missing binary returns error string")
 
-    -- Open signalfd BEFORE spawning children so CHLD and USR1 are captured
-    sig_h, sig_err = poll.signal_open({"USR1", "CHLD"})
+    -- Open signalfd BEFORE spawning children so CHLD, USR1, and TERM are blocked in parent
+    sig_h, sig_err = poll.signal_open({"USR1", "CHLD", "TERM"})
     t.eq(sig_err, nil, "signal_open ok")
+
+    -- Regression: child spawned while TERM is blocked in parent must NOT inherit blocked SIGTERM!
+    term_ch, _ = proc.spawn({"sleep", "30"}, {stdout_pipe = false, stderr_pipe = false})
+    t.eq(proc.kill(term_ch, "TERM", false), true, "sent TERM to child")
+    w_term = proc.wait(term_ch, false)
+    proc.close(term_ch)
+    t.eq(w_term.why, "signal", "child had unblocked SIGTERM mask")
+    t.eq(w_term.code, 15, "child terminated promptly by SIGTERM (15)")
 
     -- Send SIGUSR1 to our own PID via sh $PPID
     ok_usr1, _, _ = proc.run({"sh", "-c", "kill -USR1 $PPID"})

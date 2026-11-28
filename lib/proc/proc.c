@@ -332,6 +332,13 @@ static void child_ReportAndExit(int err_fd, int stage, int err_code) {
   _exit(127);
 }
 
+static void reset_child_signals(void) {
+  sigset_t empty;
+  sigemptyset(&empty);
+  (void)sigprocmask(SIG_SETMASK, &empty, NULL);
+  signal(SIGPIPE, SIG_DFL);
+}
+
 static int read_exec_err(int err_fd, struct exec_err_msg *out) {
   size_t got = 0;
   char *p = (char *)out;
@@ -462,7 +469,7 @@ static int l_proc_exec(lua_State *L) {
   if (pid == 0) {
     static char *empty_environ[] = {NULL};
     size_t i;
-    signal(SIGPIPE, SIG_DFL);
+    reset_child_signals();
     close(err_pipe[0]);
 
     if (opts.has_stdin) {
@@ -774,7 +781,7 @@ static int l_proc_run(lua_State *L) {
   if (pid == 0) {
     static char *empty_environ[] = {NULL};
     size_t i;
-    signal(SIGPIPE, SIG_DFL);
+    reset_child_signals();
     close(err_pipe[0]);
     if (opts.clear_env) {
       environ = empty_environ;
@@ -1090,7 +1097,7 @@ static int l_proc_spawn(lua_State *L) {
   if (pid == 0) {
     static char *empty_environ[] = {NULL};
     size_t i;
-    signal(SIGPIPE, SIG_DFL);
+    reset_child_signals();
     if (opts.new_pgid) {
       (void)setpgid(0, 0);
     }
