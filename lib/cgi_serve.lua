@@ -1,166 +1,25 @@
 -- Local HTTP-to-CGI development & integration-test server.
 --
--- Dispatches loopback HTTP requests to either a compiled Luam CGI binary
--- (`opts.bin`) or an interpreted Luam CGI entry script (`opts.script`),
--- forwarding standard RFC 3875 CGI environment variables and all `HTTP_*`
--- request headers. Supports `port = 0` + `opts.port_file` for race-free
--- ephemeral port allocation in automated tests.
+-- Pure-Luam implementation over `lib/http_serve` and `lib/proc` (zero Python
+-- runtime dependency). Dispatches HTTP requests to either a compiled Luam CGI
+-- binary (`opts.bin`) or an interpreted Luam CGI entry script (`opts.script`),
+-- forwarding standard RFC 3875 CGI environment variables and `HTTP_*` headers.
 
-const ext = require("external_tool")
+const http_serve = require("http_serve")
 const lfs = require("lfs")
 const paths = require("paths")
+const task = require("task")
 
 has_proc, proc_mod = pcall(require, "proc")
-USE_PROC = (has_proc == true and type(proc_mod) == "table" and type(proc_mod.run) == "function")
 
 const cgi_serve = {}
 
-const PYTHON_CGI_BRIDGE = """
-import http.server, os, subprocess, sys, urllib.parse
-
-CMD_BIN = os.environ["LUAM_CGI_CMD_BIN"]
-CMD_SCRIPT = os.environ.get("LUAM_CGI_CMD_SCRIPT", "")
-ROOT = os.environ["LUAM_CGI_ROOT"]
-HOST = os.environ["LUAM_CGI_HOST"]
-PORT = int(os.environ["LUAM_CGI_PORT"])
-ONCE = os.environ.get("LUAM_CGI_ONCE") == "1"
-QUIET = os.environ.get("LUAM_CGI_QUIET") == "1"
-PORT_FILE = os.environ.get("LUAM_CGI_PORT_FILE", "")
-
-class LuamCGIHandler(http.server.BaseHTTPRequestHandler):
-    def log_message(self, fmt, *args):
-        if not QUIET:
-            sys.stderr.write("[cgi_serve] %s - %s\\n" % (self.address_string(), fmt % args))
-
-    def _dispatch_cgi(self):
-        parsed = urllib.parse.urlsplit(self.path)
-        path_info = urllib.parse.unquote(parsed.path or "/")
-        query_string = parsed.query or ""
-
-        length_hdr = self.headers.get("Content-Length")
-        body = b""
-        if length_hdr:
-            body = self.rfile.read(int(length_hdr))
-
-        env = dict(os.environ)
-        env["GATEWAY_INTERFACE"] = "CGI/1.1"
-        env["DOCUMENT_ROOT"] = ROOT
-        env["REQUEST_METHOD"] = self.command
-        env["PATH_INFO"] = path_info
-        env["QUERY_STRING"] = query_string
-        env["SERVER_NAME"] = HOST
-        env["SERVER_PORT"] = str(self.server.server_address[1])
-        env["REMOTE_ADDR"] = self.client_address[0]
-
-        for hk, hv in self.headers.items():
-            low = hk.lower()
-            if low == "content-type":
-                env["CONTENT_TYPE"] = hv
-            elif low == "content-length":
-                env["CONTENT_LENGTH"] = hv
-            else:
-                env_key = "HTTP_" + hk.upper().replace("-", "_")
-                if env_key in env and hk.lower() == "cookie":
-                    env["HTTP_COOKIE"] = hv
-                else:
-                    env[env_key] = hv
-
-        cmd = [CMD_BIN]
-        if CMD_SCRIPT != "":
-            cmd.append(CMD_SCRIPT)
-
-        proc = subprocess.run(
-            cmd,
-            input=body,
-            stdout=subprocess.PIPE,
-            stderr=sys.stderr,
-            cwd=ROOT,
-            env=env,
-        )
-        raw = proc.stdout
-        sep = b"\\r\\n\\r\\n"
-        idx = raw.find(sep)
-        if idx < 0:
-            sep = b"\\n\\n"
-            idx = raw.find(sep)
-        if idx < 0:
-            self.send_response(500)
-            self.send_header("Content-Type", "text/plain; charset=utf-8")
-            self.end_headers()
-            self.wfile.write(b"Invalid CGI response")
-            return
-
-        hdr_bytes = raw[:idx].decode("iso-8859-1")
-        payload = raw[idx + len(sep):]
-
-        status_code = 200
-        status_msg = "OK"
-        out_headers = []
-        for line in hdr_bytes.splitlines():
-            if ":" not in line:
-                continue
-            k, v = line.split(":", 1)
-            k = k.strip()
-            v = v.strip()
-            if k.lower() == "status":
-                parts = v.split(" ", 1)
-                status_code = int(parts[0])
-                status_msg = parts[1] if len(parts) > 1 else ""
-            else:
-                out_headers.append((k, v))
-
-        self.send_response(status_code, status_msg)
-        has_len = False
-        for k, v in out_headers:
-            if k.lower() == "content-length":
-                has_len = True
-            self.send_header(k, v)
-        if not has_len:
-            self.send_header("Content-Length", str(len(payload)))
-        self.end_headers()
-        if self.command != "HEAD":
-            self.wfile.write(payload)
-
-    def do_GET(self):
-        self._dispatch_cgi()
-
-    def do_POST(self):
-        self._dispatch_cgi()
-
-    def do_PUT(self):
-        self._dispatch_cgi()
-
-    def do_DELETE(self):
-        self._dispatch_cgi()
-
-    def do_HEAD(self):
-        self._dispatch_cgi()
-
-class ReusableHTTPServer(http.server.HTTPServer):
-    allow_reuse_address = True
-
-httpd = ReusableHTTPServer((HOST, PORT), LuamCGIHandler)
-actual_port = httpd.server_address[1]
-if PORT_FILE != "":
-    tmp_pf = PORT_FILE + ".tmp"
-    with open(tmp_pf, "w", encoding="utf-8") as fh:
-        fh.write(str(actual_port) + "\\n")
-    os.replace(tmp_pf, PORT_FILE)
-
-if not QUIET:
-    sys.stderr.write("Serving CGI at http://%s:%d/\\n" % (HOST, actual_port))
-    sys.stderr.flush()
-
-try:
-    if ONCE:
-        httpd.handle_request()
-    else:
-        httpd.serve_forever()
-except KeyboardInterrupt:
-    pass
-finally:
-    httpd.server_close()
-"""
+function default_val(val, fallback)
+    if val == nil then
+        return fallback
+    end
+    return val
+end
 
 function default_luam_bin()
     if package.exec_dir != nil and package.exec_dir != "" then
@@ -176,23 +35,257 @@ function default_luam_bin()
 end
 
 function cgi_serve.is_available()
-    return ext.available("python3")
+    return http_serve.is_available() and has_proc == true and type(proc_mod) == "table" and type(proc_mod.spawn) == "function"
 end
 
--- Runs the local HTTP-to-CGI bridge until interrupted (or for 1 request when `opts.once == true`).
--- Returns `true, nil` on clean exit or `false, err_string`.
-function cgi_serve.run(opts)
+function parse_cgi_output(raw, req_method)
+    sep_start = string.index_of(raw, "\r\n\r\n")
+    sep_after = nil
+    if sep_start != nil then
+        sep_after = sep_start + 4
+    else
+        sep_start = string.index_of(raw, "\n\n")
+        if sep_start != nil then
+            sep_after = sep_start + 2
+        end
+    end
+
+    if sep_start == nil then
+        return {
+            status = 500,
+            headers = {["Content-Type"] = "text/plain; charset=utf-8"},
+            body = "Invalid CGI response",
+        }
+    end
+
+    hdr_block = string.gsub(string.sub(raw, 1, sep_start - 1), "\r\n", "\n")
+    payload = string.sub(raw, sep_after)
+
+    status_code = 200
+    reason = "OK"
+    out_headers = {}
+    has_len = false
+
+    for _, line in ipairs(string.split(hdr_block, "\n")) do
+        colon = string.index_of(line, ":")
+        if colon != nil and colon > 1 then
+            k = string.trim(string.sub(line, 1, colon - 1))
+            v = string.trim(string.sub(line, colon + 1))
+            if string.lower(k) == "status" then
+                c_str, m_str = string.match(v, "^(%d%d%d)%s*(.*)$")
+                if c_str != nil then
+                    status_code = tonumber(c_str)
+                    reason = default_val(m_str, "")
+                end
+            else
+                if string.lower(k) == "content-length" then
+                    has_len = true
+                end
+                table.insert(out_headers, {k, v})
+            end
+        end
+    end
+
+    if not has_len then
+        table.insert(out_headers, {"Content-Length", tostring(#payload)})
+    end
+
+    out_body = payload
+    if req_method == "HEAD" then
+        out_body = ""
+    end
+
+    return {
+        status = status_code,
+        reason = reason,
+        headers = out_headers,
+        body = out_body,
+    }
+end
+
+function build_cgi_env(base_env, root, req)
+    env = {}
+    for k, v in pairs(base_env) do
+        env[k] = v
+    end
+
+    env["GATEWAY_INTERFACE"] = "CGI/1.1"
+    env["SERVER_PROTOCOL"] = default_val(req.version, "HTTP/1.1")
+    env["DOCUMENT_ROOT"] = root
+    env["REQUEST_METHOD"] = req.method
+    env["PATH_INFO"] = req.path
+    env["QUERY_STRING"] = req.query
+    env["SERVER_NAME"] = tostring(default_val(req.server_host, "127.0.0.1"))
+    env["SERVER_PORT"] = tostring(default_val(req.server_port, 80))
+    env["REMOTE_ADDR"] = tostring(default_val(req.remote_addr, "127.0.0.1"))
+
+    -- Clear per-request vars so parent process environment cannot bleed through
+    env["CONTENT_TYPE"] = ""
+    env["CONTENT_LENGTH"] = ""
+    env["HTTP_COOKIE"] = ""
+
+    for _, hdr in ipairs(req.raw_headers) do
+        low = string.lower(hdr.name)
+        if low == "content-type" then
+            env["CONTENT_TYPE"] = hdr.value
+        elseif low == "content-length" then
+            env["CONTENT_LENGTH"] = hdr.value
+        elseif low != "proxy" then
+            -- Never map incoming `Proxy:` to `HTTP_PROXY` (RFC 3875 httpoxy mitigation).
+            env_key = "HTTP_" .. string.upper((string.gsub(hdr.name, "%-", "_")))
+            if env[env_key] != nil and env[env_key] != "" then
+                if low == "cookie" then
+                    env[env_key] = env[env_key] .. "; " .. hdr.value
+                else
+                    env[env_key] = env[env_key] .. ", " .. hdr.value
+                end
+            else
+                env[env_key] = hdr.value
+            end
+        end
+    end
+
+    if (env["CONTENT_LENGTH"] == nil or env["CONTENT_LENGTH"] == "") and #req.body > 0 then
+        env["CONTENT_LENGTH"] = tostring(#req.body)
+    end
+
+    return env
+end
+
+function execute_cgi_async(cmd_argv, root, cgi_env, body_bytes, quiet, loop, timeout_ms)
+    has_stdin = (#body_bytes > 0)
+    child, serr = proc_mod.spawn(cmd_argv, {
+        cwd = root,
+        env = cgi_env,
+        stdin_pipe = has_stdin,
+        stdout_pipe = true,
+        stderr_pipe = true,
+        new_pgid = true,
+    })
+    if child == nil then
+        return nil, serr
+    end
+
+    deadline_ms = os.clock_ms() + timeout_ms
+
+    if has_stdin then
+        task.spawn(loop, function()
+            pos = 1
+            total = #body_bytes
+            in_fd = proc_mod.stdin_fd(child)
+            while pos <= total and in_fd != nil do
+                nw, werr = proc_mod.write(child, body_bytes, pos)
+                if nw == nil then
+                    break
+                end
+                if nw > 0 then
+                    pos = pos + nw
+                else
+                    rem = math.ceil(deadline_ms - os.clock_ms())
+                    if rem <= 0 then
+                        break
+                    end
+                    ev, _ = task.wait_fd(in_fd, "w", rem)
+                    if ev == nil then
+                        break
+                    end
+                end
+            end
+            proc_mod.close_stdin(child)
+        end)
+    end
+
+    task.spawn(loop, function()
+        err_fd = proc_mod.stderr_fd(child)
+        while err_fd != nil do
+            echunk, eeof = proc_mod.read(child, "stderr", 8192)
+            if echunk == nil then
+                break
+            end
+            if #echunk > 0 and not quiet then
+                io.write(io.stderr, echunk)
+            end
+            if eeof then
+                break
+            end
+            if #echunk == 0 then
+                rem = math.ceil(deadline_ms - os.clock_ms())
+                if rem <= 0 then
+                    break
+                end
+                ev, _ = task.wait_fd(err_fd, "r", rem)
+                if ev == nil then
+                    break
+                end
+            end
+        end
+    end)
+
+    out_parts = {}
+    out_fd = proc_mod.stdout_fd(child)
+    timed_out = false
+    while out_fd != nil do
+        chunk, eof = proc_mod.read(child, "stdout", 16384)
+        if chunk == nil then
+            break
+        end
+        if #chunk > 0 then
+            table.insert(out_parts, chunk)
+        end
+        if eof then
+            break
+        end
+        if #chunk == 0 then
+            rem = math.ceil(deadline_ms - os.clock_ms())
+            if rem <= 0 then
+                timed_out = true
+                break
+            end
+            ev, why = task.wait_fd(out_fd, "r", rem)
+            if ev == nil and why == "timeout" then
+                timed_out = true
+                break
+            end
+        end
+    end
+
+    if timed_out then
+        proc_mod.kill(child, "KILL", true)
+        proc_mod.wait(child, false)
+        proc_mod.close(child)
+        return nil, "CGI process timed out"
+    end
+
+    -- Reap child non-blockingly with short poll backoff
+    while true do
+        st = proc_mod.wait(child, true)
+        if st == nil or st.done == true then
+            break
+        end
+        if os.clock_ms() >= deadline_ms then
+            proc_mod.kill(child, "KILL", true)
+            proc_mod.wait(child, false)
+            break
+        end
+        task.sleep_ms(2)
+    end
+    proc_mod.close(child)
+    return table.concat(out_parts), nil
+end
+
+-- Builds a reusable `http_serve` handler `(req, loop) -> resp` and resolved server config.
+function cgi_serve.make_handler(opts)
     if type(opts) != "table" then
-        return false, "cgi_serve.run expects an options table"
+        return nil, nil, "cgi_serve expects an options table"
     end
     if not cgi_serve.is_available() then
-        return false, "python3 is required on PATH for cgi_serve"
+        return nil, nil, "net, poll, and proc modules are required for cgi_serve"
     end
 
     has_bin = (type(opts.bin) == "string" and opts.bin != "")
     has_script = (type(opts.script) == "string" and opts.script != "")
     if (not has_bin) and (not has_script) then
-        return false, "cgi_serve.run requires either opts.bin or opts.script"
+        return nil, nil, "cgi_serve.run requires either opts.bin or opts.script"
     end
 
     cwd = lfs.currentdir()
@@ -207,16 +300,16 @@ function cgi_serve.run(opts)
         root = paths.joinpath(cwd, root)
     end
 
-    cmd_bin = ""
-    cmd_script = ""
+    cmd_argv = {}
     if has_bin then
         cmd_bin = opts.bin
         if string.sub(cmd_bin, 1, 1) != "/" then
             cmd_bin = paths.joinpath(cwd, cmd_bin)
         end
         if not paths.file_exists(cmd_bin) then
-            return false, "CGI binary not found: " .. cmd_bin
+            return nil, nil, "CGI binary not found: " .. cmd_bin
         end
+        cmd_argv = {cmd_bin}
     else
         cmd_bin = opts.luam_bin
         if cmd_bin == nil or cmd_bin == "" then
@@ -227,8 +320,54 @@ function cgi_serve.run(opts)
             cmd_script = paths.joinpath(cwd, cmd_script)
         end
         if not paths.file_exists(cmd_script) then
-            return false, "CGI script not found: " .. cmd_script
+            return nil, nil, "CGI script not found: " .. cmd_script
         end
+        cmd_argv = {cmd_bin, cmd_script}
+    end
+
+    base_env = {}
+    if opts.env != nil and type(opts.env) == "table" then
+        for k, v in pairs(opts.env) do
+            base_env[tostring(k)] = tostring(v)
+        end
+    end
+    if has_script then
+        if base_env["LUA_PATH"] == nil then
+            base_env["LUA_PATH"] = package.path
+        end
+        if base_env["LUA_CPATH"] == nil then
+            base_env["LUA_CPATH"] = package.cpath
+        end
+    end
+
+    quiet = (opts.quiet == true)
+    cgi_timeout_ms = default_val(opts.timeout_ms, 60000)
+
+    function handler(req, loop)
+        cgi_env = build_cgi_env(base_env, root, req)
+        raw_out, exec_err = execute_cgi_async(cmd_argv, root, cgi_env, req.body, quiet, loop, cgi_timeout_ms)
+        if raw_out == nil then
+            return {
+                status = 502,
+                headers = {["Content-Type"] = "text/plain; charset=utf-8"},
+                body = "CGI execution failed: " .. tostring(exec_err) .. "\n",
+            }
+        end
+        return parse_cgi_output(raw_out, req.method)
+    end
+
+    return handler, {root = root, cwd = cwd, quiet = quiet}, nil
+end
+
+-- Runs the local HTTP-to-CGI server until interrupted (or for 1 request when `opts.once == true`).
+-- Returns `true, nil` on clean exit or `false, err_string`.
+function cgi_serve.run(opts)
+    if type(opts) != "table" then
+        return false, "cgi_serve.run expects an options table"
+    end
+    handler, meta, herr = cgi_serve.make_handler(opts)
+    if handler == nil then
+        return false, herr
     end
 
     host = opts.host
@@ -245,64 +384,40 @@ function cgi_serve.run(opts)
         port = math.floor(pnum)
     end
 
-    env_map = {}
-    if opts.env != nil and type(opts.env) == "table" then
-        for k, v in pairs(opts.env) do
-            env_map[tostring(k)] = tostring(v)
-        end
-    end
-    if has_script then
-        if env_map["LUA_PATH"] == nil then
-            env_map["LUA_PATH"] = package.path
-        end
-        if env_map["LUA_CPATH"] == nil then
-            env_map["LUA_CPATH"] = package.cpath
-        end
-    end
-
-    env_map["LUAM_CGI_CMD_BIN"] = cmd_bin
-    env_map["LUAM_CGI_CMD_SCRIPT"] = cmd_script
-    env_map["LUAM_CGI_ROOT"] = root
-    env_map["LUAM_CGI_HOST"] = host
-    env_map["LUAM_CGI_PORT"] = tostring(port)
-    if opts.once == true then
-        env_map["LUAM_CGI_ONCE"] = "1"
-    else
-        env_map["LUAM_CGI_ONCE"] = "0"
-    end
-    if opts.quiet == true then
-        env_map["LUAM_CGI_QUIET"] = "1"
-    else
-        env_map["LUAM_CGI_QUIET"] = "0"
-    end
+    port_file = nil
     if opts.port_file != nil and opts.port_file != "" then
         pf = opts.port_file
         if string.sub(pf, 1, 1) != "/" then
-            pf = paths.joinpath(cwd, pf)
+            pf = paths.joinpath(meta.cwd, pf)
         end
-        env_map["LUAM_CGI_PORT_FILE"] = pf
+        port_file = pf
     end
 
-    if USE_PROC then
-        ok_run, why_run, code_run = proc_mod.run({"python3", "-c", PYTHON_CGI_BRIDGE}, {env = env_map, cwd = root})
-        if ok_run == true then
-            return true, nil
+    function log_req(req, status_code, peer)
+        if not meta.quiet then
+            io.write(io.stderr, string.format("[cgi_serve] %s - \"%s %s %s\" %d\n",
+                tostring(peer), req.method, req.target, req.version, status_code))
         end
-        return false, "cgi_serve exited (" .. tostring(why_run) .. " " .. tostring(code_run) .. ")"
     end
 
-    -- Fallback to external_tool when proc.so is not available
-    assigns = {}
-    for k, v in pairs(env_map) do
-        table.insert(assigns, k .. "=" .. ext.shell_quote(v))
+    function announce_ready(actual_port)
+        if not meta.quiet then
+            io.write(io.stderr, string.format("Serving CGI at http://%s:%d/\n", host, actual_port))
+        end
     end
-    table.sort(assigns)
-    shell_cmd = table.concat(assigns, " ") .. " python3 -c " .. ext.shell_quote(PYTHON_CGI_BRIDGE)
-    ok_sh, why_sh, code_sh = ext.run(shell_cmd)
-    if ok_sh == true then
-        return true, nil
-    end
-    return false, "cgi_serve exited (" .. tostring(why_sh) .. " " .. tostring(code_sh) .. ")"
+
+    return http_serve.run({
+        host = host,
+        port = port,
+        once = (opts.once == true),
+        quiet = meta.quiet,
+        port_file = port_file,
+        handler = handler,
+        on_log = log_req,
+        on_ready = announce_ready,
+        handle_signals = opts.handle_signals,
+        loop = opts.loop,
+    })
 end
 
 return cgi_serve
